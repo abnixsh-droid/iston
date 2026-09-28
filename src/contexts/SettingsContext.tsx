@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { api } from '../lib/api';
+import { setOverrides } from '../lib/i18n';
 
 // Only the details explicitly provided by Iston Builder Group are defaults.
 export const DEFAULTS: Record<string, string> = {
@@ -39,6 +40,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         for (const [k, v] of Object.entries(d || {})) if (v && String(v).trim()) merged[k] = String(v);
         if (!merged.brochure_url && merged.brochure_hidden !== '1' && (await folderBrochureExists())) merged.brochure_url = FOLDER_BROCHURE;
         setS(merged);
+        setOverrides(merged.hindi_overrides || '');
         if (merged.site_domain) (window as unknown as { __SITE_DOMAIN__?: string }).__SITE_DOMAIN__ = merged.site_domain;
       })
       .catch(() => setS(DEFAULTS))

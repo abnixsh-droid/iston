@@ -67,7 +67,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
+    <div data-no-translate className="grid min-h-screen lg:grid-cols-2">
       <div className="relative hidden overflow-hidden bg-navy lg:block">
         <img src="/images/umroli-hero.jpg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" />
         <div className="absolute inset-0 bg-linear-to-t from-navy-deep to-transparent" />

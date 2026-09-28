@@ -74,7 +74,7 @@ export default function AdminLayout() {
 
   if (denied)
     return (
-      <div className="grid min-h-screen place-items-center bg-mist p-6">
+      <div data-no-translate className="grid min-h-screen place-items-center bg-mist p-6">
         <div className="max-w-md rounded-3xl bg-white p-8 text-center shadow-xl">
           <ShieldAlert className="mx-auto h-8 w-8 text-rose-600" />
           <h1 className="font-display mt-4 text-3xl text-navy">Access restricted</h1>
@@ -109,7 +109,7 @@ export default function AdminLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-mist">
+    <div data-no-translate className="min-h-screen bg-mist">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-navy lg:flex">
         <div className="flex items-center gap-2.5 border-b border-white/10 px-5 py-5">
           <LogoMark className="h-9 w-9" />

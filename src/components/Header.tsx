@@ -1,3 +1,4 @@
+import LanguageToggle from './LanguageToggle';
 import BrochureButton from '../components/BrochureButton';
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
@@ -65,6 +66,7 @@ export default function Header() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            <LanguageToggle solid={solid} />
             <BrochureButton className={`hidden items-center gap-1.5 px-2 text-[13px] font-semibold md:flex ${solid ? 'text-navy' : 'text-white'}`}>Brochure</BrochureButton>
             <a href={telHref(s.phone)} className={`hidden btn btn-sm lg:inline-flex ${solid ? 'btn-outline' : 'btn-ghost'}`}>
               <Phone className="h-3.5 w-3.5" /> {s.phone}
@@ -106,7 +108,10 @@ export default function Header() {
                   </NavLink>
                 </motion.div>
               ))}
-              <div className="mt-8 grid grid-cols-2 gap-3">
+              <div className="mt-8">
+                <LanguageToggle full />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3">
                 <a href={telHref(s.phone)} className="btn btn-outline">
                   <Phone className="h-4 w-4" /> Call
                 </a>

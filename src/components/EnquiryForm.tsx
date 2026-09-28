@@ -117,7 +117,7 @@ export default function EnquiryForm({ preset = {}, compact = false }: { preset?:
           <label className="label" htmlFor="enq-interest">Interested in</label>
           <select id="enq-interest" className="input" value={f.interest} onChange={(e) => set('interest', e.target.value)}>
             {interests.map((i) => (
-              <option key={i}>{i}</option>
+              <option key={i} value={i}>{i}</option>
             ))}
           </select>
         </div>
