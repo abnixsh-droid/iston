@@ -1,8 +1,9 @@
+import BrochureButton from '../components/BrochureButton';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Download, Handshake, MapPin, Search } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Handshake, MapPin, Search } from 'lucide-react';
 import { useApi } from '../lib/api';
 import type { Row } from '../lib/api';
 import { useSeo } from '../lib/seo';
@@ -93,9 +94,7 @@ export default function Home() {
             <button onClick={() => open({ interest: `${heroName} project`, heading: `Enquire about ${heroName}` })} className="btn btn-ghost">
               Enquire Now
             </button>
-            <Link to="/brochure" className="btn btn-ghost hidden sm:inline-flex">
-              <Download className="h-4 w-4" /> Brochure
-            </Link>
+            <BrochureButton className="btn btn-ghost hidden sm:inline-flex">Brochure</BrochureButton>
           </motion.div>
 
           <motion.form
@@ -361,9 +360,7 @@ export default function Home() {
                 {has(s.brochure_url) ? 'Download the latest brochure for an overview of our projects.' : 'Our brochure is being prepared. Request a copy and we’ll share it as soon as it’s ready.'}
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link to="/brochure" className="btn btn-light">
-                  <Download className="h-4 w-4" /> {has(s.brochure_url) ? 'Download Brochure' : 'Brochure — Coming Soon'}
-                </Link>
+                <BrochureButton className="btn btn-light">{has(s.brochure_url) ? 'Download Brochure' : 'Brochure — Coming Soon'}</BrochureButton>
                 <Link to="/contact" className="btn btn-ghost">
                   <MapPin className="h-4 w-4" /> Contact
                 </Link>

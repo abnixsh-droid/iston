@@ -1,6 +1,7 @@
+import BrochureButton from '../components/BrochureButton';
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Download, MapPin, MessageCircle, Phone } from 'lucide-react';
+import { ArrowLeft, Check, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { useApi } from '../lib/api';
 import type { Row } from '../lib/api';
 import { useSeo } from '../lib/seo';
@@ -135,7 +136,7 @@ export default function ProjectDetail() {
                   <a href={telHref(s.phone)} className="btn btn-outline"><Phone className="h-4 w-4" /> Call</a>
                   <a href={wa} target="_blank" rel="noreferrer" className="btn btn-outline"><MessageCircle className="h-4 w-4" /> WhatsApp</a>
                 </div>
-                <Link to="/brochure" className="btn btn-outline"><Download className="h-4 w-4" /> Brochure</Link>
+                <BrochureButton className="btn btn-outline">Brochure</BrochureButton>
               </div>
             </div>
           </aside>

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { CheckCircle2, FileUp, Loader2, Trash2, UserPlus } from 'lucide-react';
+import { CheckCircle2, FileUp, Loader2, RefreshCw, Trash2, UserPlus } from 'lucide-react';
 import { api, uploadFile, useApi } from '../lib/api';
 import { updatePassword } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { useSettings } from '../contexts/SettingsContext';
+import { FOLDER_BROCHURE, useSettings } from '../contexts/SettingsContext';
 import type { AdminCtx } from './AdminLayout';
 
 type G = { title: string; fields: [string, string, ('text' | 'textarea')?, string?][] };
@@ -37,6 +37,13 @@ const GROUPS: G[] = [
       ['mission', 'Mission', 'textarea'],
       ['vision', 'Vision', 'textarea'],
       ['rera_info', 'RERA / legal information', 'textarea'],
+    ],
+  },
+  {
+    title: 'Enquiry notifications',
+    fields: [
+      ['notify_email', 'Send enquiries to email', 'text', 'istonbuildergroup@gmail.com'],
+      ['notify_whatsapp', 'Send enquiries to WhatsApp', 'text', '918484843391'],
     ],
   },
   {
@@ -181,13 +188,26 @@ export function BrochurePage() {
   const raw = useRawSettings();
   const { reload } = useSettings();
   const ref = useRef<HTMLInputElement>(null);
-  const [v, setV] = useState({ brochure_url: '', brochure_title: '', brochure_updated: '' });
+  const [v, setV] = useState({ brochure_url: '', brochure_title: '', brochure_updated: '', brochure_hidden: '' });
+  const [folderFile, setFolderFile] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
   useEffect(() => {
-    if (raw.data) setV({ brochure_url: raw.data.brochure_url || '', brochure_title: raw.data.brochure_title || '', brochure_updated: raw.data.brochure_updated || '' });
+    if (raw.data)
+      setV({
+        brochure_url: raw.data.brochure_url || '',
+        brochure_title: raw.data.brochure_title || '',
+        brochure_updated: raw.data.brochure_updated || '',
+        brochure_hidden: raw.data.brochure_hidden || '',
+      });
   }, [raw.data]);
+
+  useEffect(() => {
+    fetch(FOLDER_BROCHURE, { method: 'HEAD', cache: 'no-store' })
+      .then((r) => setFolderFile(r.ok && (r.headers.get('content-type') || '').includes('pdf')))
+      .catch(() => setFolderFile(false));
+  }, []);
 
   const persist = async (next: typeof v, note: string) => {
     setBusy(true);
@@ -206,18 +226,32 @@ export function BrochurePage() {
   };
 
   const upload = async (f?: File) => {
+    if (ref.current) ref.current.value = '';
     if (!f) return;
     if (f.type !== 'application/pdf') return setMsg('Please upload a PDF file.');
     if (f.size > 50 * 1024 * 1024) return setMsg('PDF must be under 50 MB.');
+    const replacing = !!liveUrl;
     setBusy(true);
-    setMsg('Uploading…');
+    setMsg(replacing ? 'Replacing brochure…' : 'Uploading…');
     try {
       const url = await uploadFile(f, 'brochures');
-      await persist({ ...v, brochure_url: url, brochure_updated: new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) }, 'Brochure uploaded and published.');
+      await persist(
+        { ...v, brochure_url: url, brochure_hidden: '', brochure_updated: new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) },
+        replacing ? 'Brochure replaced. Visitors now download the new file.' : 'Brochure uploaded and published.'
+      );
     } catch (e) {
       setMsg((e as Error).message);
       setBusy(false);
     }
+  };
+
+  // What visitors currently download: uploaded/linked file, else the admin-folder file (unless removed).
+  const liveUrl = v.brochure_url || (folderFile && v.brochure_hidden !== '1' ? FOLDER_BROCHURE : '');
+  const source = v.brochure_url ? 'Uploaded in admin panel' : liveUrl ? 'Admin folder (public/admin/brochure.pdf)' : '';
+
+  const remove = () => {
+    if (!confirm('Remove the brochure from the website? Visitors will see “Brochure Coming Soon”.')) return;
+    persist({ ...v, brochure_url: '', brochure_hidden: '1' }, 'Brochure removed from the website.');
   };
 
   if (raw.loading) return <Loader2 className="mx-auto mt-20 h-5 w-5 animate-spin text-navy" />;
@@ -227,28 +261,49 @@ export function BrochurePage() {
       <p className="text-xs font-semibold text-muted">Downloads</p>
       <h1 className="font-display text-4xl text-navy">Brochure</h1>
       <section className="mt-8 rounded-2xl border border-line bg-white p-5 md:p-6">
-        {v.brochure_url ? (
-          <div className="flex items-start gap-3 rounded-xl bg-emerald-50 p-4">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-            <div className="min-w-0 text-sm">
-              <p className="font-semibold text-navy">A brochure is live on the website.</p>
-              <a href={v.brochure_url} target="_blank" rel="noreferrer" className="block truncate text-xs text-navy underline">
-                {v.brochure_url}
-              </a>
+        {liveUrl ? (
+          <div className="flex flex-col gap-4 rounded-xl bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+              <div className="min-w-0 text-sm">
+                <p className="font-semibold text-navy">Brochure is live — “Download Brochure” starts the download directly.</p>
+                <p className="text-xs text-muted">Source: {source}</p>
+                <a href={liveUrl} target="_blank" rel="noreferrer" className="block truncate text-xs text-navy underline">
+                  Preview current brochure
+                </a>
+              </div>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button onClick={() => ref.current?.click()} disabled={busy} className="btn btn-primary btn-sm">
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Replace
+              </button>
+              <button onClick={remove} disabled={busy} className="btn btn-sm border border-rose-200 bg-white text-rose-700 hover:bg-rose-50">
+                <Trash2 className="h-3.5 w-3.5" /> Remove
+              </button>
             </div>
           </div>
         ) : (
-          <p className="rounded-xl bg-mist p-4 text-sm text-muted">No brochure uploaded — the website shows “Brochure Coming Soon” with a request form.</p>
+          <div className="rounded-xl bg-mist p-4 text-sm text-muted">
+            No brochure is live — the website shows “Brochure Coming Soon” with a request form.
+            {folderFile && v.brochure_hidden === '1' && (
+              <button onClick={() => persist({ ...v, brochure_hidden: '' }, 'Admin-folder brochure restored.')} disabled={busy} className="mt-3 block font-semibold text-navy underline">
+                Restore the brochure from the admin folder
+              </button>
+            )}
+          </div>
         )}
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label className="label">Upload PDF</label>
+            <label className="label">{liveUrl ? 'Replace with a new PDF' : 'Upload PDF'}</label>
             <button onClick={() => ref.current?.click()} disabled={busy} className="flex w-full flex-col items-center gap-2 rounded-2xl border border-dashed border-line p-8 text-sm text-muted hover:border-navy hover:text-navy">
               {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <FileUp className="h-6 w-6" />}
-              Click to upload a brochure PDF
+              {liveUrl ? 'Click to choose a new brochure PDF (replaces the current one)' : 'Click to upload a brochure PDF'}
             </button>
             <input ref={ref} type="file" accept="application/pdf" hidden onChange={(e) => upload(e.target.files?.[0])} />
+            <p className="mt-2 text-[11px] text-muted">
+              Alternatively, place your file at <code className="rounded bg-mist px-1">public/admin/brochure.pdf</code> in the site’s admin folder before deploying — it is used automatically when nothing is uploaded here.
+            </p>
           </div>
           <div className="sm:col-span-2">
             <label className="label">…or brochure link</label>
@@ -265,16 +320,9 @@ export function BrochurePage() {
         </div>
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
           <span className="text-sm text-muted">{msg}</span>
-          <div className="flex gap-2">
-            {v.brochure_url && (
-              <button onClick={() => confirm('Remove the brochure from the website?') && persist({ ...v, brochure_url: '' }, 'Brochure removed.')} disabled={busy} className="btn btn-sm text-rose-600 hover:bg-rose-50">
-                Remove
-              </button>
-            )}
-            <button onClick={() => persist(v, 'Brochure details saved.')} disabled={busy} className="btn btn-primary btn-sm">
-              Save
-            </button>
-          </div>
+          <button onClick={() => persist({ ...v, brochure_hidden: v.brochure_url ? '' : v.brochure_hidden }, 'Brochure details saved.')} disabled={busy} className="btn btn-primary btn-sm">
+            Save
+          </button>
         </div>
       </section>
     </div>

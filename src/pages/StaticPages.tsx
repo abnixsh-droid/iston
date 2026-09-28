@@ -1,3 +1,6 @@
+import { useEffect, useRef } from 'react';
+import { BROCHURE_FILENAME, brochureDownloadUrl } from '../lib/brochure';
+import BrochureButton from '../components/BrochureButton';
 import { Link } from 'react-router-dom';
 import { Clock, Download, FileText, Handshake, Mail, MapPin, MessageCircle, Phone, Sparkles, Users, Wallet } from 'lucide-react';
 import { useSeo } from '../lib/seo';
@@ -117,6 +120,18 @@ export function Brochure() {
   const { open } = useEnquiry();
   useSeo('Download Brochure', 'Download the Iston Builder Group brochure.');
   const ready = has(s.brochure_url);
+  const started = useRef(false);
+  useEffect(() => {
+    // Visiting /brochure (e.g. from the footer or menu) starts the download straight away.
+    if (!ready || started.current) return;
+    started.current = true;
+    const link = document.createElement('a');
+    link.href = brochureDownloadUrl(s.brochure_url);
+    link.download = BROCHURE_FILENAME;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }, [ready, s.brochure_url]);
   return (
     <>
       <PageHero eyebrow="Brochure" title="Download brochure" crumbs={[['Brochure']]} />
@@ -137,11 +152,9 @@ export function Brochure() {
               <>
                 <h2 className="font-display text-4xl text-navy">{s.brochure_title || 'Project Brochure'}</h2>
                 {has(s.brochure_updated) && <p className="mt-2 text-sm text-muted">Updated {s.brochure_updated}</p>}
-                <p className="mt-4 text-[15px] text-muted">An overview of Iston Builder Group projects.</p>
+                <p className="mt-4 text-[15px] text-muted">Your download should start automatically. If it doesn’t, use the button below.</p>
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <a href={s.brochure_url} target="_blank" rel="noreferrer" download className="btn btn-primary">
-                    <Download className="h-4 w-4" /> Download PDF
-                  </a>
+                  <BrochureButton className="btn btn-primary">Download PDF</BrochureButton>
                   <a href={waHref(s.whatsapp, 'Hello Iston Builder Group, please share the brochure.')} target="_blank" rel="noreferrer" className="btn btn-outline">
                     <MessageCircle className="h-4 w-4" /> Get on WhatsApp
                   </a>

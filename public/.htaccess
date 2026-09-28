@@ -5,9 +5,8 @@ RewriteBase /
 # Force HTTPS
 RewriteCond %{HTTPS} off
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-# Serve existing files/folders directly; send everything else to index.html
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
+# Serve existing files directly (e.g. /admin/brochure.pdf); send everything else to index.html
+RewriteCond %{REQUEST_FILENAME} -f
 RewriteRule ^ - [L]
 RewriteRule ^(?!api/) index.html [L]
 <IfModule mod_expires.c>
@@ -17,3 +16,6 @@ RewriteRule ^(?!api/) index.html [L]
   ExpiresByType text/css "access plus 1 year"
   ExpiresByType application/javascript "access plus 1 year"
 </IfModule>
+<FilesMatch "\.pdf$">
+  Header set Content-Disposition "attachment"
+</FilesMatch>

@@ -1,7 +1,8 @@
+import BrochureButton from '../components/BrochureButton';
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Download, Menu, MessageCircle, Phone, X } from 'lucide-react';
+import { Menu, MessageCircle, Phone, X } from 'lucide-react';
 import Logo from './Logo';
 import { useEnquiry } from '../contexts/EnquiryContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -64,9 +65,7 @@ export default function Header() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/brochure" className={`hidden items-center gap-1.5 px-2 text-[13px] font-semibold md:flex ${solid ? 'text-navy' : 'text-white'}`}>
-              <Download className="h-4 w-4" /> Brochure
-            </Link>
+            <BrochureButton className={`hidden items-center gap-1.5 px-2 text-[13px] font-semibold md:flex ${solid ? 'text-navy' : 'text-white'}`}>Brochure</BrochureButton>
             <a href={telHref(s.phone)} className={`hidden btn btn-sm lg:inline-flex ${solid ? 'btn-outline' : 'btn-ghost'}`}>
               <Phone className="h-3.5 w-3.5" /> {s.phone}
             </a>

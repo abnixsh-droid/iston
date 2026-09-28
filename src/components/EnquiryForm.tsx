@@ -67,14 +67,24 @@ export default function EnquiryForm({ preset = {}, compact = false }: { preset?:
   };
 
   if (state === 'done') {
-    const text = `Hello Iston Builder Group, I just submitted an enquiry${preset.item_title ? ` about ${preset.item_title}` : ''}. My name is ${f.name}.`;
+    const text = [
+      'Hello Iston Builder Group, I have submitted an enquiry on your website.',
+      `Name: ${f.name}`,
+      `Phone: ${f.phone}`,
+      f.email && `Email: ${f.email}`,
+      `Interested in: ${f.interest}`,
+      preset.item_title && `Listing: ${preset.item_title}`,
+      f.message && `Message: ${f.message}`,
+    ]
+      .filter(Boolean)
+      .join('\n');
     return (
       <div className="flex flex-col items-center gap-3 py-6 text-center">
         <CheckCircle2 className="h-10 w-10 text-emerald-600" strokeWidth={1.5} />
         <p className="font-display text-2xl text-navy">Thank you, {f.name.split(' ')[0]}.</p>
         <p className="max-w-sm text-sm text-muted">Your enquiry has been received. Our team will reach out to you on {f.phone}.</p>
         <a href={waHref(s.whatsapp, text)} target="_blank" rel="noreferrer" className="btn btn-outline mt-2">
-          <MessageCircle className="h-4 w-4" /> Continue on WhatsApp
+          <MessageCircle className="h-4 w-4" /> Also send on WhatsApp
         </a>
       </div>
     );

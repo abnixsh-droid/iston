@@ -1,5 +1,6 @@
+import BrochureButton from '../components/BrochureButton';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Download, MessageCircle, Phone, Share2 } from 'lucide-react';
+import { ArrowLeft, Check, MessageCircle, Phone, Share2 } from 'lucide-react';
 import { useApi } from '../lib/api';
 import type { Row } from '../lib/api';
 import { useSeo } from '../lib/seo';
@@ -104,7 +105,7 @@ export default function ItemDetail({ kind }: { kind: KindKey }) {
                 <a href={telHref(s.phone)} className="btn btn-outline"><Phone className="h-4 w-4" /> Call</a>
                 <a href={wa} target="_blank" rel="noreferrer" className="btn btn-outline"><MessageCircle className="h-4 w-4" /> WhatsApp</a>
               </div>
-              <Link to="/brochure" className="btn btn-outline"><Download className="h-4 w-4" /> Download Brochure</Link>
+              <BrochureButton className="btn btn-outline" />
             </div>
           </div>
         </aside>

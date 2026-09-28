@@ -1,5 +1,6 @@
 import supabase from './db-client.js';
 import { cors, requireAdmin, enc, dec, isEnc } from './_lib.js';
+import { notifyEnquiry } from './_notify.js';
 
 const STATUSES = ['new', 'contacted', 'follow_up', 'closed'];
 const PII = ['name', 'phone', 'email', 'message', 'notes'];
@@ -41,6 +42,16 @@ export default async function handler(req, res) {
       };
       const { error } = await supabase.from('enquiries').insert(row);
       if (error) throw error;
+      await notifyEnquiry({
+        name,
+        phone,
+        email,
+        message: s(b.message, 2000),
+        interest: row.interest,
+        item_title: row.item_title,
+        source_page: row.source_page,
+        referral_code: row.referral_code,
+      });
       return res.status(201).json({ ok: true });
     }
 
