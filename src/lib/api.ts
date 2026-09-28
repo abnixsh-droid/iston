@@ -1,0 +1,69 @@
+import { useCallback, useEffect, useState } from 'react';
+import supabase from './supabase';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Row = Record<string, any>;
+
+async function token() {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token;
+}
+
+export async function api<T = any>(path: string, opts: { method?: string; body?: unknown; auth?: boolean } = {}): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (opts.auth) {
+    const t = await token();
+    if (t) headers.Authorization = `Bearer ${t}`;
+  }
+  const res = await fetch(path, {
+    method: opts.method || 'GET',
+    headers,
+    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    const err = new Error(json?.error || `Request failed (${res.status})`) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
+  return json as T;
+}
+
+export function useApi<T = any>(path: string | null, auth = false) {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState<boolean>(!!path);
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<number | null>(null);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!path) {
+      setLoading(false);
+      return;
+    }
+    let alive = true;
+    setLoading(true);
+    setError(null);
+    api<T>(path, { auth })
+      .then((d) => alive && (setData(d), setStatus(200)))
+      .catch((e) => alive && (setError(e.message), setStatus(e.status || 500)))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, [path, auth, tick]);
+
+  const reload = useCallback(() => setTick((t) => t + 1), []);
+  return { data, loading, error, status, reload, setData };
+}
+
+export async function uploadFile(file: File, folder = 'uploads'): Promise<string> {
+  const { path, token: t, publicUrl } = await api<{ path: string; token: string; publicUrl: string }>('/api/upload', {
+    method: 'POST',
+    auth: true,
+    body: { fileName: file.name, folder },
+  });
+  const { error } = await supabase.storage.from('media').uploadToSignedUrl(path, t, file, { contentType: file.type });
+  if (error) throw error;
+  return publicUrl;
+}
