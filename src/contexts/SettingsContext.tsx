@@ -24,6 +24,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const merged: Record<string, string> = { ...DEFAULTS };
         for (const [k, v] of Object.entries(d || {})) if (v && String(v).trim()) merged[k] = String(v);
         setS(merged);
+        if (merged.site_domain) (window as unknown as { __SITE_DOMAIN__?: string }).__SITE_DOMAIN__ = merged.site_domain;
       })
       .catch(() => setS(DEFAULTS))
       .finally(() => setLoading(false));

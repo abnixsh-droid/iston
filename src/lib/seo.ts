@@ -33,6 +33,7 @@ export function useSeo(title: string, description?: string, image?: string | nul
       link.rel = 'canonical';
       document.head.appendChild(link);
     }
-    link.href = window.location.origin + window.location.pathname;
+    const domain = (window as unknown as { __SITE_DOMAIN__?: string }).__SITE_DOMAIN__;
+    link.href = (domain ? domain.replace(/\/$/, '') : window.location.origin) + window.location.pathname;
   }, [title, description, image, noindex]);
 }

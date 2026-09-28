@@ -20,7 +20,8 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import supabase from '../lib/supabase';
+import { signOut as fbSignOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 import { api } from '../lib/api';
 import type { Row } from '../lib/api';
 import { useSeo } from '../lib/seo';
@@ -67,7 +68,7 @@ export default function AdminLayout() {
   if (!user) return <Navigate to="/admin/login" replace />;
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    if (auth) await fbSignOut(auth);
     navigate('/admin/login');
   };
 
@@ -111,7 +112,7 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-mist">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-navy lg:flex">
         <div className="flex items-center gap-2.5 border-b border-white/10 px-5 py-5">
-          <LogoMark className="h-8 w-8 text-white/10" />
+          <LogoMark className="h-9 w-9" />
           <div className="leading-none text-white">
             <p className="font-display text-lg tracking-[0.12em]">ISTON</p>
             <p className="text-[9px] font-bold tracking-[0.2em] text-white/50 uppercase">Admin Panel</p>

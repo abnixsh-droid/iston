@@ -1,24 +1,18 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
-import supabase from '../lib/supabase';
+import { onAuthStateChanged } from 'firebase/auth';
+import type { User } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
-type AuthState = { user: User | null; session: Session | null; loading: boolean; event: string | null };
-const AuthContext = createContext<AuthState>({ user: null, session: null, loading: true, event: null });
+type AuthState = { user: User | null; loading: boolean };
+const AuthContext = createContext<AuthState>({ user: null, loading: true });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({ user: null, session: null, loading: true, event: null });
+  const [state, setState] = useState<AuthState>({ user: null, loading: !!auth });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setState((s) => ({ ...s, session, user: session?.user ?? null, loading: false }));
-    });
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setState({ session, user: session?.user ?? null, loading: false, event });
-    });
-    return () => subscription.unsubscribe();
+    if (!auth) return;
+    return onAuthStateChanged(auth, (user) => setState({ user, loading: false }));
   }, []);
 
   return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;

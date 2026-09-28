@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import supabase from './supabase';
+import { auth } from './firebase';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Row = Record<string, any>;
 
 async function token() {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token;
+  return auth?.currentUser ? auth.currentUser.getIdToken() : undefined;
 }
 
 export async function api<T = any>(path: string, opts: { method?: string; body?: unknown; auth?: boolean } = {}): Promise<T> {

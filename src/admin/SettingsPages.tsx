@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { CheckCircle2, FileUp, Loader2, Trash2, UserPlus } from 'lucide-react';
 import { api, uploadFile, useApi } from '../lib/api';
-import supabase from '../lib/supabase';
+import { updatePassword } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 import { useSettings } from '../contexts/SettingsContext';
 import type { AdminCtx } from './AdminLayout';
 
@@ -36,6 +37,13 @@ const GROUPS: G[] = [
       ['mission', 'Mission', 'textarea'],
       ['vision', 'Vision', 'textarea'],
       ['rera_info', 'RERA / legal information', 'textarea'],
+    ],
+  },
+  {
+    title: 'Domain & hosting (Hostinger)',
+    fields: [
+      ['site_domain', 'Primary domain', 'text', 'e.g. https://www.yourdomain.com — your Hostinger domain'],
+      ['hosting_provider', 'Hosting provider', 'text', 'Hostinger'],
     ],
   },
   {
@@ -285,9 +293,16 @@ export function AccountPage() {
     if (p1.length < 8) return setMsg({ ok: false, t: 'Use at least 8 characters.' });
     if (p1 !== p2) return setMsg({ ok: false, t: 'Passwords do not match.' });
     setBusy(true);
-    const { error } = await supabase.auth.updateUser({ password: p1 });
+    let error: string | null = null;
+    try {
+      if (!auth?.currentUser) throw new Error('Not signed in.');
+      await updatePassword(auth.currentUser, p1);
+    } catch (e) {
+      const code = (e as { code?: string }).code || '';
+      error = code.includes('requires-recent-login') ? 'For security, log out and log in again before changing your password.' : (e as Error).message;
+    }
     setBusy(false);
-    if (error) setMsg({ ok: false, t: error.message });
+    if (error) setMsg({ ok: false, t: error });
     else {
       setMsg({ ok: true, t: 'Password updated.' });
       setP1('');

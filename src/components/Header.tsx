@@ -95,7 +95,7 @@ export default function Header() {
             className="fixed inset-x-0 top-16 bottom-0 z-40 overflow-y-auto bg-white lg:top-20 xl:hidden"
           >
             <nav className="container-x flex flex-col py-6" aria-label="Mobile">
-              {[['/', 'Home'] as [string, string], ...NAV, ['/brochure', 'Download Brochure'] as [string, string], ['/partner-program', 'Partner Program'] as [string, string]].map(([to, label], i) => (
+              {[['/', 'Home'] as [string, string], ...NAV, ['/brochure', 'Download Brochure'] as [string, string], ['/partner-program', 'Partner Program'] as [string, string], ['/admin/login', 'Admin Login'] as [string, string]].map(([to, label], i) => (
                 <motion.div key={to} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.03 * i }}>
                   <NavLink
                     to={to}

@@ -90,7 +90,7 @@ export default function Footer() {
             </a>
             <div className="flex items-start gap-3 text-white/80">
               <Mail className="mt-0.5 h-4 w-4 shrink-0 text-brass-light" />
-              {has(s.email) ? <a href={`mailto:${s.email}`} className="hover:text-white">{s.email}</a> : <span className="text-white/45 italic">Email coming soon</span>}
+              {has(s.email) ? <a href={`mailto:${s.email}`} className="hover:text-white">{s.email}</a> : <span className="text-white/45 italic">sitaramchaurasiya8@gmaill.com</span>}
             </div>
             <div className="flex items-start gap-3 text-white/80">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brass-light" />
@@ -106,7 +106,7 @@ export default function Footer() {
             {has(s.footer_disclaimer) ? s.footer_disclaimer : 'Images are representative. Project details, availability and pricing are subject to change — please confirm with our team.'}
           </p>
           <Link to="/admin" className="inline-flex items-center gap-1 text-white/35 hover:text-white/70">
-            Admin <ArrowUpRight className="h-3 w-3" />
+            Admin Login <ArrowUpRight className="h-3 w-3" />
           </Link>
         </div>
       </div>

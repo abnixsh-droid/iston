@@ -1,9 +1,10 @@
 import crypto from 'crypto';
 import supabase from './db-client.js';
+import { verifyFirebaseToken } from './_firebase.js';
 
 // Pre-configured admin accounts (cannot be removed). Extra admins live in the private
 // `config` storage bucket (admins.json), which is not reachable with the public anon key.
-export const ADMIN_EMAILS = ['abnixsh@gmail.com', 'sitaramchaurasiya8@gmail.com'];
+export const ADMIN_EMAILS = ['sitaramchaurasiya8@gmail.com', 'bnixsh@gmail.com'];
 
 const BASE = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SIGN_KEY = crypto.createHash('sha256').update('iston-sign-v1:' + BASE).digest();
@@ -41,10 +42,14 @@ export async function writeConfig(name, obj) {
 export async function getAdmin(req) {
   const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
   if (!token) return { error: 'Unauthorized', code: 401 };
-  const { data, error } = await supabase.auth.getUser(token);
-  const user = data?.user;
-  if (error || !user) return { error: 'Invalid or expired session', code: 401 };
-  const email = (user.email || '').toLowerCase();
+  let user;
+  try {
+    user = await verifyFirebaseToken(token);
+  } catch (e) {
+    return { error: e.message || 'Invalid or expired session', code: 401 };
+  }
+  if (!user.email_verified) return { error: 'Please verify your email address before accessing the admin panel.', code: 403, user };
+  const email = user.email;
   let allowed = ADMIN_EMAILS.includes(email);
   if (!allowed) {
     const extra = await readConfig('admins.json', []);
