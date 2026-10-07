@@ -23,8 +23,8 @@
       protocol: ftp
       port: 21
       local-dir: dist/
-      # Pick ONE of the two lines below:
-      server-dir: ./                                   # if you created a site-scoped FTP user whose home is your domain's public_html
-      # server-dir: domains/istongroupbuilder.in/public_html/  # if using the main FTP user
+      # Use ONE of the following server-dir lines:
+      server-dir: domains/istongroupbuilder.in/public_html/
+      # server-dir: ./   # only if you created a site-scoped FTP user whose home is your domain's public_html
       log-level: verbose
       dangerous-clean-slate: true
