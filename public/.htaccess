@@ -1,14 +1,24 @@
-# Hostinger (Apache/LiteSpeed) — SPA routing for Iston Builder Group
+# Hostinger (Apache/LiteSpeed) — SPA routing
 Options -Indexes
+
 RewriteEngine On
 RewriteBase /
-# Force HTTPS
+
+# Force HTTPS (enable SSL in hPanel first, otherwise you can get redirect issues)
 RewriteCond %{HTTPS} off
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-# Serve existing files directly (e.g. /admin/brochure.pdf); send everything else to index.html
-RewriteCond %{REQUEST_FILENAME} -f
+
+# Serve existing files OR directories directly
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
-RewriteRule ^(?!api/) index.html [L]
+
+# Don't rewrite API paths (future PHP APIs can live under /api)
+RewriteRule ^api/ - [L]
+
+# SPA fallback (React Router)
+RewriteRule . /index.html [L]
+
 <IfModule mod_expires.c>
   ExpiresActive On
   ExpiresByType image/jpeg "access plus 1 month"
@@ -16,6 +26,9 @@ RewriteRule ^(?!api/) index.html [L]
   ExpiresByType text/css "access plus 1 year"
   ExpiresByType application/javascript "access plus 1 year"
 </IfModule>
-<FilesMatch "\.pdf$">
-  Header set Content-Disposition "attachment"
-</FilesMatch>
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.pdf$">
+    Header set Content-Disposition "attachment"
+  </FilesMatch>
+</IfModule>
