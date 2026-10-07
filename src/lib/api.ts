@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import supabase from './supabase';
 import { auth } from './firebase';
+import { getDemoToken } from './demoSession';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Row = Record<string, any>;
 
 async function token() {
-  return auth?.currentUser ? auth.currentUser.getIdToken() : undefined;
+  if (auth?.currentUser) return auth.currentUser.getIdToken();
+  return getDemoToken() || undefined;
 }
 
 export async function api<T = any>(path: string, opts: { method?: string; body?: unknown; auth?: boolean } = {}): Promise<T> {

@@ -339,6 +339,7 @@ export function AccountPage() {
 
   const save = async () => {
     setMsg(null);
+    if (me.isDemo) return setMsg({ ok: false, t: 'Password changes are disabled in demo mode.' });
     if (p1.length < 8) return setMsg({ ok: false, t: 'Use at least 8 characters.' });
     if (p1 !== p2) return setMsg({ ok: false, t: 'Passwords do not match.' });
     setBusy(true);

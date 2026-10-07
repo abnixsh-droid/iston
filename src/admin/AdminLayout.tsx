@@ -22,6 +22,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { signOut as fbSignOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+import { demoLogout } from '../lib/demoSession';
 import { api } from '../lib/api';
 import type { Row } from '../lib/api';
 import { useSeo } from '../lib/seo';
@@ -68,7 +69,8 @@ export default function AdminLayout() {
   if (!user) return <Navigate to="/admin/login" replace />;
 
   const signOut = async () => {
-    if (auth) await fbSignOut(auth);
+    demoLogout();
+    if (auth?.currentUser) await fbSignOut(auth);
     navigate('/admin/login');
   };
 
@@ -159,6 +161,16 @@ export default function AdminLayout() {
       )}
 
       <main className="p-4 md:p-8 lg:ml-64">
+        {me.isDemo && (
+          <div className="mx-auto mb-6 flex max-w-6xl flex-col gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              <b>Demo mode (read-only).</b> Browse every section freely — saving, uploading and deleting are disabled, and customer details are masked.
+            </span>
+            <button onClick={signOut} className="btn btn-sm shrink-0 border border-amber-300 bg-white text-amber-900">
+              Exit demo
+            </button>
+          </div>
+        )}
         <Outlet context={{ me, refreshMe: () => setTick((t) => t + 1) } satisfies AdminCtx} />
       </main>
     </div>

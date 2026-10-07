@@ -62,7 +62,19 @@ export default async function handler(req, res) {
       const { data, error } = await supabase.from('enquiries').select('*').order('created_at', { ascending: false }).limit(1000);
       if (error) throw error;
       // Only rows written through this API are encrypted; anything else is ignored.
-      const rows = (data || []).filter((r) => isEnc(r.name)).map(decrypt).filter((r) => r.name);
+      let rows = (data || []).filter((r) => isEnc(r.name)).map(decrypt).filter((r) => r.name);
+      // Protect customer privacy in demo mode.
+      if (admin.demo) {
+        const mask = (v, keep = 2) => (v ? String(v).slice(0, keep) + '•'.repeat(Math.max(3, String(v).length - keep)) : v);
+        rows = rows.map((r) => ({
+          ...r,
+          name: mask(r.name, 1),
+          phone: r.phone ? String(r.phone).replace(/\d(?=\d{2})/g, '•') : r.phone,
+          email: r.email ? mask(r.email.split('@')[0], 1) + '@' + (r.email.split('@')[1] || '') : r.email,
+          message: r.message ? '(hidden in demo mode)' : r.message,
+          notes: r.notes ? '(hidden in demo mode)' : r.notes,
+        }));
+      }
       return res.status(200).json(rows);
     }
     if (req.method === 'PUT') {

@@ -29,7 +29,7 @@ export default async function handler(req, res) {
       stats.new_enquiries = await count('enquiries', (q) => q.eq('status', 'new'));
       const extra = await readConfig('admins.json', []);
       const admins = Array.from(new Set([...ADMIN_EMAILS, ...(Array.isArray(extra) ? extra : [])]));
-      return res.status(200).json({ isAdmin: true, email: r.user.email, stats, demo, admins, locked: ADMIN_EMAILS });
+      return res.status(200).json({ isAdmin: true, isDemo: !!r.user.demo, email: r.user.email, stats, demo, admins, locked: ADMIN_EMAILS });
     }
 
     if (req.method === 'POST') {

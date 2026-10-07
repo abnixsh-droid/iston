@@ -39,9 +39,36 @@ export async function writeConfig(name, obj) {
 }
 
 /* ---------- auth ---------- */
+/* ---------- read-only demo admin ---------- */
+export const DEMO_EMAIL = 'demo@istonbuildergroup.com';
+export const DEMO_PASSWORD = 'IstonDemo@2026';
+const DEMO_KEY = crypto.createHash('sha256').update('iston-demo-v1:' + BASE).digest();
+
+export function issueDemoToken() {
+  const payload = Buffer.from(JSON.stringify({ role: 'demo', exp: Date.now() + 12 * 3600 * 1000 })).toString('base64url');
+  const sig = crypto.createHmac('sha256', DEMO_KEY).update(payload).digest('base64url');
+  return `demo.${payload}.${sig}`;
+}
+function verifyDemoToken(token) {
+  const [, payload, sig] = token.split('.');
+  if (!payload || !sig) return false;
+  const good = crypto.createHmac('sha256', DEMO_KEY).update(payload).digest('base64url');
+  if (sig.length !== good.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(good))) return false;
+  try {
+    const p = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return p.role === 'demo' && p.exp > Date.now();
+  } catch {
+    return false;
+  }
+}
+
 export async function getAdmin(req) {
   const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
   if (!token) return { error: 'Unauthorized', code: 401 };
+  if (token.startsWith('demo.')) {
+    if (!verifyDemoToken(token)) return { error: 'Demo session expired. Please log in again.', code: 401 };
+    return { user: { id: 'demo', email: DEMO_EMAIL, email_verified: true, demo: true } };
+  }
   let user;
   try {
     user = await verifyFirebaseToken(token);
@@ -63,6 +90,11 @@ export async function requireAdmin(req, res) {
   const r = await getAdmin(req);
   if (r.error) {
     res.status(r.code).json({ error: r.error });
+    return null;
+  }
+  // Demo admin is strictly read-only.
+  if (r.user.demo && req.method !== 'GET') {
+    res.status(403).json({ error: 'Demo mode is read-only — changes are disabled. Log in with a real admin account to make changes.' });
     return null;
   }
   return r.user;

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Eye, Loader2 } from 'lucide-react';
 import { GoogleAuthProvider, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
 import { auth, firebaseReady } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useSeo } from '../lib/seo';
+import { DEMO_EMAIL, DEMO_PASSWORD, demoLogin } from '../lib/demoSession';
 import { LogoMark } from '../components/Logo';
 
 const fbMsg = (e: unknown) => {
@@ -33,6 +34,7 @@ export default function AdminLogin() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setMsg(null);
+    if (mode === 'signin' && email.trim().toLowerCase() === DEMO_EMAIL) return enterDemo(email, password);
     if (!auth) return;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setMsg({ type: 'err', text: 'Enter a valid email address.' });
     setBusy(true);
@@ -53,6 +55,20 @@ export default function AdminLogin() {
       setMsg({ type: 'err', text: fbMsg(err) });
     } finally {
       setBusy(false);
+    }
+  };
+
+  const [demoBusy, setDemoBusy] = useState(false);
+  const enterDemo = async (e = DEMO_EMAIL, p = DEMO_PASSWORD) => {
+    setMsg(null);
+    setDemoBusy(true);
+    try {
+      await demoLogin(e, p);
+      navigate('/admin', { replace: true });
+    } catch (err) {
+      setMsg({ type: 'err', text: (err as Error).message });
+    } finally {
+      setDemoBusy(false);
     }
   };
 
@@ -84,6 +100,23 @@ export default function AdminLogin() {
           <LogoMark className="h-14 w-14" />
           <h1 className="font-display mt-6 text-4xl text-navy">{mode === 'reset' ? 'Reset password' : 'Admin login'}</h1>
           <p className="mt-2 text-sm text-muted">Restricted to authorised Iston Builder Group administrators. Secured by Firebase Authentication.</p>
+
+          <div className="mt-8 rounded-2xl border border-line bg-mist p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-navy">
+              <Eye className="h-4 w-4 text-brass" /> Demo admin access (read-only)
+            </p>
+            <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+              <dt className="text-muted">Email</dt>
+              <dd className="font-mono font-semibold break-all text-navy select-all">{DEMO_EMAIL}</dd>
+              <dt className="text-muted">Password</dt>
+              <dd className="font-mono font-semibold text-navy select-all">{DEMO_PASSWORD}</dd>
+            </dl>
+            <button onClick={() => enterDemo()} disabled={demoBusy} className="btn btn-primary btn-sm mt-4 w-full">
+              {demoBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Log in as demo admin
+            </button>
+            <p className="mt-2 text-[11px] text-muted">Explore every section. Changes are disabled and customer details are masked.</p>
+            {!firebaseReady && msg && <p className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">{msg.text}</p>}
+          </div>
 
           {!firebaseReady ? (
             <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
