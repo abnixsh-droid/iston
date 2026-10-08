@@ -1,3 +1,4 @@
+```yaml
 name: Deploy Website
 
 on:
@@ -10,42 +11,85 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout repository
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
+      # 3. Install dependencies
       - name: Install dependencies
         run: npm ci
 
+      # 4. Build Vite website
       - name: Build website
         env:
+          # Supabase
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+          # Firebase
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+
+          # Hostinger Upload Authentication
+          VITE_UPLOAD_KEY: ${{ secrets.VITE_UPLOAD_KEY }}
+
+          # Upload destination
+          # Hostinger is the default in api/upload.js.
+          # Uncomment only if you intentionally want Supabase Storage.
+          # VITE_UPLOAD_DEST: supabase
+
         run: npm run build
 
+      # 5. Verify build
       - name: Verify build output
         run: |
+          echo "Checking build output..."
           ls -la dist
           test -f dist/index.html
 
+          echo "Checking Hostinger API files..."
+          test -f dist/api/upload.php
+          test -f dist/api/delete.php
+
+          echo "Build verification successful."
+
+      # 6. Deploy to Hostinger
       - name: Deploy to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+
           protocol: ftps
           port: 21
+
+          # Vite build output
           local-dir: dist/
+
+          # Site-scoped FTP user = public_html
           server-dir: ./
+
           log-level: verbose
-          dangerous-clean-slate: true
+
+          # IMPORTANT:
+          # Never perform a complete remote wipe.
+          # This keeps manually uploaded files such as /uploads/.
+          dangerous-clean-slate: false
+
+          # Never deploy/modify the server's uploaded media.
+          exclude: |
+            uploads/**
+            **/uploads/**
+            **/.ftp-deploy-sync-state.json
+            **/Thumbs.db
+```
