@@ -4,7 +4,9 @@ import { getDemoToken } from './demoSession'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Row = Record<string, any>
-
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || ''
+).replace(/\/$/, '')
 async function token() {
   if (auth?.currentUser) {
     return auth.currentUser.getIdToken()
@@ -33,7 +35,7 @@ export async function api<T = any>(
     }
   }
 
-  const res = await fetch(path, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     method: opts.method || 'GET',
     headers,
     body:
