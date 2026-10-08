@@ -60,3 +60,63 @@ alive = false
 const reload = useCallback(() => setTick((t) => t + 1), [])
 return { data, loading, error, status, reload, setData }
 }
+
+/**
+
+Upload a file to Hostinger via PHP (public/api/upload.php).
+Returns the public URL string (as CrudPage expects).
+*/
+export async function uploadFile(file: File, folder = 'uploads'): Promise<string> {
+if (!file) throw new Error('No file selected')
+const key = import.meta.env.VITE_UPLOAD_KEY
+if (!key) throw new Error('Missing VITE_UPLOAD_KEY')
+const fd = new FormData()
+fd.append('file', file)
+fd.append('folder', folder)
+
+const res = await fetch('/api/upload', {
+method: 'POST',
+headers: { 'X-Upload-Key': key },
+body: fd,
+credentials: 'same-origin',
+})
+
+// PHP always replies JSON; still guard just in case
+let json: any = null
+try {
+json = await res.json()
+} catch {
+/* ignore */
+}
+
+if (!res.ok || !json?.ok || !json?.url) {
+const msg = json?.error || Upload failed (${res.status})
+throw new Error(msg)
+}
+
+return json.url as string
+}
+
+/**
+
+Optional helper to delete a previously uploaded file.
+Pass the "path" you stored (e.g. /uploads/projects/abc123.webp)
+*/
+export async function deleteUploaded(path: string): Promise<void> {
+if (!path) return
+const key = import.meta.env.VITE_UPLOAD_KEY
+if (!key) throw new Error('Missing VITE_UPLOAD_KEY')
+const fd = new FormData()
+fd.append('path', path)
+
+const res = await fetch('/api/delete', {
+method: 'POST',
+headers: { 'X-Upload-Key': key },
+body: fd,
+credentials: 'same-origin',
+})
+const json = await res.json().catch(() => ({}))
+if (!res.ok || !json?.ok) {
+throw new Error(json?.error || Delete failed (${res.status}))
+}
+}
