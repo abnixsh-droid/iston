@@ -2,6 +2,10 @@
 export const DEMO_EMAIL = 'demo@istonbuildergroup.com';
 export const DEMO_PASSWORD = 'IstonDemo@2026';
 const KEY = 'iston_demo_session';
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || ''
+).replace(/\/$/, '');
 const listeners = new Set<() => void>();
 
 export function getDemoToken(): string | null {
@@ -20,7 +24,7 @@ export function getDemoToken(): string | null {
 }
 
 export async function demoLogin(email: string, password: string) {
-  const r = await fetch('/api/demo-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+const r = await fetch(`${API_BASE_URL}/api/demo-login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(d.error || 'Demo login failed');
   localStorage.setItem(KEY, JSON.stringify({ token: d.token, exp: Date.now() + 11.5 * 3600 * 1000 }));
