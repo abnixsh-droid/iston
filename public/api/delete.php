@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 header('Content-Type: application/json');
 
-$SHARED_KEY = 'CHANGE_THIS_STRONG_KEY';
+$SHARED_KEY = 'ab#1705PIKArq';
 
 if (($_SERVER['HTTP_X_UPLOAD_KEY'] ?? '') !== $SHARED_KEY) {
     http_response_code(401);
