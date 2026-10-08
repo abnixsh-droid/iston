@@ -1,43 +1,31 @@
-# Hostinger (Apache/LiteSpeed) — SPA routing
 Options -Indexes
 
 RewriteEngine On
-RewriteBase /
 
 # Force HTTPS
-# Enable SSL in Hostinger hPanel first
-RewriteCond %{HTTPS} off
+RewriteCond %{HTTPS} !=on
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Serve existing files OR directories directly
+# Allow existing files and folders
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Don't rewrite API paths
-# PHP APIs such as /api/upload.php and /api/delete.php
-# are handled directly by Hostinger.
+# Never send API requests to React
 RewriteRule ^api/ - [L]
 
-# SPA fallback
-RewriteRule . /index.html [L]
+# React SPA fallback
+RewriteRule ^ /index.html [L]
 
-# Browser caching
+# Cache static files
 <IfModule mod_expires.c>
-  ExpiresActive On
+    ExpiresActive On
 
-  ExpiresByType image/jpeg "access plus 1 month"
-  ExpiresByType image/png "access plus 1 month"
-  ExpiresByType image/webp "access plus 1 month"
-  ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
 
-  ExpiresByType text/css "access plus 1 year"
-  ExpiresByType application/javascript "access plus 1 year"
-</IfModule>
-
-# Force PDF downloads
-<IfModule mod_headers.c>
-  <FilesMatch "\.pdf$">
-    Header set Content-Disposition "attachment"
-  </FilesMatch>
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
 </IfModule>
