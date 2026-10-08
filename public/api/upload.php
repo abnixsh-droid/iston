@@ -9,7 +9,7 @@ header('Content-Type: application/json');
 // ==========================================
 
 // MUST match the VITE_UPLOAD_KEY GitHub secret
-$SHARED_KEY = 'CHANGE_THIS_STRONG_KEY';
+$SHARED_KEY = 'ab#1705PIKArq';
 
 
 // ==========================================
