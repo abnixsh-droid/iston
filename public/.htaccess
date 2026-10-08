@@ -4,7 +4,8 @@ Options -Indexes
 RewriteEngine On
 RewriteBase /
 
-# Force HTTPS (enable SSL in hPanel first, otherwise you can get redirect issues)
+# Force HTTPS
+# Enable SSL in Hostinger hPanel first
 RewriteCond %{HTTPS} off
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
@@ -13,20 +14,28 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Don't rewrite API paths (future PHP APIs can live under /api)
+# Don't rewrite API paths
+# PHP APIs such as /api/upload.php and /api/delete.php
+# are handled directly by Hostinger.
 RewriteRule ^api/ - [L]
 
-# SPA fallback (React Router)
+# SPA fallback
 RewriteRule . /index.html [L]
 
+# Browser caching
 <IfModule mod_expires.c>
   ExpiresActive On
+
   ExpiresByType image/jpeg "access plus 1 month"
   ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/webp "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
+
   ExpiresByType text/css "access plus 1 year"
   ExpiresByType application/javascript "access plus 1 year"
 </IfModule>
 
+# Force PDF downloads
 <IfModule mod_headers.c>
   <FilesMatch "\.pdf$">
     Header set Content-Disposition "attachment"
