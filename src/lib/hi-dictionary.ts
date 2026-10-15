@@ -262,10 +262,18 @@ export const HI: Record<string, string> = {
   'Request brochure': 'ब्रोशर का अनुरोध करें',
   'Request the brochure': 'ब्रोशर का अनुरोध करें',
 
-  // Partner
+  // Adviser & Partner
   Partner: 'पार्टनर',
+  Adviser: 'सलाहकार',
+  Advisers: 'सलाहकार',
+  'Advisers Program': 'सलाहकार कार्यक्रम',
+  'Become an Adviser': 'सलाहकार बनें',
+  'Adviser Dashboard': 'सलाहकार डैशबोर्ड',
+  'Adviser ID': 'सलाहकार आईडी',
+  'Adviser Registration': 'सलाहकार पंजीकरण',
   Program: 'प्रोग्राम',
   'Partner Program — Coming Soon': 'पार्टनर प्रोग्राम — जल्द आ रहा है',
+  'Advisers Program — Coming Soon': 'सलाहकार कार्यक्रम — जल्द आ रहा है',
   'We are preparing a partner & referral program for channel partners, brokers and friends of Iston Builder Group. Register your interest and we will notify you when it launches.':
     'हम चैनल पार्टनर्स, ब्रोकर्स और इस्टन बिल्डर ग्रुप के शुभचिंतकों के लिए पार्टनर और रेफ़रल प्रोग्राम तैयार कर रहे हैं। अपनी रुचि दर्ज करें, लॉन्च होने पर हम आपको सूचित करेंगे।',
   Refer: 'रेफ़र करें',

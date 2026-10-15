@@ -370,7 +370,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PARTNER TEASER */}
+      {/* ADVISERS PROGRAM TEASER */}
       <section className="border-t border-line py-14">
         <div className="container-x flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
           <div className="flex items-center gap-4">
@@ -378,12 +378,12 @@ export default function Home() {
               <Handshake className="h-5 w-5" />
             </span>
             <div>
-              <p className="font-display text-2xl text-navy">Partner Program</p>
-              <p className="text-sm text-muted">A partner & referral program is on the way.</p>
+              <p className="font-display text-2xl text-navy">Advisers Program</p>
+              <p className="text-sm text-muted">Join our network of real estate advisers & earn tier referral rewards.</p>
             </div>
           </div>
-          <Link to="/partner-program" className="btn btn-outline">
-            Coming Soon — Register interest
+          <Link to="/advisers-program" className="btn btn-outline">
+            Become an Adviser — Coming Soon
           </Link>
         </div>
       </section>

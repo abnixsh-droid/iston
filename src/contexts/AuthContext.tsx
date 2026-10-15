@@ -1,32 +1,275 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import type { User } from 'firebase/auth';
-import { auth } from '../lib/firebase';
-import { DEMO_EMAIL, getDemoToken, onDemoChange } from '../lib/demoSession';
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut as fbSignOut } from 'firebase/auth';
+import type { User as FbUser } from 'firebase/auth';
+import { auth, firebaseReady } from '../lib/firebase';
+import supabase from '../lib/supabase';
+import { DEMO_EMAIL, getDemoToken, onDemoChange, demoLogout } from '../lib/demoSession';
+import { api } from '../lib/api';
 
-export type AppUser = { email: string | null; emailVerified: boolean; demo?: boolean };
-type AuthState = { user: AppUser | null; loading: boolean };
-const AuthContext = createContext<AuthState>({ user: null, loading: true });
+export type AppUser = {
+  id: string;
+  email: string | null;
+  emailVerified: boolean;
+  displayName?: string | null;
+  photoURL?: string | null;
+  provider: 'firebase' | 'supabase' | 'demo';
+  role: 'admin' | 'user';
+  isAdmin: boolean;
+  isAdviser: boolean;
+  adviserId?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  adviser?: any;
+  demo?: boolean;
+};
 
-const demoUser = (): AppUser | null => (getDemoToken() ? { email: DEMO_EMAIL, emailVerified: true, demo: true } : null);
+type AuthState = {
+  user: AppUser | null;
+  loading: boolean;
+  isAdmin: boolean;
+  isAdviser: boolean;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthState>({
+  user: null,
+  loading: true,
+  isAdmin: false,
+  isAdviser: false,
+  signInWithGoogle: async () => {},
+  signOut: async () => {},
+  refreshUser: async () => {},
+});
+
+const getDemoUser = (): AppUser | null =>
+  getDemoToken()
+    ? {
+        id: 'demo',
+        email: DEMO_EMAIL,
+        emailVerified: true,
+        displayName: 'Demo Admin',
+        provider: 'demo',
+        role: 'admin',
+        isAdmin: true,
+        isAdviser: false,
+        demo: true,
+      }
+    : null;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [fbUser, setFbUser] = useState<User | null>(null);
-  const [demo, setDemo] = useState<AppUser | null>(demoUser());
-  const [loading, setLoading] = useState<boolean>(!!auth);
+  const [user, setUser] = useState<AppUser | null>(getDemoUser());
+  const [loading, setLoading] = useState<boolean>(true);
+  const [tick, setTick] = useState<number>(0);
 
+  const refreshUser = useCallback(async () => {
+    setTick((t) => t + 1);
+  }, []);
+
+  // Sync profile with backend API to verify server-side authorization and update DB
+  const syncProfile = useCallback(async (baseUser: Partial<AppUser>) => {
+    try {
+      const res = await api<{ ok: boolean; user: Record<string, unknown>; adviser: Record<string, unknown> | null }>(
+        '/api/user',
+        { auth: true }
+      );
+      if (res?.ok && res.user) {
+        const u = res.user;
+        setUser({
+          id: String(u.id || baseUser.id || 'usr'),
+          email: String(u.email || baseUser.email || ''),
+          emailVerified: !!u.email_verified,
+          displayName: (u.display_name as string) || baseUser.displayName || null,
+          photoURL: (u.photo_url as string) || baseUser.photoURL || null,
+          provider: (baseUser.provider as 'firebase' | 'supabase' | 'demo') || 'firebase',
+          role: u.role === 'admin' ? 'admin' : 'user',
+          isAdmin: !!u.isAdmin,
+          isAdviser: !!u.is_adviser,
+          adviserId: (u.adviser_id as string) || null,
+          adviser: res.adviser || null,
+          demo: !!baseUser.demo,
+        });
+        return;
+      }
+    } catch {
+      // If sync API fails, fallback to verified client token state
+    }
+
+    if (baseUser.email) {
+      const isKnownAdmin =
+        baseUser.email.toLowerCase() === 'abnixsh@gmail.com' ||
+        baseUser.email.toLowerCase() === 'sitaramchaurasiya8@gmail.com' ||
+        baseUser.demo === true;
+
+      setUser({
+        id: baseUser.id || 'user',
+        email: baseUser.email,
+        emailVerified: !!baseUser.emailVerified,
+        displayName: baseUser.displayName || null,
+        photoURL: baseUser.photoURL || null,
+        provider: baseUser.provider || 'firebase',
+        role: isKnownAdmin ? 'admin' : 'user',
+        isAdmin: isKnownAdmin,
+        isAdviser: false,
+        demo: !!baseUser.demo,
+      });
+    }
+  }, []);
+
+  // Handle Demo changes
   useEffect(() => {
-    if (!auth) return;
-    return onAuthStateChanged(auth, (u) => {
-      setFbUser(u);
-      setLoading(false);
+    return onDemoChange(() => {
+      const d = getDemoUser();
+      if (d) {
+        setUser(d);
+        setLoading(false);
+      }
     });
   }, []);
-  useEffect(() => onDemoChange(() => setDemo(demoUser())), []);
 
-  const user: AppUser | null = fbUser ? { email: fbUser.email, emailVerified: fbUser.emailVerified } : demo;
-  return <AuthContext.Provider value={{ user, loading: loading && !demo }}>{children}</AuthContext.Provider>;
+  // Primary Auth Listener: Firebase or Supabase Auth
+  useEffect(() => {
+    let unsubFb: (() => void) | undefined;
+    let cancelled = false;
+
+    async function initAuth() {
+      // 1. Check Demo
+      if (getDemoToken()) {
+        setUser(getDemoUser());
+        setLoading(false);
+        return;
+      }
+
+      // 2. Check Firebase Auth if configured
+      if (auth && firebaseReady) {
+        unsubFb = onAuthStateChanged(auth, async (fbUser: FbUser | null) => {
+          if (cancelled) return;
+          if (fbUser) {
+            await syncProfile({
+              id: fbUser.uid,
+              email: fbUser.email,
+              emailVerified: fbUser.emailVerified,
+              displayName: fbUser.displayName,
+              photoURL: fbUser.photoURL,
+              provider: 'firebase',
+            });
+          } else {
+            setUser(null);
+          }
+          setLoading(false);
+        });
+        return;
+      }
+
+      // 3. Check Supabase Auth
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (data.session?.user) {
+          const su = data.session.user;
+          await syncProfile({
+            id: su.id,
+            email: su.email,
+            emailVerified: !!su.email_confirmed_at,
+            displayName: (su.user_metadata?.full_name as string) || (su.user_metadata?.name as string) || null,
+            photoURL: (su.user_metadata?.avatar_url as string) || (su.user_metadata?.picture as string) || null,
+            provider: 'supabase',
+          });
+        } else {
+          setUser(null);
+        }
+      } catch {
+        setUser(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+
+      // Listen for Supabase auth state changes
+      const { data: suListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (cancelled) return;
+        if (session?.user) {
+          const su = session.user;
+          await syncProfile({
+            id: su.id,
+            email: su.email,
+            emailVerified: !!su.email_confirmed_at,
+            displayName: (su.user_metadata?.full_name as string) || (su.user_metadata?.name as string) || null,
+            photoURL: (su.user_metadata?.avatar_url as string) || (su.user_metadata?.picture as string) || null,
+            provider: 'supabase',
+          });
+        } else if (!getDemoToken()) {
+          setUser(null);
+        }
+        setLoading(false);
+      });
+
+      return () => {
+        suListener.subscription.unsubscribe();
+      };
+    }
+
+    initAuth();
+
+    return () => {
+      cancelled = true;
+      if (unsubFb) unsubFb();
+    };
+  }, [syncProfile, tick]);
+
+  const signInWithGoogle = async () => {
+    setLoading(true);
+    try {
+      if (auth && firebaseReady) {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        await signInWithPopup(auth, provider);
+      } else {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin,
+          },
+        });
+        if (error) throw error;
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    demoLogout();
+    if (auth?.currentUser) {
+      try {
+        await fbSignOut(auth);
+      } catch {
+        /* ignore */
+      }
+    }
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      /* ignore */
+    }
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        isAdmin: !!user?.isAdmin,
+        isAdviser: !!user?.isAdviser,
+        signInWithGoogle,
+        signOut,
+        refreshUser,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export const useAuth = () => useContext(AuthContext);

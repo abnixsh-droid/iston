@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Warehouse,
   X,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { signOut as fbSignOut } from 'firebase/auth';
@@ -31,6 +32,7 @@ import { PageLoader } from '../components/ui';
 
 const NAV = [
   ['/admin', 'Dashboard', LayoutDashboard],
+  ['/admin/advisers', 'Advisers Program', Users],
   ['/admin/enquiries', 'Enquiries', Inbox],
   ['/admin/projects', 'Projects', Building2],
   ['/admin/buildings', 'Buildings', Building],

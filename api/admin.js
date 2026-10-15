@@ -27,6 +27,7 @@ export default async function handler(req, res) {
       );
       stats.enquiries = await count('enquiries');
       stats.new_enquiries = await count('enquiries', (q) => q.eq('status', 'new'));
+      stats.advisers = await count('advisers').catch(() => 0);
       const extra = await readConfig('admins.json', []);
       const admins = Array.from(new Set([...ADMIN_EMAILS, ...(Array.isArray(extra) ? extra : [])]));
       return res.status(200).json({ isAdmin: true, isDemo: !!r.user.demo, email: r.user.email, stats, demo, admins, locked: ADMIN_EMAILS });

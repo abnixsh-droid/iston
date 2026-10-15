@@ -63,11 +63,11 @@ const GROUPS: G[] = [
     ],
   },
   {
-    title: 'SEO, footer & partner program',
+    title: 'SEO, footer & advisers program',
     fields: [
       ['seo_description', 'Default meta description', 'textarea'],
       ['footer_disclaimer', 'Footer disclaimer', 'textarea'],
-      ['partner_program_text', 'Partner Program page text', 'textarea'],
+      ['adviser_program_text', 'Advisers Program page text', 'textarea'],
       ['hindi_overrides', 'Hindi translations (one per line: English text = हिंदी अनुवाद)', 'textarea', 'Sample Row House (Demo) = नमूना रो हाउस (डेमो)'],
     ],
   },

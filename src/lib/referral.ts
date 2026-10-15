@@ -1,12 +1,13 @@
-// Future-ready partner / referral capture. Any visit with ?ref=CODE stores the code
-// and it is attached to enquiries automatically.
+// Adviser referral capture. Any visit with ?ref=CODE or ?sponsor=CODE stores the code
+// and it is attached to adviser registrations and enquiries automatically.
 const KEY = 'iston_ref';
 
 export function captureReferral() {
   try {
-    const ref = new URLSearchParams(window.location.search).get('ref');
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref') || params.get('sponsor');
     if (ref && /^[a-zA-Z0-9_-]{2,40}$/.test(ref)) {
-      localStorage.setItem(KEY, JSON.stringify({ code: ref, at: Date.now() }));
+      localStorage.setItem(KEY, JSON.stringify({ code: ref.toUpperCase(), at: Date.now() }));
     }
   } catch {
     /* ignore */
@@ -22,5 +23,13 @@ export function getReferral(): string | null {
     return code;
   } catch {
     return null;
+  }
+}
+
+export function clearReferral(): void {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* ignore */
   }
 }

@@ -37,7 +37,7 @@ export default async function handler(req, res) {
         item_title: s(b.item_title, 200),
         source_page: s(b.source_page, 300),
         referral_code: s(b.referral_code, 60),
-        partner_id: null,
+        partner_id: s(b.adviser_id || b.partner_id, 60),
         status: 'new',
       };
       const { error } = await supabase.from('enquiries').insert(row);

@@ -79,7 +79,7 @@ export default function Footer() {
               ['/about', 'About Us'],
               ['/under-development', 'Construction Progress'],
               ['/brochure', 'Download Brochure'],
-              ['/partner-program', 'Partner Program'],
+              ['/advisers-program', 'Advisers Program'],
               ['/contact', 'Contact'],
             ])}
           </div>

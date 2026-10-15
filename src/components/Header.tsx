@@ -3,10 +3,11 @@ import BrochureButton from '../components/BrochureButton';
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, MessageCircle, Phone, X } from 'lucide-react';
+import { LogIn, LogOut, Menu, MessageCircle, Phone, ShieldCheck, UserCheck, X } from 'lucide-react';
 import Logo from './Logo';
 import { useEnquiry } from '../contexts/EnquiryContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
 import { telHref, waHref } from '../lib/format';
 
 export const NAV: [string, string][] = [
@@ -16,6 +17,7 @@ export const NAV: [string, string][] = [
   ['/plots', 'Plots'],
   ['/society-houses', 'Society Houses'],
   ['/under-development', 'Progress'],
+  ['/advisers-program', 'Advisers'],
   ['/about', 'About'],
   ['/contact', 'Contact'],
 ];
@@ -24,9 +26,11 @@ export default function Header() {
   const { pathname } = useLocation();
   const { open } = useEnquiry();
   const { s } = useSettings();
+  const { user, isAdmin, isAdviser, signInWithGoogle, signOut } = useAuth();
   const isHome = pathname === '/';
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [userDropdown, setUserDropdown] = useState(false);
 
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 24);
@@ -62,6 +66,9 @@ export default function Header() {
                 }
               >
                 {label}
+                {label === 'Advisers' && (
+                  <span className="ml-1.5 rounded-full bg-brass/20 px-1.5 py-0.5 text-[9px] font-bold text-brass uppercase">Soon</span>
+                )}
               </NavLink>
             ))}
           </nav>
@@ -71,6 +78,73 @@ export default function Header() {
             <a href={telHref(s.phone)} className={`hidden btn btn-sm lg:inline-flex ${solid ? 'btn-outline' : 'btn-ghost'}`}>
               <Phone className="h-3.5 w-3.5" /> {s.phone}
             </a>
+
+            {/* Auth button and context actions */}
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setUserDropdown((d) => !d)}
+                  className={`btn btn-sm inline-flex items-center gap-1.5 ${solid ? 'btn-outline' : 'btn-ghost'}`}
+                >
+                  {isAdmin ? <ShieldCheck className="h-4 w-4 text-brass" /> : <UserCheck className="h-4 w-4 text-emerald-500" />}
+                  <span className="max-w-[100px] truncate">{user.displayName || user.email?.split('@')[0]}</span>
+                </button>
+                {userDropdown && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-line bg-white p-2 shadow-xl text-ink z-50">
+                    <div className="px-3 py-2 border-b border-line text-xs">
+                      <p className="font-semibold text-navy truncate">{user.displayName || 'Signed in'}</p>
+                      <p className="text-muted truncate">{user.email}</p>
+                      <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isAdmin ? 'bg-navy text-white' : 'bg-mist text-navy'}`}>
+                        {user.role}
+                      </span>
+                    </div>
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setUserDropdown(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-navy hover:bg-mist rounded-xl mt-1"
+                      >
+                        <ShieldCheck className="h-4 w-4 text-brass" /> Admin Panel
+                      </Link>
+                    )}
+                    {isAdviser ? (
+                      <Link
+                        to="/advisers/dashboard"
+                        onClick={() => setUserDropdown(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-navy hover:bg-mist rounded-xl mt-1"
+                      >
+                        <UserCheck className="h-4 w-4 text-emerald-600" /> Adviser Dashboard
+                      </Link>
+                    ) : (
+                      <Link
+                        to="/advisers-program"
+                        onClick={() => setUserDropdown(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-navy hover:bg-mist rounded-xl mt-1"
+                      >
+                        Become an Adviser
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => {
+                        setUserDropdown(false);
+                        signOut();
+                      }}
+                      className="flex items-center gap-2 w-full text-left px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl mt-1"
+                    >
+                      <LogOut className="h-4 w-4" /> Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => signInWithGoogle()}
+                className={`btn btn-sm inline-flex items-center gap-1.5 ${solid ? 'btn-outline' : 'btn-ghost'}`}
+              >
+                <LogIn className="h-3.5 w-3.5" /> Sign in
+              </button>
+            )}
+
             <button onClick={() => open()} className={`btn btn-sm hidden sm:inline-flex ${solid ? 'btn-primary' : 'btn-light'}`}>
               Enquire
             </button>
@@ -96,7 +170,15 @@ export default function Header() {
             className="fixed inset-x-0 top-16 bottom-0 z-40 overflow-y-auto bg-white lg:top-20 xl:hidden"
           >
             <nav className="container-x flex flex-col py-6" aria-label="Mobile">
-              {[['/', 'Home'] as [string, string], ...NAV, ['/brochure', 'Download Brochure'] as [string, string], ['/partner-program', 'Partner Program'] as [string, string], ['/admin/login', 'Admin Login'] as [string, string]].map(([to, label], i) => (
+              {[
+                ['/', 'Home'] as [string, string],
+                ...NAV,
+                ['/brochure', 'Download Brochure'] as [string, string],
+                ['/advisers-program', 'Advisers Program'] as [string, string],
+                ...(isAdmin ? ([['/admin', 'Admin Panel'] as [string, string]]) : []),
+                ...(isAdviser ? ([['/advisers/dashboard', 'Adviser Dashboard'] as [string, string]]) : []),
+                ...(!user ? ([['/admin/login', 'Admin Login'] as [string, string]]) : []),
+              ].map(([to, label], i) => (
                 <motion.div key={to} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.03 * i }}>
                   <NavLink
                     to={to}
@@ -104,10 +186,29 @@ export default function Header() {
                     className={({ isActive }) => `flex items-center justify-between border-b border-line py-4 font-display text-[1.7rem] ${isActive ? 'text-brass' : 'text-navy'}`}
                   >
                     {label}
-                    {label === 'Partner Program' && <span className="font-sans text-[10px] font-bold tracking-[0.16em] text-muted uppercase">Coming Soon</span>}
+                    {label === 'Advisers Program' && <span className="font-sans text-[10px] font-bold tracking-[0.16em] text-muted uppercase">Coming Soon</span>}
                   </NavLink>
                 </motion.div>
               ))}
+
+              {user ? (
+                <div className="mt-6 flex items-center justify-between rounded-2xl bg-mist p-4">
+                  <div className="text-xs">
+                    <p className="font-semibold text-navy">{user.displayName || user.email}</p>
+                    <p className="text-muted">{user.role === 'admin' ? 'Administrator' : isAdviser ? 'Adviser' : 'Standard User'}</p>
+                  </div>
+                  <button onClick={() => signOut()} className="btn btn-sm btn-outline text-rose-600">
+                    Sign out
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-6">
+                  <button onClick={() => signInWithGoogle()} className="btn btn-outline w-full flex items-center justify-center gap-2">
+                    <LogIn className="h-4 w-4" /> Sign in with Google
+                  </button>
+                </div>
+              )}
+
               <div className="mt-8">
                 <LanguageToggle full />
               </div>

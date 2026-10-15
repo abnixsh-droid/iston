@@ -18,7 +18,7 @@ const fbMsg = (e: unknown) => {
 };
 
 export default function AdminLogin() {
-  const { user } = useAuth();
+  const { user, isAdmin, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<'signin' | 'reset'>('signin');
   const [email, setEmail] = useState('');
@@ -28,8 +28,17 @@ export default function AdminLogin() {
   useSeo('Admin Login', undefined, null, true);
 
   useEffect(() => {
-    if (user?.emailVerified) navigate('/admin', { replace: true });
-  }, [user, navigate]);
+    if (user?.emailVerified) {
+      if (isAdmin) {
+        navigate('/admin', { replace: true });
+      } else {
+        setMsg({
+          type: 'err',
+          text: `Signed in as ${user.email}. This account does not have administrator privileges. Only authorized Iston administrators (e.g. abnixsh@gmail.com, sitaramchaurasiya8@gmail.com) can access the Admin Panel.`,
+        });
+      }
+    }
+  }, [user, isAdmin, navigate]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -73,10 +82,9 @@ export default function AdminLogin() {
   };
 
   const google = async () => {
-    if (!auth) return;
     setMsg(null);
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
+      await signInWithGoogle();
     } catch (err) {
       setMsg({ type: 'err', text: fbMsg(err) });
     }

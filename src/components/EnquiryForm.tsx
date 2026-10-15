@@ -15,7 +15,7 @@ const INTERESTS = [
   'Society Houses',
   'Site visit',
   'Brochure request',
-  'Partner Program',
+  'Advisers Program',
 ];
 
 export default function EnquiryForm({ preset = {}, compact = false }: { preset?: EnquiryOpts; compact?: boolean }) {

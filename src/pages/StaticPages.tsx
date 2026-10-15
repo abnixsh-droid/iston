@@ -182,13 +182,13 @@ export function Brochure() {
   );
 }
 
-export function Partner() {
+export function AdvisersProgramPage() {
   const { s } = useSettings();
-  useSeo('Partner Program — Coming Soon', 'The Iston Builder Group Partner Program is coming soon. Register your interest.');
+  useSeo('Advisers Program — Iston Builder Group', 'Join the Iston Builder Group Advisers Program. Become an adviser, build your network, and earn tiered referral rewards and property commissions.');
   const items = [
-    { icon: Users, t: 'Refer', d: 'Introduce buyers to Iston Builder Group projects.' },
-    { icon: Sparkles, t: 'Track', d: 'A partner dashboard to follow your referrals.' },
-    { icon: Wallet, t: 'Earn', d: 'Program terms will be announced at launch.' },
+    { icon: Users, t: 'Refer & Sponsor', d: 'Invite partners to become advisers with your unique Adviser ID and shareable referral link.' },
+    { icon: Sparkles, t: 'Adviser Dashboard', d: 'Track your unlimited-depth referral network, customer leads, and separate financial ledgers in real time.' },
+    { icon: Wallet, t: 'Dual Earnings', d: 'Earn registration referral rewards (₹300/₹200/₹100) and property-sale commissions up to multiple upline levels.' },
   ];
   return (
     <section className="grid-lines relative min-h-[85svh] overflow-hidden bg-navy text-white">
@@ -196,16 +196,26 @@ export function Partner() {
       <div className="container-x relative grid gap-12 py-16 md:py-24 lg:grid-cols-2">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1.5 text-[10px] font-bold tracking-[0.2em] text-brass-light uppercase">
-            <Handshake className="h-3.5 w-3.5" /> Coming Soon
+            <Handshake className="h-3.5 w-3.5" /> Coming Soon — Demo Mode Active
           </span>
           <h1 className="font-display mt-6 text-5xl leading-[0.98] md:text-7xl">
-            Partner <em className="text-brass-light">Program</em>
+            Advisers <em className="text-brass-light">Program</em>
           </h1>
           <p className="mt-6 max-w-lg text-[15px] leading-relaxed text-white/70">
-            {has(s.partner_program_text)
-              ? s.partner_program_text
-              : 'We are preparing a partner & referral program for channel partners, brokers and friends of Iston Builder Group. Register your interest and we will notify you when it launches.'}
+            {has(s.adviser_program_text || s.partner_program_text)
+              ? (s.adviser_program_text || s.partner_program_text)
+              : 'Join the Iston Builder Group Advisers Program. Become an accredited real estate adviser, refer verified properties, and build a lasting business with structured referral rewards.'}
           </p>
+
+          <div className="mt-6 flex flex-wrap gap-4">
+            <Link to="/advisers/register" className="btn btn-primary">
+              Become an Adviser
+            </Link>
+            <Link to="/advisers/dashboard" className="btn btn-outline border-white/30 text-white hover:bg-white/10">
+              Adviser Dashboard
+            </Link>
+          </div>
+
           <div className="mt-10 grid gap-3 sm:grid-cols-3">
             {items.map(({ icon: Icon, t, d }) => (
               <div key={t} className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -215,16 +225,26 @@ export function Partner() {
               </div>
             ))}
           </div>
+
+          <div className="mt-8 rounded-2xl border border-brass/30 bg-brass/10 p-5 text-xs text-brass-light space-y-2">
+            <p className="font-semibold text-white text-sm">Program Structure & Notice:</p>
+            <p>• <b>Adviser Registration:</b> Proposed registration fee of ₹1,100 (demo verification enabled during launch testing).</p>
+            <p>• <b>Separate Registration Rewards:</b> Direct referrer ₹300, 2nd upline ₹200, 3rd upline ₹100, 4th & higher eligible levels ₹100/level.</p>
+            <p>• <b>Property Commissions:</b> Independent commission engine on verified property sales (Seller 10%, uplines 5%, 4%, 3%, 2%, 1%).</p>
+            <p className="text-white/60">Real-money transactions and payouts will be activated upon final compliance approval.</p>
+          </div>
         </div>
         <div className="rounded-[2rem] bg-white p-6 text-ink md:p-10">
-          <p className="eyebrow mb-3">Register interest</p>
-          <h2 className="font-display mb-6 text-3xl text-navy">Be the first to know</h2>
-          <EnquiryForm preset={{ interest: 'Partner Program' }} compact />
+          <p className="eyebrow mb-3">Adviser Registration & Enquiry</p>
+          <h2 className="font-display mb-6 text-3xl text-navy">Register your interest</h2>
+          <EnquiryForm preset={{ interest: 'Advisers Program' }} compact />
         </div>
       </div>
     </section>
   );
 }
+
+export const Partner = AdvisersProgramPage;
 
 export function NotFound() {
   useSeo('Page not found', undefined, null, true);

@@ -34,3 +34,12 @@ export const fmtDate = (d?: string | null) => {
   if (isNaN(dt.getTime())) return d;
   return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 };
+
+export const inr = (v: number | string | null | undefined) => {
+  const n = Number(v) || 0;
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 2,
+  }).format(n);
+};

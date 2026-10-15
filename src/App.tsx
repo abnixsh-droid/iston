@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter, Outlet, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { EnquiryProvider } from './contexts/EnquiryContext';
@@ -13,12 +13,16 @@ import { BuildingDetail, Buildings } from './pages/Buildings';
 import Listings from './pages/Listings';
 import ItemDetail from './pages/ItemDetail';
 import Progress from './pages/Progress';
-import { About, Brochure, Contact, NotFound, Partner } from './pages/StaticPages';
+import { About, Brochure, Contact, NotFound, AdvisersProgramPage } from './pages/StaticPages';
 import { PageLoader } from './components/ui';
+
+const AdviserRegistration = lazy(() => import('./pages/advisers/AdviserRegistration'));
+const AdviserDashboard = lazy(() => import('./pages/advisers/AdviserDashboard'));
 
 const AdminLayout = lazy(() => import('./admin/AdminLayout'));
 const AdminLogin = lazy(() => import('./admin/AdminLogin'));
 const Dashboard = lazy(() => import('./admin/Dashboard'));
+const AdvisersAdmin = lazy(() => import('./admin/AdvisersAdmin'));
 const CrudPage = lazy(() => import('./admin/CrudPage'));
 const Enquiries = lazy(() => import('./admin/Enquiries'));
 const AccountPage = lazy(() => import('./admin/SettingsPages').then((m) => ({ default: m.AccountPage })));
@@ -55,36 +59,40 @@ export default function App() {
         <BrowserRouter>
           <ScrollTop />
           <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route element={<PublicLayout />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/projects/:slug" element={<ProjectDetail />} />
-              <Route path="/buildings" element={<Buildings />} />
-              <Route path="/buildings/:slug" element={<BuildingDetail />} />
-              <Route path="/properties" element={<Listings key="properties" kind="properties" />} />
-              <Route path="/properties/:slug" element={<ItemDetail key="p" kind="properties" />} />
-              <Route path="/plots" element={<Listings key="plots" kind="plots" />} />
-              <Route path="/plots/:slug" element={<ItemDetail key="pl" kind="plots" />} />
-              <Route path="/society-houses" element={<Listings key="houses" kind="society_houses" />} />
-              <Route path="/society-houses/:slug" element={<ItemDetail key="h" kind="society_houses" />} />
-              <Route path="/under-development" element={<Progress />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/brochure" element={<Brochure />} />
-              <Route path="/partner-program" element={<Partner />} />
-              <Route path="*" element={<NotFound />} />
-            </Route>
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="enquiries" element={<Enquiries />} />
-              <Route path="brochure" element={<BrochurePage />} />
-              <Route path="settings" element={<SettingsPage />} />
-              <Route path="account" element={<AccountPage />} />
-              <Route path=":entity" element={<CrudPage key="crud" />} />
-            </Route>
-          </Routes>
+            <Routes>
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/projects" element={<Projects />} />
+                <Route path="/projects/:slug" element={<ProjectDetail />} />
+                <Route path="/buildings" element={<Buildings />} />
+                <Route path="/buildings/:slug" element={<BuildingDetail />} />
+                <Route path="/properties" element={<Listings key="properties" kind="properties" />} />
+                <Route path="/properties/:slug" element={<ItemDetail key="p" kind="properties" />} />
+                <Route path="/plots" element={<Listings key="plots" kind="plots" />} />
+                <Route path="/plots/:slug" element={<ItemDetail key="pl" kind="plots" />} />
+                <Route path="/society-houses" element={<Listings key="houses" kind="society_houses" />} />
+                <Route path="/society-houses/:slug" element={<ItemDetail key="h" kind="society_houses" />} />
+                <Route path="/under-development" element={<Progress />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/brochure" element={<Brochure />} />
+                <Route path="/advisers-program" element={<AdvisersProgramPage />} />
+                <Route path="/partner-program" element={<Navigate to="/advisers-program" replace />} />
+                <Route path="/advisers/register" element={<AdviserRegistration />} />
+                <Route path="/advisers/dashboard" element={<AdviserDashboard />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="advisers" element={<AdvisersAdmin />} />
+                <Route path="enquiries" element={<Enquiries />} />
+                <Route path="brochure" element={<BrochurePage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="account" element={<AccountPage />} />
+                <Route path=":entity" element={<CrudPage key="crud" />} />
+              </Route>
+            </Routes>
           </Suspense>
         </BrowserRouter>
       </SettingsProvider>
