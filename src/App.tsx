@@ -13,9 +13,11 @@ import { BuildingDetail, Buildings } from './pages/Buildings';
 import Listings from './pages/Listings';
 import ItemDetail from './pages/ItemDetail';
 import Progress from './pages/Progress';
-import { About, Brochure, Contact, NotFound } from './pages/StaticPages';
+import { About, Brochure, Contact, NotFound, TermsAndConditions } from './pages/StaticPages';
 import { PageLoader } from './components/ui';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import PageProgressBar from './components/PageProgressBar';
+import CookieConsent from './components/CookieConsent';
 
 const AdvisersPortal = lazy(() => import('./pages/advisers/AdvisersPortal'));
 const AdviserRegistration = lazy(() => import('./pages/advisers/AdviserRegistration'));
@@ -61,7 +63,9 @@ export default function App() {
     <AuthProvider>
       <SettingsProvider>
         <BrowserRouter>
+          <PageProgressBar />
           <ScrollTop />
+          <CookieConsent />
           <Suspense fallback={<PageLoader />}>
             <ErrorBoundary>
               <Routes>
@@ -81,6 +85,8 @@ export default function App() {
                   <Route path="/about" element={<About />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/brochure" element={<Brochure />} />
+                  <Route path="/terms" element={<TermsAndConditions />} />
+                  <Route path="/terms-and-conditions" element={<Navigate to="/terms" replace />} />
                   <Route path="/advisers/dashboard" element={<AdviserDashboard />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>

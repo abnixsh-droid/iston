@@ -181,6 +181,31 @@ export default function AdviserDashboard() {
   return (
     <div className="min-h-screen bg-mist py-8 md:py-12">
       <div className="container-x max-w-7xl">
+        {/* TOP BRAND BAR */}
+        <div className="mb-6 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5 text-navy font-bold">
+            <img
+              src="/images/logo.jpg"
+              alt="Iston Builder Group logo"
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-lg object-cover ring-1 ring-line shadow-2xs"
+            />
+            <span className="leading-tight">
+              <span className="block font-latin-display text-lg tracking-[0.12em] text-navy">ISTON</span>
+              <span className="block text-[8px] font-bold tracking-[0.3em] uppercase text-orange-600">Adviser Portal</span>
+            </span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link to="/advisers-program" className="text-xs font-semibold text-muted hover:text-navy transition">
+              Program Overview
+            </Link>
+            <Link to="/" className="text-xs font-semibold text-muted hover:text-navy transition">
+              Main Website →
+            </Link>
+          </div>
+        </div>
+
         {/* TOP ADVISER IDENTITY HEADER */}
         <div className="rounded-[2.5rem] bg-navy p-6 md:p-10 text-white shadow-xl relative overflow-hidden">
           <div className="pointer-events-none absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-brass/10 blur-3xl" />
@@ -397,6 +422,40 @@ export default function AdviserDashboard() {
                 <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 font-bold border border-amber-200">
                   Pending: {inr(commissionsSummary.pending)}
                 </span>
+              </div>
+            </div>
+
+            {/* COMMISSION STRUCTURE BREAKDOWN */}
+            <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-center">
+              <div className="p-3 rounded-2xl bg-orange-50 border border-orange-200">
+                <span className="text-[10px] font-bold text-orange-900 uppercase tracking-wider">Direct Seller</span>
+                <p className="font-display text-2xl text-orange-600 font-black mt-0.5">10%</p>
+                <span className="text-[9px] text-orange-800/80 font-medium">Direct sale by you</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-mist border border-line">
+                <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Level 1 Upline</span>
+                <p className="font-display text-2xl text-navy font-bold mt-0.5">5%</p>
+                <span className="text-[9px] text-muted">Direct team sale</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-mist border border-line">
+                <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Level 2 Upline</span>
+                <p className="font-display text-2xl text-navy font-bold mt-0.5">4%</p>
+                <span className="text-[9px] text-muted">Tier 2 team sale</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-mist border border-line">
+                <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Level 3 Upline</span>
+                <p className="font-display text-2xl text-navy font-bold mt-0.5">3%</p>
+                <span className="text-[9px] text-muted">Tier 3 team sale</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-mist border border-line">
+                <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Level 4 Upline</span>
+                <p className="font-display text-2xl text-navy font-bold mt-0.5">2%</p>
+                <span className="text-[9px] text-muted">Tier 4 team sale</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-mist border border-line">
+                <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Level 5+ Uplines</span>
+                <p className="font-display text-2xl text-navy font-bold mt-0.5">1%</p>
+                <span className="text-[9px] text-muted">Each higher upline</span>
               </div>
             </div>
 

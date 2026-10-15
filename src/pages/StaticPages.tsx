@@ -14,40 +14,60 @@ export function About() {
   const { s } = useSettings();
   useSeo('About Us', `About ${s.company_name} — builder & developer. ${s.tagline}`);
   const blocks: [string, string | undefined, string][] = [
-    ['Our Story', s.about_story, 'The story of Iston Builder Group will be shared here soon.'],
-    ['Mission', s.mission, 'Our mission statement is coming soon.'],
-    ['Vision', s.vision, 'Our vision statement is coming soon.'],
+    [
+      'Our Story',
+      s.about_story,
+      `${s.company_name} was founded with a clear conviction: that buying a home should be an inspiring, secure, and transparent milestone in every family’s journey. Originating with strategic developments in prime emerging suburban corridors like Umroli, we design living spaces that harmonize modern engineering standards with peaceful natural environments. Our projects reflect precision planning, robust earthquake-resistant RCC construction, and uncompromising attention to ventilation, natural lighting, and long-term asset value.`,
+    ],
+    [
+      'Our Mission',
+      s.mission,
+      'To build enduring, environmentally mindful residential and commercial spaces that elevate the quality of everyday life, while providing homebuyers, investors, and certified advisers with complete legal transparency, on-time project execution, and unmatched architectural value.',
+    ],
+    [
+      'Our Vision',
+      s.vision,
+      'To be recognized as a benchmark real estate developer known for architectural distinction, clear land titles, customer-first delivery, and an empowered network of collaborative real estate advisers across the region.',
+    ],
   ];
   return (
     <>
       <PageHero eyebrow="About Us" title={s.company_name} text={s.tagline} crumbs={[['About']]} />
       <section className="container-x grid gap-12 py-16 md:py-24 lg:grid-cols-12">
         <div className="lg:col-span-5">
-          <img src="/images/building.jpg" alt="Residential architecture (representative image)" className="aspect-[4/5] w-full rounded-[2rem] object-cover" loading="lazy" />
+          <img src="/images/building.jpg" alt="Iston Builder Group architectural quality" className="aspect-[4/5] w-full rounded-[2rem] object-cover shadow-xl" loading="lazy" />
+          <div className="mt-6 rounded-2xl border border-line bg-mist p-5">
+            <p className="text-[10px] font-bold tracking-[0.2em] text-brass uppercase">RERA &amp; Quality Guarantee</p>
+            <p className="mt-2 text-xs leading-relaxed text-muted">
+              Every Iston residential project adheres strictly to statutory regulatory requirements, RERA guidelines, and approved municipal development plans.
+            </p>
+          </div>
         </div>
         <div className="lg:col-span-7">
           <p className="eyebrow mb-4">Who we are</p>
-          <h2 className="font-display text-4xl leading-tight text-navy md:text-5xl">Builder &amp; developer.</h2>
+          <h2 className="font-display text-4xl leading-tight text-navy md:text-5xl">Building Better Spaces. Creating Better Futures.</h2>
           <p className="mt-5 text-[15px] leading-[1.85] whitespace-pre-line text-ink/80">
-            {has(s.about_intro) ? s.about_intro : <Soon>A detailed company profile will be published here soon.</Soon>}
+            {has(s.about_intro)
+              ? s.about_intro
+              : `${s.company_name} is an established builder and developer committed to raising the standard of contemporary housing. By combining seasoned civil engineering expertise with modern urban architecture, we create well-planned residential societies, high-efficiency flats, and lucrative investment plots designed for generations of peaceful living.`}
           </p>
           <div className="mt-10 space-y-8">
             {blocks.map(([t, v, fb]) => (
               <div key={t} className="border-t border-line pt-6">
-                <h3 className="font-display text-3xl text-navy">{t}</h3>
-                <p className="mt-3 text-[15px] leading-relaxed whitespace-pre-line text-muted">{has(v) ? v : <Soon>{fb}</Soon>}</p>
+                <h3 className="font-display text-2xl md:text-3xl text-navy">{t}</h3>
+                <p className="mt-3 text-[15px] leading-relaxed whitespace-pre-line text-muted">{has(v) ? v : fb}</p>
               </div>
             ))}
           </div>
           <div className="mt-10 grid gap-3 sm:grid-cols-3">
             {[
-              ['/properties', 'Flats'],
-              ['/plots', 'Plots'],
+              ['/properties', 'Flats & Apartments'],
+              ['/plots', 'Residential Plots'],
               ['/society-houses', 'Society Houses'],
             ].map(([to, l]) => (
-              <Link key={to} to={to} className="rounded-2xl border border-line p-5 transition hover:border-navy">
+              <Link key={to} to={to} className="rounded-2xl border border-line p-5 transition hover:border-navy hover:shadow-xs bg-white">
                 <p className="text-[10px] font-bold tracking-[0.18em] text-brass uppercase">We offer</p>
-                <p className="mt-1 font-display text-2xl text-navy">{l}</p>
+                <p className="mt-1 font-display text-xl text-navy">{l}</p>
               </Link>
             ))}
           </div>
@@ -196,7 +216,7 @@ export function AdvisersProgramPage() {
       <div className="container-x relative grid gap-12 py-16 md:py-24 lg:grid-cols-2">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1.5 text-[10px] font-bold tracking-[0.2em] text-brass-light uppercase">
-            <Handshake className="h-3.5 w-3.5" /> Coming Soon — Demo Mode Active
+            <Handshake className="h-3.5 w-3.5" /> Official Advisers Network · Verified Program
           </span>
           <h1 className="font-display mt-6 text-5xl leading-[0.98] md:text-7xl">
             Advisers <em className="text-brass-light">Program</em>
@@ -227,15 +247,15 @@ export function AdvisersProgramPage() {
           </div>
 
           <div className="mt-8 rounded-2xl border border-brass/30 bg-brass/10 p-5 text-xs text-brass-light space-y-2">
-            <p className="font-semibold text-white text-sm">Program Structure & Notice:</p>
-            <p>• <b>Adviser Registration:</b> Proposed registration fee of ₹1,100 (demo verification enabled during launch testing).</p>
-            <p>• <b>Separate Registration Rewards:</b> Direct referrer ₹300, 2nd upline ₹200, 3rd upline ₹100, 4th & higher eligible levels ₹100/level.</p>
-            <p>• <b>Property Commissions:</b> Independent commission engine on verified property sales (Seller 10%, uplines 5%, 4%, 3%, 2%, 1%).</p>
-            <p className="text-white/60">Real-money transactions and payouts will be activated upon final compliance approval.</p>
+            <p className="font-semibold text-white text-sm">Program Structure &amp; Guidelines:</p>
+            <p>• <b>Adviser Registration:</b> One-time onboarding fee of ₹1,100 verified via official UPI / bank reference.</p>
+            <p>• <b>Registration Rewards:</b> Direct referrer earns ₹300, 2nd upline ₹200, 3rd upline ₹100, 4th &amp; higher levels ₹100/level.</p>
+            <p>• <b>Property Commissions:</b> Performance commission on verified property sales (Direct Seller 10%, uplines 5%, 4%, 3%, 2%, 1%).</p>
+            <p className="text-white/60">Payouts are settled directly to registered bank accounts and UPI IDs following admin approval.</p>
           </div>
         </div>
         <div className="rounded-[2rem] bg-white p-6 text-ink md:p-10">
-          <p className="eyebrow mb-3">Adviser Registration & Enquiry</p>
+          <p className="eyebrow mb-3">Adviser Registration &amp; Enquiry</p>
           <h2 className="font-display mb-6 text-3xl text-navy">Register your interest</h2>
           <EnquiryForm preset={{ interest: 'Advisers Program' }} compact />
         </div>
@@ -245,6 +265,66 @@ export function AdvisersProgramPage() {
 }
 
 export const Partner = AdvisersProgramPage;
+
+export function TermsAndConditions() {
+  const { s } = useSettings();
+  useSeo('Terms & Conditions — Iston Builder Group', `Terms of Service and Advisers Program guidelines for ${s.company_name}.`);
+
+  return (
+    <>
+      <PageHero eyebrow="Legal" title="Terms &amp; Conditions" text="Policies, booking terms, and guidelines governing the Iston Builder Group website and Advisers Program." crumbs={[['Terms']]} />
+      <section className="container-x py-14 md:py-20 max-w-4xl">
+        <div className="space-y-8 text-sm leading-relaxed text-ink/80">
+          <div className="rounded-3xl border border-line bg-white p-6 md:p-8 shadow-xs">
+            <h2 className="font-display text-2xl text-navy">1. Acceptance of Terms</h2>
+            <p className="mt-3 text-muted">
+              By accessing or using the website of {s.company_name} or applying to the Advisers Program, you confirm that you have read, understood, and agreed to be bound by these Terms and Conditions and applicable Indian real estate laws, including the Real Estate (Regulation and Development) Act (RERA).
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-line bg-white p-6 md:p-8 shadow-xs">
+            <h2 className="font-display text-2xl text-navy">2. Property Listings &amp; Representation</h2>
+            <p className="mt-3 text-muted">
+              All architectural renderings, photographic assets, floor plans, dimensions, and specifications displayed on this website are indicative and artistic representations. While {s.company_name} strives for absolute precision, actual site measurements, amenities, and delivery schedules are subject to final municipal clearances, sanctioned building plans, and standard construction variations.
+            </p>
+            <p className="mt-2 text-muted">
+              Pricing, availability of units, and payment schemes are subject to revision without prior notice until an official agreement for sale has been executed and stamped.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-line bg-white p-6 md:p-8 shadow-xs">
+            <h2 className="font-display text-2xl text-navy">3. Iston Advisers Program Guidelines</h2>
+            <div className="mt-3 space-y-3 text-muted">
+              <p>
+                The Iston Advisers Program is a licensed real estate referral and channel agency structure designed to reward authenticated partners for bona fide property lead generation and customer introductions.
+              </p>
+              <ul className="list-disc pl-5 space-y-2 text-xs text-ink/75">
+                <li><b>Adviser Onboarding:</b> Registration requires verified Google authentication, genuine KYC/bank details, and a one-time administrative activation fee of ₹1,100 submitted via verified UPI/banking channels and approved by management.</li>
+                <li><b>Direct Referral Bonus:</b> An approved active sponsor earns a registration referral reward of ₹300 for each directly referred adviser upon administrative approval.</li>
+                <li><b>Property Sales Brokerage:</b> Property sales commissions are calculated on company brokerage received: Direct Seller Adviser earns 10%, Level 1 upline earns 5%, Level 2 upline earns 4%, Level 3 upline earns 3%, Level 4 upline earns 2%, and Level 5 &amp; higher eligible uplines earn 1% each, subject to program rules and caps.</li>
+                <li><b>Ethical Conduct:</b> Advisers must present authentic project facts and may not make unauthorized warranties or collect client funds directly. Any fraudulent claims or circular referral manipulation results in immediate suspension and forfeiture of unpaid rewards.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-line bg-white p-6 md:p-8 shadow-xs">
+            <h2 className="font-display text-2xl text-navy">4. Privacy &amp; Data Protection</h2>
+            <p className="mt-3 text-muted">
+              We respect your digital privacy. Personal data collected during Google sign-in, enquiry submissions, or adviser onboarding is encrypted and utilized solely for authentication, account servicing, regulatory compliance, and commission disbursement. We do not sell or lease personal contact details to third-party telemarketers.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-line bg-white p-6 md:p-8 shadow-xs">
+            <h2 className="font-display text-2xl text-navy">5. Governing Law &amp; Jurisdiction</h2>
+            <p className="mt-3 text-muted">
+              These terms are governed by and construed in accordance with the laws of India. Any disputes arising in connection with the website, property transactions, or the Advisers Program shall be subject to the exclusive jurisdiction of the competent courts in the jurisdiction of the company’s registered headquarters.
+            </p>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
 
 export function NotFound() {
   useSeo('Page not found', undefined, null, true);

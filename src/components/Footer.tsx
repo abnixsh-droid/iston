@@ -80,6 +80,7 @@ export default function Footer() {
               ['/under-development', 'Construction Progress'],
               ['/brochure', 'Download Brochure'],
               ['/advisers-program', 'Advisers Program'],
+              ['/terms', 'Terms & Conditions'],
               ['/contact', 'Contact'],
             ])}
           </div>
@@ -102,7 +103,15 @@ export default function Footer() {
 
         <div className="flex flex-col gap-4 border-t border-white/10 py-8 text-xs text-white/45 md:flex-row md:items-center md:justify-between">
           <p>© {new Date().getFullYear()} {s.company_name}. All rights reserved.</p>
-          <p className="max-w-xl md:text-right">
+          <div className="flex flex-wrap items-center gap-4">
+            <Link to="/terms" className="text-white/60 hover:text-white underline transition">
+              Terms &amp; Conditions
+            </Link>
+            <Link to="/advisers-program" className="text-white/60 hover:text-white underline transition">
+              Advisers Program
+            </Link>
+          </div>
+          <p className="max-w-md md:text-right">
             {has(s.footer_disclaimer) ? s.footer_disclaimer : 'Images are representative. Project details, availability and pricing are subject to change — please confirm with our team.'}
           </p>
           <Link to="/admin" className="inline-flex items-center gap-1 text-white/35 hover:text-white/70">

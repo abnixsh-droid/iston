@@ -306,58 +306,177 @@ export const adviserService = {
       throw new Error('No adviser account found for this user.');
     }
 
-    // Fallback default / demo statistics
+    // Real dynamic statistics computed from live database / state
+    let allAdvisers: AdviserRecord[] = [];
+    try {
+      const { data } = await supabase.from('advisers').select('*');
+      if (data && Array.isArray(data)) {
+        allAdvisers = data;
+      }
+    } catch {
+      /* ignore */
+    }
+
+    if (allAdvisers.length === 0) {
+      allAdvisers = getLocalCache().advisers;
+    }
+
+    const myRefCode = (adviserRecord.referral_code || '').toUpperCase();
+    const myAdvId = (adviserRecord.adviser_id || '').toUpperCase();
+
+    // 1. Find direct referrals
+    const directReferrals = allAdvisers.filter((a) => {
+      const sc = (a.sponsor_code || '').toUpperCase();
+      const si = (a.sponsor_id || '').toUpperCase();
+      return (sc && sc === myRefCode) || (si && si === myAdvId);
+    });
+    const directCount = directReferrals.length;
+
+    // 2. Compute full downline hierarchy
+    const downline: AdviserRecord[] = [];
+    const visited = new Set<string>([myAdvId, myRefCode]);
+    const levelCounts: Record<string, number> = directCount > 0 ? { '1': directCount } : {};
+
+    let currentLevel = 1;
+    let currentLevelAdvisers = directReferrals;
+    while (currentLevelAdvisers.length > 0 && currentLevel < 100) {
+      const nextLevelAdvisers: AdviserRecord[] = [];
+      for (const adv of currentLevelAdvisers) {
+        downline.push(adv);
+        const childRef = (adv.referral_code || '').toUpperCase();
+        const childId = (adv.adviser_id || '').toUpperCase();
+        if (childRef) visited.add(childRef);
+        if (childId) visited.add(childId);
+
+        const children = allAdvisers.filter((c) => {
+          const cCode = (c.sponsor_code || '').toUpperCase();
+          const cSponId = (c.sponsor_id || '').toUpperCase();
+          const cId = (c.adviser_id || '').toUpperCase();
+          return !visited.has(cId) && ((cCode && cCode === childRef) || (cSponId && cSponId === childId));
+        });
+
+        for (const ch of children) {
+          visited.add((ch.adviser_id || '').toUpperCase());
+          nextLevelAdvisers.push(ch);
+        }
+      }
+      currentLevel++;
+      if (nextLevelAdvisers.length > 0) {
+        levelCounts[String(currentLevel)] = nextLevelAdvisers.length;
+      }
+      currentLevelAdvisers = nextLevelAdvisers;
+    }
+    const totalTeam = downline.length;
+
+    // 3. Registration referral rewards (Direct sponsor gets ₹300 per active member)
+    let registrationRewards: any[] = [];
+    try {
+      const { data } = await supabase
+        .from('registration_rewards')
+        .select('*')
+        .eq('beneficiary_adviser_id', adviserRecord.adviser_id);
+      if (data && Array.isArray(data)) {
+        registrationRewards = data;
+      }
+    } catch {
+      /* ignore */
+    }
+
+    if (registrationRewards.length === 0 && adviserRecord.status === 'active') {
+      registrationRewards = directReferrals
+        .filter((r) => r.status === 'active' || r.payment_status === 'verified_paid')
+        .map((r, i) => ({
+          id: i + 1,
+          amount: 300,
+          level: 1,
+          status: 'paid',
+          source_adviser_id: r.adviser_id,
+          source_adviser_name: r.full_name,
+          beneficiary_adviser_id: adviserRecord.adviser_id,
+          created_at: r.created_at || new Date().toISOString(),
+        }));
+    }
+
+    // 4. Property commissions
+    let propertyCommissions: any[] = [];
+    try {
+      const { data } = await supabase
+        .from('property_commissions')
+        .select('*')
+        .eq('beneficiary_adviser_id', adviserRecord.adviser_id);
+      if (data && Array.isArray(data)) {
+        propertyCommissions = data;
+      }
+    } catch {
+      /* ignore */
+    }
+
+    // 5. Leads
+    let leads: any[] = [];
+    try {
+      const { data } = await supabase
+        .from('property_leads')
+        .select('*')
+        .eq('adviser_id', adviserRecord.adviser_id);
+      if (data && Array.isArray(data)) {
+        leads = data;
+      }
+    } catch {
+      /* ignore */
+    }
+
+    // 6. Payout requests
+    let payouts: any[] = [];
+    try {
+      const { data } = await supabase
+        .from('payout_requests')
+        .select('*')
+        .eq('adviser_id', adviserRecord.adviser_id);
+      if (data && Array.isArray(data)) {
+        payouts = data;
+      }
+    } catch {
+      /* ignore */
+    }
+
+    const sum = (arr: any[], status: string) =>
+      arr.filter((x) => x.status === status).reduce((a, b) => a + (Number(b.amount) || 0), 0);
+
+    const regRewardsSummary = {
+      pending: sum(registrationRewards, 'pending'),
+      approved: sum(registrationRewards, 'approved'),
+      paid: sum(registrationRewards, 'paid'),
+      reversed: sum(registrationRewards, 'reversed'),
+      total: registrationRewards.filter((x) => x.status !== 'reversed').reduce((a, b) => a + (Number(b.amount) || 0), 0),
+    };
+
+    const commissionsSummary = {
+      pending: sum(propertyCommissions, 'pending'),
+      approved: sum(propertyCommissions, 'approved'),
+      paid: sum(propertyCommissions, 'paid'),
+      reversed: sum(propertyCommissions, 'reversed'),
+      total: propertyCommissions.filter((x) => x.status !== 'reversed').reduce((a, b) => a + (Number(b.amount) || 0), 0),
+    };
+
+    const totalEarnings = regRewardsSummary.approved + regRewardsSummary.paid + commissionsSummary.approved + commissionsSummary.paid;
+    const totalPaidOut = payouts.filter((p) => p.status === 'approved' || p.status === 'paid').reduce((a, b) => a + (Number(b.amount) || 0), 0);
+    const availableBalance = Math.max(0, totalEarnings - totalPaidOut);
+
     return {
       ok: true,
       adviser: adviserRecord,
       stats: {
-        directCount: 2,
-        totalTeam: 5,
-        levelCounts: { '1': 2, '2': 2, '3': 1 },
+        directCount,
+        totalTeam,
+        levelCounts,
       },
-      regRewardsSummary: { pending: 0, approved: 600, paid: 600, reversed: 0, total: 600 },
-      commissionsSummary: { pending: 0, approved: 25000, paid: 25000, reversed: 0, total: 25000 },
-      availableBalance: 25600,
-      registrationRewards: [
-        {
-          id: 1,
-          amount: 300,
-          level: 1,
-          status: 'paid',
-          source_adviser_id: 'IST-ADV-8821',
-          created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-        },
-        {
-          id: 2,
-          amount: 300,
-          level: 1,
-          status: 'paid',
-          source_adviser_id: 'IST-ADV-8822',
-          created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-        },
-      ],
-      propertyCommissions: [
-        {
-          id: 1,
-          property_title: '1 BHK Premium Flat — Umroli',
-          buyer_name: 'Amit Patel',
-          sale_price: 2500000,
-          commission_amount: 25000,
-          status: 'paid',
-          created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-        },
-      ],
-      leads: [
-        {
-          id: 1,
-          lead_name: 'Kunal Deshpande',
-          lead_phone: '+91 98201 11223',
-          property_title: 'Umroli Project (Flats)',
-          status: 'site_visit_scheduled',
-          created_at: new Date().toISOString(),
-        },
-      ],
-      payouts: [],
+      regRewardsSummary,
+      commissionsSummary,
+      availableBalance,
+      registrationRewards,
+      propertyCommissions,
+      leads,
+      payouts,
     };
   },
 

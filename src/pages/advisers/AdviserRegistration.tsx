@@ -20,7 +20,6 @@ import { adviserService, type AdviserRecord } from '../../lib/adviserService';
 import { getReferral, captureReferral } from '../../lib/referral';
 import { useSeo } from '../../lib/seo';
 import LanguageToggle from '../../components/LanguageToggle';
-import { loginAsDemoAdviser } from '../../lib/demoSession';
 
 export default function AdviserRegistration() {
   const { user, isAdviser, signInWithGoogle, refreshUser } = useAuth();
@@ -227,11 +226,15 @@ export default function AdviserRegistration() {
       {/* MINIMAL TOP BAR */}
       <nav className="border-b border-neutral-200 bg-white sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-3 sm:gap-6">
             <Link to="/advisers-program" className="flex items-center gap-2 text-neutral-900 font-bold tracking-tight">
-              <span className="w-8 h-8 rounded-lg bg-orange-600 text-white font-display text-lg flex items-center justify-center shadow-xs">
-                I
-              </span>
+              <img
+                src="/images/logo.jpg"
+                alt="Iston Builder Group"
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-lg object-cover ring-1 ring-neutral-200"
+              />
               <span className="text-sm font-semibold tracking-wide uppercase text-neutral-800">
                 Iston <span className="text-orange-600 font-bold">Advisers</span>
               </span>
@@ -315,35 +318,6 @@ export default function AdviserRegistration() {
               </p>
             </div>
 
-            {/* DEMO MODE TEST CONTROLS */}
-            <div className="mb-6 p-3 rounded-2xl bg-orange-50/70 border border-orange-200/80 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold text-orange-950 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-orange-600" /> Need to test the system?
-              </span>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    loginAsDemoAdviser();
-                    navigate('/advisers/dashboard');
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs transition shadow-2xs"
-                >
-                  Demo Active Adviser
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const adv = loginAsDemoAdviser(true);
-                    setAdviser(adv as any);
-                    setStep(3);
-                  }}
-                  className="px-3 py-1.5 rounded-xl border border-orange-300 bg-white hover:bg-orange-100 text-orange-900 font-bold text-xs transition shadow-2xs"
-                >
-                  Demo Pending View
-                </button>
-              </div>
-            </div>
 
             {!user ? (
               <div className="py-12 text-center border-2 border-dashed border-neutral-200 rounded-2xl p-6">

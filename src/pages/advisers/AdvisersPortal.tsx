@@ -24,7 +24,6 @@ import { adviserService, type AdviserRecord } from '../../lib/adviserService';
 import { inr } from '../../lib/format';
 import { useSeo } from '../../lib/seo';
 import LanguageToggle from '../../components/LanguageToggle';
-import { loginAsDemoAdviser } from '../../lib/demoSession';
 
 export default function AdvisersPortal() {
   const { user, signInWithGoogle } = useAuth();
@@ -70,11 +69,15 @@ export default function AdvisersPortal() {
       {/* MINIMAL TOP BAR */}
       <nav className="border-b border-neutral-200 bg-white sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-3 sm:gap-6">
             <Link to="/" className="flex items-center gap-2 text-neutral-900 font-bold tracking-tight">
-              <span className="w-8 h-8 rounded-lg bg-orange-600 text-white font-display text-lg flex items-center justify-center shadow-xs">
-                I
-              </span>
+              <img
+                src="/images/logo.jpg"
+                alt="Iston Builder Group"
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-lg object-cover ring-1 ring-neutral-200"
+              />
               <span className="text-sm font-semibold tracking-wide uppercase text-neutral-800">
                 Iston <span className="text-orange-600 font-bold">Advisers</span>
               </span>
@@ -201,21 +204,10 @@ export default function AdvisersPortal() {
 
             <a
               href="#how-it-works"
-              className="w-full sm:w-auto px-6 py-3.5 rounded-full border border-neutral-300 hover:bg-neutral-50 text-neutral-700 text-sm font-semibold transition"
+              className="w-full sm:w-auto px-6 py-3.5 rounded-full border border-neutral-300 hover:bg-neutral-50 text-neutral-700 text-sm font-semibold transition text-center"
             >
               How the Hierarchy Works
             </a>
-
-            <button
-              type="button"
-              onClick={() => {
-                loginAsDemoAdviser();
-                navigate('/advisers/dashboard');
-              }}
-              className="w-full sm:w-auto px-5 py-3.5 rounded-full border border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-orange-600" /> Test with Demo Adviser
-            </button>
           </div>
 
           {/* KEY STATS PILLS */}

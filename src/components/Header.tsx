@@ -72,14 +72,16 @@ export default function Header() {
               </NavLink>
             ))}
           </nav>
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Link
               to="/advisers-program"
-              className="bg-orange-600 hover:bg-orange-700 text-white font-bold border-0 shadow-xs flex items-center gap-1 rounded-full px-2.5 py-1 text-xs sm:px-3.5 sm:py-1.5 transition"
+              className="bg-orange-600 hover:bg-orange-700 text-white font-bold border-0 shadow-xs flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] sm:text-xs sm:px-3.5 sm:py-1.5 transition shrink-0"
             >
               Advisers
             </Link>
-            <LanguageToggle solid={solid} />
+            <div className="hidden sm:block">
+              <LanguageToggle solid={solid} />
+            </div>
             <BrochureButton className={`hidden items-center gap-1.5 px-2 text-[13px] font-semibold md:flex ${solid ? 'text-navy' : 'text-white'}`}>Brochure</BrochureButton>
             <a href={telHref(s.phone)} className={`hidden btn btn-sm lg:inline-flex ${solid ? 'btn-outline' : 'btn-ghost'}`}>
               <Phone className="h-3.5 w-3.5" /> {s.phone}

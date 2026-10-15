@@ -1,17 +1,13 @@
 import BrochureButton from '../components/BrochureButton';
-import { useState } from 'react';
-import type { FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Handshake, MapPin, Search } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Handshake, MapPin } from 'lucide-react';
 import { useApi } from '../lib/api';
 import type { Row } from '../lib/api';
 import { useSeo } from '../lib/seo';
 import { useSettings } from '../contexts/SettingsContext';
 import { useEnquiry } from '../contexts/EnquiryContext';
 import { has, show, statusLabel } from '../lib/format';
-import { KINDS } from '../lib/kinds';
-import type { KindKey } from '../lib/kinds';
 import { DemoBadge, EmptyState, ErrorState, Img, SectionHead, SkeletonGrid, Soon } from '../components/ui';
 import { ListingCard, ProjectCard } from '../components/Cards';
 
@@ -35,7 +31,6 @@ const TILES: [string, string, string, string][] = [
 export default function Home() {
   const { s } = useSettings();
   const { open } = useEnquiry();
-  const navigate = useNavigate();
   useSeo('', s.seo_description, '/images/umroli-hero.jpg');
 
   const projects = useApi<Row[]>('/api/content?type=projects');
@@ -48,13 +43,6 @@ export default function Home() {
   const heroName = hero?.name || 'Umroli';
   const heroImg = hero?.cover_image || '/images/umroli-hero.jpg';
   const heroLink = hero ? `/projects/${hero.slug}` : '/projects';
-
-  const [kind, setKind] = useState<KindKey>('properties');
-  const [q, setQ] = useState('');
-  const search = (e: FormEvent) => {
-    e.preventDefault();
-    navigate(`${KINDS[kind].base}${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''}`);
-  };
 
   return (
     <>
@@ -96,35 +84,6 @@ export default function Home() {
             </button>
             <BrochureButton className="btn btn-ghost hidden sm:inline-flex">Brochure</BrochureButton>
           </motion.div>
-
-          <motion.form
-            onSubmit={search}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.05, duration: 0.8 }}
-            className="mt-10 flex flex-col gap-2 rounded-[1.5rem] border border-white/15 bg-white/10 p-2 backdrop-blur-xl sm:flex-row md:mt-14 md:max-w-3xl"
-            role="search"
-          >
-            <div className="no-scrollbar flex gap-1 overflow-x-auto rounded-2xl bg-navy-deep/40 p-1">
-              {(Object.keys(KINDS) as KindKey[]).map((k) => (
-                <button
-                  type="button"
-                  key={k}
-                  onClick={() => setKind(k)}
-                  className={`shrink-0 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${kind === k ? 'bg-white text-navy' : 'text-white/75 hover:text-white'}`}
-                >
-                  {k === 'properties' ? 'Flats' : KINDS[k].plural}
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-1 items-center gap-2 rounded-2xl bg-white px-3">
-              <Search className="h-4 w-4 shrink-0 text-muted" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by project, BHK or keyword" aria-label="Search" className="h-12 w-full bg-transparent text-sm text-ink outline-none" />
-              <button type="submit" className="btn btn-primary btn-sm shrink-0">
-                Search
-              </button>
-            </div>
-          </motion.form>
         </div>
       </section>
 
