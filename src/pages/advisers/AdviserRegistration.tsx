@@ -20,6 +20,7 @@ import { adviserService, type AdviserRecord } from '../../lib/adviserService';
 import { getReferral, captureReferral } from '../../lib/referral';
 import { useSeo } from '../../lib/seo';
 import LanguageToggle from '../../components/LanguageToggle';
+import { loginAsDemoAdviser } from '../../lib/demoSession';
 
 export default function AdviserRegistration() {
   const { user, isAdviser, signInWithGoogle, refreshUser } = useAuth();
@@ -72,6 +73,16 @@ export default function AdviserRegistration() {
       setFullName(user.displayName);
     }
   }, [user, fullName]);
+
+  // Guarantee scroll is never frozen when visiting or revisiting this page
+  useEffect(() => {
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [step]);
 
   // Check if user already has an adviser account
   useEffect(() => {
@@ -302,6 +313,36 @@ export default function AdviserRegistration() {
               <p className="text-neutral-500 text-xs md:text-sm mt-1">
                 Enter your official information to establish your accredited adviser record.
               </p>
+            </div>
+
+            {/* DEMO MODE TEST CONTROLS */}
+            <div className="mb-6 p-3 rounded-2xl bg-orange-50/70 border border-orange-200/80 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold text-orange-950 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-orange-600" /> Need to test the system?
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    loginAsDemoAdviser();
+                    navigate('/advisers/dashboard');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs transition shadow-2xs"
+                >
+                  Demo Active Adviser
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const adv = loginAsDemoAdviser(true);
+                    setAdviser(adv as any);
+                    setStep(3);
+                  }}
+                  className="px-3 py-1.5 rounded-xl border border-orange-300 bg-white hover:bg-orange-100 text-orange-900 font-bold text-xs transition shadow-2xs"
+                >
+                  Demo Pending View
+                </button>
+              </div>
             </div>
 
             {!user ? (

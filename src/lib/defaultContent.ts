@@ -115,21 +115,69 @@ export const DEFAULT_UPDATES = [
   },
 ];
 
+export function getCustomContent(type: string): any[] {
+  try {
+    const raw = localStorage.getItem(`iston_custom_${type}`);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    /* ignore */
+  }
+  return [];
+}
+
+export function saveCustomContent(type: string, item: any, method: 'POST' | 'PUT' | 'DELETE'): any {
+  try {
+    const current = getCustomContent(type);
+    let updated: any[] = [];
+    if (method === 'DELETE') {
+      updated = current.filter((x) => String(x.id) !== String(item.id));
+      // Also mark as deleted if it was a default item
+      const deletedDefaults: string[] = JSON.parse(localStorage.getItem(`iston_deleted_${type}`) || '[]');
+      if (item.id && !deletedDefaults.includes(String(item.id))) {
+        deletedDefaults.push(String(item.id));
+        localStorage.setItem(`iston_deleted_${type}`, JSON.stringify(deletedDefaults));
+      }
+    } else if (method === 'PUT') {
+      const idx = current.findIndex((x) => String(x.id) === String(item.id));
+      if (idx >= 0) {
+        current[idx] = { ...current[idx], ...item };
+        updated = current;
+      } else {
+        updated = [...current, item];
+      }
+    } else {
+      // POST
+      const newItem = {
+        ...item,
+        id: item.id || Date.now(),
+        created_at: item.created_at || new Date().toISOString(),
+      };
+      updated = [newItem, ...current];
+      localStorage.setItem(`iston_custom_${type}`, JSON.stringify(updated));
+      return newItem;
+    }
+    localStorage.setItem(`iston_custom_${type}`, JSON.stringify(updated));
+    return item;
+  } catch {
+    return item;
+  }
+}
+
 export function getDefaultContent(path: string): any {
   const url = new URL(path, 'http://localhost');
   const type = url.searchParams.get('type') || 'properties';
   const slug = url.searchParams.get('slug');
   const id = url.searchParams.get('id');
 
-  let list: any[] = [];
-  if (type === 'projects') list = DEFAULT_PROJECTS;
-  else if (type === 'properties') list = DEFAULT_PROPERTIES;
-  else if (type === 'plots') list = DEFAULT_PLOTS;
-  else if (type === 'society_houses') list = DEFAULT_HOUSES;
-  else if (type === 'promotions') list = DEFAULT_PROMOTIONS;
-  else if (type === 'progress_updates') list = DEFAULT_UPDATES;
+  let baseList: any[] = [];
+  if (type === 'projects') baseList = [...DEFAULT_PROJECTS];
+  else if (type === 'properties') baseList = [...DEFAULT_PROPERTIES];
+  else if (type === 'plots') baseList = [...DEFAULT_PLOTS];
+  else if (type === 'society_houses') baseList = [...DEFAULT_HOUSES];
+  else if (type === 'promotions') baseList = [...DEFAULT_PROMOTIONS];
+  else if (type === 'progress_updates') baseList = [...DEFAULT_UPDATES];
   else if (type === 'buildings') {
-    list = [
+    baseList = [
       {
         id: 1,
         name: 'Tower A',
@@ -144,7 +192,28 @@ export function getDefaultContent(path: string): any {
     ];
   }
 
-  if (slug) return list.find((x) => x.slug === slug) || list[0] || null;
-  if (id) return list.find((x) => String(x.id) === String(id)) || list[0] || null;
-  return list;
+  // Merge with custom content from localStorage
+  const custom = getCustomContent(type);
+  const deletedDefaults: string[] = (() => {
+    try {
+      return JSON.parse(localStorage.getItem(`iston_deleted_${type}`) || '[]');
+    } catch {
+      return [];
+    }
+  })();
+
+  const filteredBase = baseList.filter((x) => !deletedDefaults.includes(String(x.id)));
+  
+  // Custom items override base items with matching ID, plus new custom items
+  const merged: any[] = [...custom];
+  for (const b of filteredBase) {
+    if (!merged.some((m) => String(m.id) === String(b.id))) {
+      merged.push(b);
+    }
+  }
+
+  if (slug) return merged.find((x) => x.slug === slug) || merged[0] || null;
+  if (id) return merged.find((x) => String(x.id) === String(id)) || merged[0] || null;
+  return merged;
 }
+

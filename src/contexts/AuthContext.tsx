@@ -58,9 +58,54 @@ const getDemoUser = (): AppUser | null =>
       }
     : null;
 
+const CACHED_USER_KEY = 'iston_cached_auth_user';
+
+function getCachedUser(): AppUser | null {
+  try {
+    const raw = localStorage.getItem(CACHED_USER_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function setCachedUser(u: AppUser | null) {
+  try {
+    if (u) localStorage.setItem(CACHED_USER_KEY, JSON.stringify(u));
+    else localStorage.removeItem(CACHED_USER_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+import { getDemoAdviserSession } from '../lib/demoSession';
+
+function getInitialUser(): AppUser | null {
+  const demoAdv = getDemoAdviserSession();
+  if (demoAdv) {
+    return {
+      id: demoAdv.user_id,
+      email: demoAdv.email,
+      emailVerified: true,
+      displayName: demoAdv.full_name,
+      provider: 'demo',
+      role: 'user',
+      isAdmin: false,
+      isAdviser: demoAdv.status === 'active',
+      adviserId: demoAdv.adviser_id,
+      adviser: demoAdv,
+      demo: true,
+    };
+  }
+  const demoAdmin = getDemoUser();
+  if (demoAdmin) return demoAdmin;
+  return getCachedUser();
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AppUser | null>(getDemoUser());
-  const [loading, setLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<AppUser | null>(getInitialUser());
+  const [loading, setLoading] = useState<boolean>(!getInitialUser());
   const [tick, setTick] = useState<number>(0);
 
   const refreshUser = useCallback(async () => {
@@ -76,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       if (res?.ok && res.user) {
         const u = res.user;
-        setUser({
+        const appUser: AppUser = {
           id: String(u.id || baseUser.id || 'usr'),
           email: String(u.email || baseUser.email || ''),
           emailVerified: !!u.email_verified,
@@ -89,7 +134,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           adviserId: (u.adviser_id as string) || null,
           adviser: res.adviser || null,
           demo: !!baseUser.demo,
-        });
+        };
+        setUser(appUser);
+        setCachedUser(appUser);
         return;
       }
     } catch {
@@ -111,7 +158,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         /* ignore */
       }
 
-      setUser({
+      // Check local cache if supabase didn't return
+      if (!adv) {
+        try {
+          const raw = localStorage.getItem('iston_advisers_state_cache');
+          if (raw) {
+            const cache = JSON.parse(raw);
+            adv = cache.advisers?.find((a: any) => a.email.toLowerCase() === email) || null;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
+      const appUser: AppUser = {
         id: baseUser.id || 'user',
         email: baseUser.email,
         emailVerified: !!baseUser.emailVerified,
@@ -124,16 +184,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         adviserId: adv?.adviser_id || null,
         adviser: adv,
         demo: !!baseUser.demo,
-      });
+      };
+      setUser(appUser);
+      setCachedUser(appUser);
     }
   }, []);
 
   // Handle Demo changes
   useEffect(() => {
     return onDemoChange(() => {
+      const demoAdv = getDemoAdviserSession();
+      if (demoAdv) {
+        const appUser: AppUser = {
+          id: demoAdv.user_id,
+          email: demoAdv.email,
+          emailVerified: true,
+          displayName: demoAdv.full_name,
+          provider: 'demo',
+          role: 'user',
+          isAdmin: false,
+          isAdviser: demoAdv.status === 'active',
+          adviserId: demoAdv.adviser_id,
+          adviser: demoAdv,
+          demo: true,
+        };
+        setUser(appUser);
+        setCachedUser(appUser);
+        setLoading(false);
+        return;
+      }
       const d = getDemoUser();
       if (d) {
         setUser(d);
+        setCachedUser(d);
         setLoading(false);
       }
     });
@@ -145,14 +228,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function initAuth() {
-      // 1. Check Demo
+      // 1. Check Demo Adviser
+      const demoAdv = getDemoAdviserSession();
+      if (demoAdv) {
+        setUser({
+          id: demoAdv.user_id,
+          email: demoAdv.email,
+          emailVerified: true,
+          displayName: demoAdv.full_name,
+          provider: 'demo',
+          role: 'user',
+          isAdmin: false,
+          isAdviser: demoAdv.status === 'active',
+          adviserId: demoAdv.adviser_id,
+          adviser: demoAdv,
+          demo: true,
+        });
+        setLoading(false);
+        return;
+      }
+
+      // 2. Check Demo Admin
       if (getDemoToken()) {
         setUser(getDemoUser());
         setLoading(false);
         return;
       }
 
-      // 2. Check Firebase Auth if configured
+      async function handleNoFirebaseSession() {
+        // Check Supabase Auth before resetting
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (cancelled) return;
+          if (data.session?.user) {
+            const su = data.session.user;
+            await syncProfile({
+              id: su.id,
+              email: su.email,
+              emailVerified: !!su.email_confirmed_at,
+              displayName: (su.user_metadata?.full_name as string) || (su.user_metadata?.name as string) || null,
+              photoURL: (su.user_metadata?.avatar_url as string) || (su.user_metadata?.picture as string) || null,
+              provider: 'supabase',
+            });
+            return;
+          }
+        } catch {
+          /* ignore */
+        }
+
+        // If neither has session and no demo active, only then clear
+        if (!getDemoToken() && !getDemoAdviserSession()) {
+          setCachedUser(null);
+          setUser(null);
+        }
+      }
+
+      // 3. Attach Firebase Auth if configured
       if (auth && firebaseReady) {
         unsubFb = onAuthStateChanged(auth, async (fbUser: FbUser | null) => {
           if (cancelled) return;
@@ -166,65 +297,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               provider: 'firebase',
             });
           } else {
-            setUser(null);
+            await handleNoFirebaseSession();
           }
           setLoading(false);
         });
         return;
       }
 
-      // 3. Check Supabase Auth
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (cancelled) return;
-        if (data.session?.user) {
-          const su = data.session.user;
-          await syncProfile({
-            id: su.id,
-            email: su.email,
-            emailVerified: !!su.email_confirmed_at,
-            displayName: (su.user_metadata?.full_name as string) || (su.user_metadata?.name as string) || null,
-            photoURL: (su.user_metadata?.avatar_url as string) || (su.user_metadata?.picture as string) || null,
-            provider: 'supabase',
-          });
-        } else {
-          setUser(null);
-        }
-      } catch {
-        setUser(null);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-
-      // Listen for Supabase auth state changes
-      const { data: suListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        if (cancelled) return;
-        if (session?.user) {
-          const su = session.user;
-          await syncProfile({
-            id: su.id,
-            email: su.email,
-            emailVerified: !!su.email_confirmed_at,
-            displayName: (su.user_metadata?.full_name as string) || (su.user_metadata?.name as string) || null,
-            photoURL: (su.user_metadata?.avatar_url as string) || (su.user_metadata?.picture as string) || null,
-            provider: 'supabase',
-          });
-        } else if (!getDemoToken()) {
-          setUser(null);
-        }
-        setLoading(false);
-      });
-
-      return () => {
-        suListener.subscription.unsubscribe();
-      };
+      // 4. Supabase direct check
+      await handleNoFirebaseSession();
+      setLoading(false);
     }
 
     initAuth();
 
+    // Listen for Supabase auth state changes
+    const { data: suListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (cancelled) return;
+      if (session?.user) {
+        const su = session.user;
+        await syncProfile({
+          id: su.id,
+          email: su.email,
+          emailVerified: !!su.email_confirmed_at,
+          displayName: (su.user_metadata?.full_name as string) || (su.user_metadata?.name as string) || null,
+          photoURL: (su.user_metadata?.avatar_url as string) || (su.user_metadata?.picture as string) || null,
+          provider: 'supabase',
+        });
+      }
+    });
+
     return () => {
       cancelled = true;
       if (unsubFb) unsubFb();
+      suListener.subscription.unsubscribe();
     };
   }, [syncProfile, tick]);
 
@@ -268,6 +374,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     demoLogout();
+    setCachedUser(null);
     if (auth?.currentUser) {
       try {
         await fbSignOut(auth);

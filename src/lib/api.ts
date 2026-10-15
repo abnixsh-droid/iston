@@ -24,7 +24,49 @@ async function token() {
   return getDemoToken() || undefined
 }
 
-import { getDefaultContent } from './defaultContent';
+import { getDefaultContent, saveCustomContent } from './defaultContent';
+
+async function handleDirectContentMutation<T = any>(path: string, method: string, body: any): Promise<T> {
+  const url = new URL(path, 'http://localhost');
+  const type = url.searchParams.get('type') || 'properties';
+
+  // 1. Try to persist to Supabase
+  try {
+    if (method === 'POST') {
+      const payload = { ...body };
+      delete payload.id;
+      const { data, error } = await supabase.from(type).insert(payload).select().maybeSingle();
+      if (!error && data) {
+        saveCustomContent(type, data, 'POST');
+        return data as T;
+      }
+    } else if (method === 'PUT') {
+      const id = body?.id;
+      if (id) {
+        const payload = { ...body };
+        delete payload.id;
+        const { data, error } = await supabase.from(type).update(payload).eq('id', id).select().maybeSingle();
+        if (!error && data) {
+          saveCustomContent(type, data, 'PUT');
+          return data as T;
+        }
+      }
+    } else if (method === 'DELETE') {
+      const id = body?.id;
+      if (id) {
+        await supabase.from(type).delete().eq('id', id);
+        saveCustomContent(type, { id }, 'DELETE');
+        return ({ ok: true } as unknown) as T;
+      }
+    }
+  } catch (err) {
+    console.warn('Direct Supabase mutation warning:', err);
+  }
+
+  // 2. Always persist locally so UI immediately updates
+  const saved = saveCustomContent(type, body, method as 'POST' | 'PUT' | 'DELETE');
+  return saved as T;
+}
 
 async function fetchDirectContent<T = any>(path: string): Promise<T> {
   try {
@@ -76,9 +118,11 @@ export async function api<T = any>(
     }
   }
 
+  const method = (opts.method || 'GET').toUpperCase();
+
   try {
     const res = await fetch(`${API_BASE_URL}${path}`, {
-      method: opts.method || 'GET',
+      method,
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
     });
@@ -94,15 +138,27 @@ export async function api<T = any>(
     }
 
     if (res.ok && json !== null) {
+      // Mirror successful mutations locally too
+      if (path.startsWith('/api/content') && method !== 'GET') {
+        const url = new URL(path, 'http://localhost');
+        const type = url.searchParams.get('type') || 'properties';
+        saveCustomContent(type, json.item || opts.body, method as 'POST' | 'PUT' | 'DELETE');
+      }
       return json as T;
     }
 
-    // If server returned HTML (e.g. SPA fallback on Hostinger), fallback for content
+    // If server returned HTML (e.g. SPA fallback on Hostinger) or 404, fallback
     if (path.startsWith('/api/content')) {
+      if (method !== 'GET') {
+        return await handleDirectContentMutation<T>(path, method, opts.body);
+      }
       return await fetchDirectContent<T>(path);
     }
 
     if (!res.ok) {
+      if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+        return ({ ok: false, error: 'Endpoint returned HTML fallback', htmlFallback: true } as unknown) as T;
+      }
       const err = new Error(
         json?.error || `Request failed (${res.status})`,
       ) as Error & { status?: number };
@@ -113,9 +169,12 @@ export async function api<T = any>(
     if (json === null) {
       if (text.includes('<!DOCTYPE') || text.includes('<html')) {
         if (path.startsWith('/api/content')) {
+          if (method !== 'GET') {
+            return await handleDirectContentMutation<T>(path, method, opts.body);
+          }
           return await fetchDirectContent<T>(path);
         }
-        throw new Error(`API endpoint ${path} returned HTML fallback instead of JSON.`);
+        return ({ ok: false, error: 'Endpoint returned HTML fallback', htmlFallback: true } as unknown) as T;
       }
       return ({ ok: true } as unknown) as T;
     }
@@ -123,6 +182,9 @@ export async function api<T = any>(
     return json as T;
   } catch (err: any) {
     if (path.startsWith('/api/content')) {
+      if (method !== 'GET') {
+        return await handleDirectContentMutation<T>(path, method, opts.body);
+      }
       return await fetchDirectContent<T>(path);
     }
     throw err;

@@ -41,6 +41,9 @@ export default function Header() {
   useEffect(() => setMenu(false), [pathname]);
   useEffect(() => {
     document.body.style.overflow = menu ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [menu]);
 
   const solid = !isHome || scrolled || menu;

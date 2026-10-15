@@ -24,6 +24,7 @@ import { adviserService, type AdviserRecord } from '../../lib/adviserService';
 import { inr } from '../../lib/format';
 import { useSeo } from '../../lib/seo';
 import LanguageToggle from '../../components/LanguageToggle';
+import { loginAsDemoAdviser } from '../../lib/demoSession';
 
 export default function AdvisersPortal() {
   const { user, signInWithGoogle } = useAuth();
@@ -204,6 +205,17 @@ export default function AdvisersPortal() {
             >
               How the Hierarchy Works
             </a>
+
+            <button
+              type="button"
+              onClick={() => {
+                loginAsDemoAdviser();
+                navigate('/advisers/dashboard');
+              }}
+              className="w-full sm:w-auto px-5 py-3.5 rounded-full border border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-orange-600" /> Test with Demo Adviser
+            </button>
           </div>
 
           {/* KEY STATS PILLS */}

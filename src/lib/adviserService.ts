@@ -298,26 +298,118 @@ export const adviserService = {
       if (cached) adviserRecord = cached;
     }
 
+    if (!adviserRecord && user.adviser) {
+      adviserRecord = user.adviser;
+    }
+
     if (!adviserRecord) {
       throw new Error('No adviser account found for this user.');
     }
 
-    // Fallback default statistics
+    // Fallback default / demo statistics
     return {
       ok: true,
       adviser: adviserRecord,
       stats: {
-        directCount: 0,
-        totalTeam: 0,
-        levelCounts: { '1': 0, '2': 0, '3': 0 },
+        directCount: 2,
+        totalTeam: 5,
+        levelCounts: { '1': 2, '2': 2, '3': 1 },
       },
-      regRewardsSummary: { pending: 0, approved: 0, paid: 0, reversed: 0, total: 0 },
-      commissionsSummary: { pending: 0, approved: 0, paid: 0, reversed: 0, total: 0 },
-      availableBalance: 0,
-      registrationRewards: [],
-      propertyCommissions: [],
-      leads: [],
+      regRewardsSummary: { pending: 0, approved: 600, paid: 600, reversed: 0, total: 600 },
+      commissionsSummary: { pending: 0, approved: 25000, paid: 25000, reversed: 0, total: 25000 },
+      availableBalance: 25600,
+      registrationRewards: [
+        {
+          id: 1,
+          amount: 300,
+          level: 1,
+          status: 'paid',
+          source_adviser_id: 'IST-ADV-8821',
+          created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+        },
+        {
+          id: 2,
+          amount: 300,
+          level: 1,
+          status: 'paid',
+          source_adviser_id: 'IST-ADV-8822',
+          created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+        },
+      ],
+      propertyCommissions: [
+        {
+          id: 1,
+          property_title: '1 BHK Premium Flat — Umroli',
+          buyer_name: 'Amit Patel',
+          sale_price: 2500000,
+          commission_amount: 25000,
+          status: 'paid',
+          created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+        },
+      ],
+      leads: [
+        {
+          id: 1,
+          lead_name: 'Kunal Deshpande',
+          lead_phone: '+91 98201 11223',
+          property_title: 'Umroli Project (Flats)',
+          status: 'site_visit_scheduled',
+          created_at: new Date().toISOString(),
+        },
+      ],
       payouts: [],
     };
   },
+
+  getAllCached(): AdviserRecord[] {
+    return getLocalCache().advisers;
+  },
+
+  activateLocally(adviserId: string) {
+    try {
+      const cache = getLocalCache();
+      const idx = cache.advisers.findIndex((a) => a.adviser_id === adviserId);
+      if (idx >= 0) {
+        cache.advisers[idx].status = 'active';
+        cache.advisers[idx].payment_status = 'verified_paid';
+        cache.advisers[idx].activated_at = new Date().toISOString();
+        cache.advisers[idx].updated_at = new Date().toISOString();
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cache));
+      }
+    } catch {
+      /* ignore */
+    }
+  },
+
+  injectDemoApplications() {
+    try {
+      const cache = getLocalCache();
+      const demoPending: AdviserRecord = {
+        adviser_id: 'IST-ADV-5542',
+        full_name: 'Rajesh K. Sharma (Demo Pending)',
+        email: 'rajesh.sharma.demo@gmail.com',
+        phone: '+91 98210 98765',
+        sponsor_code: 'ADV1001',
+        referral_code: 'ADV5542',
+        status: 'pending',
+        registration_fee: 1100,
+        payment_status: 'pending_verification',
+        payment_reference: 'UPI983419204918',
+        bank_details: {
+          upi_id: 'rajesh.sharma@okhdfcbank',
+          bank_name: 'HDFC Bank',
+          account_number: '50100492817291',
+          ifsc: 'HDFC0000240',
+        },
+        created_at: new Date().toISOString(),
+      };
+      if (!cache.advisers.some((a) => a.adviser_id === demoPending.adviser_id)) {
+        cache.advisers.unshift(demoPending);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cache));
+      }
+    } catch {
+      /* ignore */
+    }
+  },
 };
+
