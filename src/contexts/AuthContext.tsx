@@ -97,10 +97,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (baseUser.email) {
+      const email = baseUser.email.toLowerCase();
       const isKnownAdmin =
-        baseUser.email.toLowerCase() === 'abnixsh@gmail.com' ||
-        baseUser.email.toLowerCase() === 'sitaramchaurasiya8@gmail.com' ||
+        email === 'abnixsh@gmail.com' ||
+        email === 'sitaramchaurasiya8@gmail.com' ||
         baseUser.demo === true;
+
+      let adv: any = null;
+      try {
+        const { data } = await supabase.from('advisers').select('*').eq('email', email).maybeSingle();
+        if (data) adv = data;
+      } catch {
+        /* ignore */
+      }
 
       setUser({
         id: baseUser.id || 'user',
@@ -111,7 +120,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         provider: baseUser.provider || 'firebase',
         role: isKnownAdmin ? 'admin' : 'user',
         isAdmin: isKnownAdmin,
-        isAdviser: false,
+        isAdviser: !!adv && adv.status === 'active',
+        adviserId: adv?.adviser_id || null,
+        adviser: adv,
         demo: !!baseUser.demo,
       });
     }
@@ -221,18 +232,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       if (auth && firebaseReady) {
-        const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
-        await signInWithPopup(auth, provider);
-      } else {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: window.location.origin,
-          },
-        });
-        if (error) throw error;
+        try {
+          const provider = new GoogleAuthProvider();
+          provider.setCustomParameters({ prompt: 'select_account' });
+          await signInWithPopup(auth, provider);
+          return;
+        } catch (fbErr: any) {
+          console.warn('Firebase Google Sign-In failed, attempting Supabase fallback:', fbErr?.code || fbErr?.message);
+          if (fbErr?.code === 'auth/popup-closed-by-user') {
+            return;
+          }
+          if (fbErr?.code === 'auth/unauthorized-domain') {
+            alert(
+              'Domain authorization notice:\nPlease add istongroupbuilder.in to Authorized Domains in your Firebase Console (Authentication -> Settings -> Authorized Domains).\n\nNow attempting Supabase Google OAuth fallback...'
+            );
+          }
+        }
       }
+
+      // Supabase OAuth Fallback
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Google Sign-In failed:', err);
+      alert(err.message || 'Google Sign-In failed. Please try again.');
     } finally {
       setLoading(false);
     }

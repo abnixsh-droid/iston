@@ -24,62 +24,109 @@ async function token() {
   return getDemoToken() || undefined
 }
 
+import { getDefaultContent } from './defaultContent';
+
+async function fetchDirectContent<T = any>(path: string): Promise<T> {
+  try {
+    const url = new URL(path, 'http://localhost');
+    const type = url.searchParams.get('type') || 'properties';
+    const slug = url.searchParams.get('slug');
+    const id = url.searchParams.get('id');
+    const projectId = url.searchParams.get('project_id');
+    const buildingId = url.searchParams.get('building_id');
+    const featured = url.searchParams.get('featured');
+    const limit = url.searchParams.get('limit');
+
+    let q = supabase.from(type).select('*');
+    if (slug) q = q.eq('slug', slug);
+    if (id) q = q.eq('id', id);
+    if (projectId) q = q.eq('project_id', projectId);
+    if (buildingId) q = q.eq('building_id', buildingId);
+    if (featured === '1' || featured === 'true') q = q.eq('is_featured', true);
+    if (limit) q = q.limit(parseInt(limit, 10));
+
+    const { data, error } = await q;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      if (slug || id) return (data[0] as unknown) as T;
+      return (data as unknown) as T;
+    }
+  } catch {
+    /* fallback to default */
+  }
+
+  return (getDefaultContent(path) as unknown) as T;
+}
+
 export async function api<T = any>(
   path: string,
   opts: {
-    method?: string
-    body?: unknown
-    auth?: boolean
+    method?: string;
+    body?: unknown;
+    auth?: boolean;
   } = {},
 ): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-  }
+  };
 
   if (opts.auth) {
-    const t = await token()
-
+    const t = await token();
     if (t) {
-      headers.Authorization = `Bearer ${t}`
+      headers.Authorization = `Bearer ${t}`;
     }
   }
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: opts.method || 'GET',
-    headers,
-    body:
-      opts.body !== undefined
-        ? JSON.stringify(opts.body)
-        : undefined,
-  })
+  try {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+      method: opts.method || 'GET',
+      headers,
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    });
 
-  const text = await res.text().catch(() => '');
-  let json: any = null;
-  if (text) {
-    try {
-      json = JSON.parse(text);
-    } catch {
-      json = null;
+    const text = await res.text().catch(() => '');
+    let json: any = null;
+    if (text) {
+      try {
+        json = JSON.parse(text);
+      } catch {
+        json = null;
+      }
     }
-  }
 
-  if (!res.ok) {
-    const err = new Error(
-      json?.error || `Request failed (${res.status})`,
-    ) as Error & { status?: number };
+    if (res.ok && json !== null) {
+      return json as T;
+    }
 
-    err.status = res.status;
+    // If server returned HTML (e.g. SPA fallback on Hostinger), fallback for content
+    if (path.startsWith('/api/content')) {
+      return await fetchDirectContent<T>(path);
+    }
+
+    if (!res.ok) {
+      const err = new Error(
+        json?.error || `Request failed (${res.status})`,
+      ) as Error & { status?: number };
+      err.status = res.status;
+      throw err;
+    }
+
+    if (json === null) {
+      if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+        if (path.startsWith('/api/content')) {
+          return await fetchDirectContent<T>(path);
+        }
+        throw new Error(`API endpoint ${path} returned HTML fallback instead of JSON.`);
+      }
+      return ({ ok: true } as unknown) as T;
+    }
+
+    return json as T;
+  } catch (err: any) {
+    if (path.startsWith('/api/content')) {
+      return await fetchDirectContent<T>(path);
+    }
     throw err;
   }
-
-  if (json === null) {
-    if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-      throw new Error(`API endpoint ${path} returned HTML fallback instead of JSON.`);
-    }
-    return ({ ok: true } as unknown) as T;
-  }
-
-  return json as T;
 }
 
 export function useApi<T = any>(
@@ -157,45 +204,42 @@ export async function uploadFile(
     throw new Error('No file selected')
   }
 
-  const key = import.meta.env.VITE_UPLOAD_KEY
+  const key = import.meta.env.VITE_UPLOAD_KEY || 'ab#1705PIKArq';
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('folder', folder);
 
-  if (!key) {
-    throw new Error('Missing VITE_UPLOAD_KEY')
-  }
+  const uploadHost = import.meta.env.VITE_HOSTINGER_URL || 'https://istongroupbuilder.in';
+  const endpoint = typeof window !== 'undefined' && window.location.hostname.includes('istongroupbuilder.in')
+    ? '/api/upload.php'
+    : `${uploadHost}/api/upload.php`;
 
-  const fd = new FormData()
-
-  fd.append('file', file)
-  fd.append('folder', folder)
-
-  const res = await fetch('/api/upload.php', {
+  const res = await fetch(endpoint, {
     method: 'POST',
-
     headers: {
       'X-Upload-Key': key,
     },
-
     body: fd,
+  });
 
-    credentials: 'same-origin',
-  })
-
-  let json: any = null
-
+  let json: any = null;
   try {
-    json = await res.json()
+    json = await res.json();
   } catch {
     // Ignore invalid JSON response
   }
 
   if (!res.ok || !json?.ok || !json?.url) {
-    const msg =
-      json?.error || `Upload failed (${res.status})`
-
-    throw new Error(msg)
+    const msg = json?.error || `Upload failed (${res.status})`;
+    throw new Error(msg);
   }
 
-  return json.url as string
+  // Ensure absolute URL if relative path returned
+  const rawUrl = json.url as string;
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    return rawUrl;
+  }
+  return `${uploadHost}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
 }
 
 /**
@@ -208,32 +252,27 @@ export async function deleteUploaded(
   path: string,
 ): Promise<void> {
   if (!path) {
-    return
+    return;
   }
 
-  const key = import.meta.env.VITE_UPLOAD_KEY
+  const key = import.meta.env.VITE_UPLOAD_KEY || 'ab#1705PIKArq';
+  const fd = new FormData();
+  fd.append('path', path);
 
-  if (!key) {
-    throw new Error('Missing VITE_UPLOAD_KEY')
-  }
+  const uploadHost = import.meta.env.VITE_HOSTINGER_URL || 'https://istongroupbuilder.in';
+  const endpoint = typeof window !== 'undefined' && window.location.hostname.includes('istongroupbuilder.in')
+    ? '/api/delete.php'
+    : `${uploadHost}/api/delete.php`;
 
-  const fd = new FormData()
-
-  fd.append('path', path)
-
-  const res = await fetch('/api/delete.php', {
+  const res = await fetch(endpoint, {
     method: 'POST',
-
     headers: {
       'X-Upload-Key': key,
     },
-
     body: fd,
+  });
 
-    credentials: 'same-origin',
-  })
-
-  const json = await res.json().catch(() => ({}))
+  const json = await res.json().catch(() => ({}));
 
   if (!res.ok || !json?.ok) {
     throw new Error(
