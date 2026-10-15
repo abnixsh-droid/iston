@@ -53,19 +53,33 @@ export async function api<T = any>(
         : undefined,
   })
 
-  const json = await res.json().catch(() => null)
+  const text = await res.text().catch(() => '');
+  let json: any = null;
+  if (text) {
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = null;
+    }
+  }
 
   if (!res.ok) {
     const err = new Error(
       json?.error || `Request failed (${res.status})`,
-    ) as Error & { status?: number }
+    ) as Error & { status?: number };
 
-    err.status = res.status
-
-    throw err
+    err.status = res.status;
+    throw err;
   }
 
-  return json as T
+  if (json === null) {
+    if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+      throw new Error(`API endpoint ${path} returned HTML fallback instead of JSON.`);
+    }
+    return ({ ok: true } as unknown) as T;
+  }
+
+  return json as T;
 }
 
 export function useApi<T = any>(

@@ -17,6 +17,7 @@ import { About, Brochure, Contact, NotFound } from './pages/StaticPages';
 import { PageLoader } from './components/ui';
 
 const AdvisersPortal = lazy(() => import('./pages/advisers/AdvisersPortal'));
+const AdviserRegistration = lazy(() => import('./pages/advisers/AdviserRegistration'));
 const AdviserDashboard = lazy(() => import('./pages/advisers/AdviserDashboard'));
 
 const AdminLayout = lazy(() => import('./admin/AdminLayout'));
@@ -82,7 +83,8 @@ export default function App() {
               {/* Dedicated Minimal White & Orange Advisers Environment */}
               <Route path="/advisers-program" element={<AdvisersPortal />} />
               <Route path="/advisers" element={<Navigate to="/advisers-program" replace />} />
-              <Route path="/advisers/register" element={<Navigate to="/advisers-program" replace />} />
+              <Route path="/advisers/apply" element={<AdviserRegistration />} />
+              <Route path="/advisers/register" element={<AdviserRegistration />} />
               <Route path="/partner-program" element={<Navigate to="/advisers-program" replace />} />
               <Route path="/partner" element={<Navigate to="/advisers-program" replace />} />
               <Route path="/admin/login" element={<AdminLogin />} />

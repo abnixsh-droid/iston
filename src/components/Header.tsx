@@ -69,10 +69,10 @@ export default function Header() {
               </NavLink>
             ))}
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <Link
               to="/advisers-program"
-              className="btn btn-sm bg-orange-600 hover:bg-orange-700 text-white font-bold border-0 shadow-xs flex items-center gap-1.5 rounded-full px-3.5"
+              className="bg-orange-600 hover:bg-orange-700 text-white font-bold border-0 shadow-xs flex items-center gap-1 rounded-full px-2.5 py-1 text-xs sm:px-3.5 sm:py-1.5 transition"
             >
               Advisers
             </Link>
@@ -87,10 +87,11 @@ export default function Header() {
               <div className="relative">
                 <button
                   onClick={() => setUserDropdown((d) => !d)}
-                  className={`btn btn-sm inline-flex items-center gap-1.5 ${solid ? 'btn-outline' : 'btn-ghost'}`}
+                  className={`btn btn-sm h-8 w-8 p-0 sm:h-9 sm:w-auto sm:px-3 inline-flex items-center justify-center gap-1.5 rounded-full ${solid ? 'btn-outline' : 'btn-ghost'}`}
+                  title={user.displayName || user.email || 'User Account'}
                 >
                   {isAdmin ? <ShieldCheck className="h-4 w-4 text-brass" /> : <UserCheck className="h-4 w-4 text-emerald-500" />}
-                  <span className="max-w-[100px] truncate">{user.displayName || user.email?.split('@')[0]}</span>
+                  <span className="hidden sm:inline max-w-[90px] truncate">{user.displayName || user.email?.split('@')[0]}</span>
                 </button>
                 {userDropdown && (
                   <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-line bg-white p-2 shadow-xl text-ink z-50">
@@ -142,9 +143,10 @@ export default function Header() {
             ) : (
               <button
                 onClick={() => signInWithGoogle()}
-                className={`btn btn-sm inline-flex items-center gap-1.5 ${solid ? 'btn-outline' : 'btn-ghost'}`}
+                className={`btn btn-sm h-8 px-2.5 sm:h-9 sm:px-3 inline-flex items-center gap-1.5 rounded-full text-xs font-semibold ${solid ? 'btn-outline' : 'btn-ghost'}`}
               >
-                <LogIn className="h-3.5 w-3.5" /> Sign in
+                <LogIn className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Sign in</span>
               </button>
             )}
 

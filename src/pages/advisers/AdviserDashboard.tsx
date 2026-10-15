@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
+import { adviserService } from '../../lib/adviserService';
 import { fmtDate, inr } from '../../lib/format';
 import { useSeo } from '../../lib/seo';
 
@@ -53,17 +54,18 @@ export default function AdviserDashboard() {
   useSeo('Adviser Dashboard — Iston Builder Group', 'Adviser portal for referral tracking, team hierarchy and commission earnings.');
 
   const fetchDashboard = async () => {
+    if (!user) return;
     try {
       setLoading(true);
       setError('');
-      const res = await api<any>('/api/advisers?action=get_dashboard', { auth: true });
-      if (res.ok) {
+      const res = await adviserService.getDashboard(user);
+      if (res?.ok) {
         setData(res);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load adviser dashboard');
       if (err.status === 404 || err.message?.includes('No adviser account')) {
-        navigate('/advisers/register', { replace: true });
+        navigate('/advisers-program', { replace: true });
       }
     } finally {
       setLoading(false);
