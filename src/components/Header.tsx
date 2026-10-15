@@ -66,13 +66,16 @@ export default function Header() {
                 }
               >
                 {label}
-                {label === 'Advisers' && (
-                  <span className="ml-1.5 rounded-full bg-brass/20 px-1.5 py-0.5 text-[9px] font-bold text-brass uppercase">Soon</span>
-                )}
               </NavLink>
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            <Link
+              to="/advisers-program"
+              className="btn btn-sm bg-orange-600 hover:bg-orange-700 text-white font-bold border-0 shadow-xs flex items-center gap-1.5 rounded-full px-3.5"
+            >
+              Advisers
+            </Link>
             <LanguageToggle solid={solid} />
             <BrochureButton className={`hidden items-center gap-1.5 px-2 text-[13px] font-semibold md:flex ${solid ? 'text-navy' : 'text-white'}`}>Brochure</BrochureButton>
             <a href={telHref(s.phone)} className={`hidden btn btn-sm lg:inline-flex ${solid ? 'btn-outline' : 'btn-ghost'}`}>
@@ -183,10 +186,9 @@ export default function Header() {
                   <NavLink
                     to={to}
                     end={to === '/'}
-                    className={({ isActive }) => `flex items-center justify-between border-b border-line py-4 font-display text-[1.7rem] ${isActive ? 'text-brass' : 'text-navy'}`}
+                    className={({ isActive }) => `flex items-center justify-between border-b border-line py-4 font-display text-[1.7rem] ${isActive ? 'text-orange-600' : 'text-navy'}`}
                   >
                     {label}
-                    {label === 'Advisers Program' && <span className="font-sans text-[10px] font-bold tracking-[0.16em] text-muted uppercase">Coming Soon</span>}
                   </NavLink>
                 </motion.div>
               ))}

@@ -60,10 +60,58 @@ export default function AdminLayout() {
 
   useEffect(() => {
     if (!user) return;
+    const email = (user.email || '').toLowerCase();
+    const isAuthorized =
+      email === 'abnixsh@gmail.com' ||
+      email === 'sitaramchaurasiya8@gmail.com' ||
+      !!user.demo ||
+      !!user.isAdmin;
+
+    if (!isAuthorized) {
+      setDenied('This account is not authorised for admin access.');
+      return;
+    }
+
     setDenied(null);
+    setMe((prev) => prev || {
+      isAdmin: true,
+      isDemo: !!user.demo,
+      email: user.email,
+      stats: { enquiries: 0, new_enquiries: 0, advisers: 0 },
+      admins: ['sitaramchaurasiya8@gmail.com', 'abnixsh@gmail.com'],
+      locked: ['sitaramchaurasiya8@gmail.com', 'abnixsh@gmail.com'],
+    });
     api<Row>('/api/admin', { auth: true })
-      .then(setMe)
-      .catch((e) => setDenied(e.message));
+      .then((res) => {
+        if (res && res.isAdmin) {
+          setMe(res);
+        } else if (isAuthorized) {
+          setMe({
+            isAdmin: true,
+            isDemo: !!user.demo,
+            email: user.email,
+            stats: { enquiries: 0, new_enquiries: 0, advisers: 0 },
+            admins: ['sitaramchaurasiya8@gmail.com', 'abnixsh@gmail.com'],
+            locked: ['sitaramchaurasiya8@gmail.com', 'abnixsh@gmail.com'],
+          });
+        } else {
+          setDenied(res?.error || 'This account is not authorised for admin access.');
+        }
+      })
+      .catch((e) => {
+        if (isAuthorized) {
+          setMe({
+            isAdmin: true,
+            isDemo: !!user.demo,
+            email: user.email,
+            stats: { enquiries: 0, new_enquiries: 0, advisers: 0 },
+            admins: ['sitaramchaurasiya8@gmail.com', 'abnixsh@gmail.com'],
+            locked: ['sitaramchaurasiya8@gmail.com', 'abnixsh@gmail.com'],
+          });
+        } else {
+          setDenied(e.message);
+        }
+      });
   }, [user, tick]);
   useEffect(() => setNav(false), [pathname]);
 

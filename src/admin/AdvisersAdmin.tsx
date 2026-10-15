@@ -279,114 +279,180 @@ export default function AdvisersAdmin() {
 
       {/* 1. ADVISERS LIST */}
       {tab === 'advisers' && (
-        <section className="rounded-3xl border border-line bg-white p-6 shadow-xs">
-          <div className="flex flex-col sm:flex-row gap-3 justify-between mb-6">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="w-4 h-4 absolute left-3 top-3 text-muted" />
-              <input
-                type="text"
-                placeholder="Search by name, email, adviser ID or code..."
-                className="input pl-9 text-xs"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted">Status:</span>
-              <select
-                className="input text-xs py-1.5 w-auto"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="suspended">Suspended</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
-          </div>
+        <section className="space-y-6">
+          {/* PENDING APPROVALS ALERT CARD */}
+          {advisers.filter((a) => a.status === 'pending' || a.payment_status === 'pending_verification').length > 0 && (
+            <div className="p-5 rounded-3xl bg-orange-50 border-2 border-orange-300 shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold text-sm">
+                  {advisers.filter((a) => a.status === 'pending' || a.payment_status === 'pending_verification').length}
+                </span>
+                <div>
+                  <h3 className="font-bold text-orange-950 text-sm">Adviser Applications Awaiting Payment Approval</h3>
+                  <p className="text-xs text-orange-800">
+                    Match the submitted UPI Transaction ID (UTR) with your bank/UPI account, then click "Match & Approve".
+                  </p>
+                </div>
+              </div>
 
-          {loading ? (
-            <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy" /></div>
-          ) : advisers.length === 0 ? (
-            <div className="py-12 text-center text-muted text-xs">No advisers matching search criteria.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-line bg-mist/60 text-muted uppercase font-bold tracking-wider">
-                  <tr>
-                    <th className="py-3 px-4">Adviser ID</th>
-                    <th className="py-3 px-4">Name & Email</th>
-                    <th className="py-3 px-4">Sponsor ID</th>
-                    <th className="py-3 px-4">Referral Code</th>
-                    <th className="py-3 px-4">Level</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4">Payment</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {advisers.map((a) => (
-                    <tr key={a.adviser_id} className="hover:bg-mist/30 transition">
-                      <td className="py-3 px-4 font-mono font-bold text-navy">{a.adviser_id}</td>
-                      <td className="py-3 px-4">
-                        <p className="font-semibold text-navy">{a.full_name}</p>
-                        <p className="text-[11px] text-muted">{a.email} · {a.phone}</p>
-                      </td>
-                      <td className="py-3 px-4 font-mono text-muted">{a.sponsor_id || 'Root'}</td>
-                      <td className="py-3 px-4 font-mono">{a.referral_code}</td>
-                      <td className="py-3 px-4">L{a.depth_level || 1}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[9px] ${
-                          a.status === 'active' ? 'bg-emerald-100 text-emerald-800' :
-                          a.status === 'suspended' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          {a.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-[10px] text-muted uppercase font-mono">{a.payment_status}</span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {a.status !== 'active' && (
-                            <button
-                              onClick={() => verifyRegistration(a.adviser_id)}
-                              className="px-2 py-1 rounded bg-emerald-600 text-white font-semibold text-[10px] hover:bg-emerald-700"
-                            >
-                              Verify & Activate
-                            </button>
-                          )}
-                          {a.status === 'active' ? (
-                            <button
-                              onClick={() => updateAdviserStatus(a.adviser_id, 'suspended')}
-                              className="px-2 py-1 rounded bg-rose-50 text-rose-700 font-semibold text-[10px] hover:bg-rose-100 border border-rose-200"
-                            >
-                              Suspend
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => updateAdviserStatus(a.adviser_id, 'active')}
-                              className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 font-semibold text-[10px] hover:bg-emerald-100 border border-emerald-200"
-                            >
-                              Set Active
-                            </button>
-                          )}
-                          <button
-                            onClick={() => { setTreeRootId(a.adviser_id); setTab('tree'); }}
-                            className="px-2 py-1 rounded bg-mist text-navy font-semibold text-[10px] hover:bg-line"
-                          >
-                            Inspect Tree
-                          </button>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {advisers
+                  .filter((a) => a.status === 'pending' || a.payment_status === 'pending_verification')
+                  .map((a) => (
+                    <div key={a.adviser_id} className="p-4 rounded-2xl bg-white border border-orange-200 flex flex-col justify-between gap-3">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-navy text-sm">{a.full_name}</span>
+                          <span className="font-mono text-[10px] text-muted">{a.adviser_id}</span>
                         </div>
-                      </td>
-                    </tr>
+                        <p className="text-xs text-muted">{a.email} · {a.phone}</p>
+                        <p className="text-xs text-muted mt-0.5">Sponsor: {a.sponsor_id || 'Root'}</p>
+
+                        <div className="mt-2.5 p-2 rounded-xl bg-orange-50 border border-orange-200">
+                          <span className="text-[10px] font-bold text-orange-900 uppercase">Submitted UTR / Transaction ID:</span>
+                          <p className="font-mono font-bold text-orange-900 text-sm select-all">
+                            {a.payment_reference || '(No UTR entered yet)'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 pt-1 border-t border-line">
+                        <button
+                          onClick={() => verifyRegistration(a.adviser_id)}
+                          className="flex-1 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
+                        >
+                          Match & Approve
+                        </button>
+                        <button
+                          onClick={() => updateAdviserStatus(a.adviser_id, 'rejected')}
+                          className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold hover:bg-rose-100"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+              </div>
             </div>
           )}
+
+          <div className="rounded-3xl border border-line bg-white p-6 shadow-xs">
+            <div className="flex flex-col sm:flex-row gap-3 justify-between mb-6">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="w-4 h-4 absolute left-3 top-3 text-muted" />
+                <input
+                  type="text"
+                  placeholder="Search by name, email, adviser ID or code..."
+                  className="input pl-9 text-xs"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted">Status:</span>
+                <select
+                  className="input text-xs py-1.5 w-auto"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy" /></div>
+            ) : advisers.length === 0 ? (
+              <div className="py-12 text-center text-muted text-xs">No advisers matching search criteria.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="border-b border-line bg-mist/60 text-muted uppercase font-bold tracking-wider">
+                    <tr>
+                      <th className="py-3 px-4">Adviser ID</th>
+                      <th className="py-3 px-4">Name & Email</th>
+                      <th className="py-3 px-4">Sponsor ID</th>
+                      <th className="py-3 px-4">Referral Code</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Payment & UTR</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {advisers.map((a) => (
+                      <tr key={a.adviser_id} className="hover:bg-mist/30 transition">
+                        <td className="py-3 px-4 font-mono font-bold text-navy">{a.adviser_id}</td>
+                        <td className="py-3 px-4">
+                          <p className="font-semibold text-navy">{a.full_name}</p>
+                          <p className="text-[11px] text-muted">{a.email} · {a.phone}</p>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-muted">{a.sponsor_id || 'Root'}</td>
+                        <td className="py-3 px-4 font-mono">{a.referral_code}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[9px] ${
+                            a.status === 'active' ? 'bg-emerald-100 text-emerald-800' :
+                            a.status === 'suspended' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {a.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[9px] ${
+                            a.payment_status === 'verified_paid' ? 'bg-emerald-100 text-emerald-800' :
+                            a.payment_reference ? 'bg-orange-100 text-orange-900 font-bold' : 'bg-mist text-muted'
+                          }`}>
+                            {a.payment_status}
+                          </span>
+                          {a.payment_reference && (
+                            <p className="font-mono font-bold text-orange-900 mt-1 select-all">
+                              UTR: {a.payment_reference}
+                            </p>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {a.status !== 'active' && (
+                              <button
+                                onClick={() => verifyRegistration(a.adviser_id)}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[10px] hover:bg-emerald-700 shadow-xs"
+                              >
+                                Match & Approve
+                              </button>
+                            )}
+                            {a.status === 'active' ? (
+                              <button
+                                onClick={() => updateAdviserStatus(a.adviser_id, 'suspended')}
+                                className="px-2 py-1 rounded bg-rose-50 text-rose-700 font-semibold text-[10px] hover:bg-rose-100 border border-rose-200"
+                              >
+                                Suspend
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => updateAdviserStatus(a.adviser_id, 'active')}
+                                className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 font-semibold text-[10px] hover:bg-emerald-100 border border-emerald-200"
+                              >
+                                Set Active
+                              </button>
+                            )}
+                            <button
+                              onClick={() => { setTreeRootId(a.adviser_id); setTab('tree'); }}
+                              className="px-2 py-1 rounded bg-mist text-navy font-semibold text-[10px] hover:bg-line"
+                            >
+                              Tree
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </section>
       )}
 

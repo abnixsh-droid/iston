@@ -439,8 +439,8 @@ export default async function handler(req, res) {
         depth_level: depthLevel,
         status: 'pending', // Starts pending until verification
         registration_fee: registrationFee,
-        payment_status: 'demo_paid', // Demo registration
-        payment_reference: `DEMO-PAY-${Date.now()}`,
+        payment_status: 'pending_payment', // Awaiting UPI payment
+        payment_reference: null,
         bank_details: bankDetails,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -461,8 +461,55 @@ export default async function handler(req, res) {
 
       return res.status(201).json({
         ok: true,
-        message: 'Adviser application submitted successfully. Complete payment verification to activate your account.',
+        message: 'Adviser application submitted successfully. Complete payment of ₹1,100 to submit for approval.',
         adviser: newAdviser,
+      });
+    }
+
+    // 2.1 AUTHENTICATED: Submit UPI Payment Transaction ID (UTR)
+    if (action === 'submit_payment') {
+      const userRes = await getUser(req);
+      if (userRes.error) return res.status(userRes.code || 401).json({ error: userRes.error });
+      const authUser = userRes.user;
+
+      const body = req.body || {};
+      const transactionId = String(body.transaction_id || '').trim();
+      if (!transactionId || transactionId.length < 4) {
+        return res.status(400).json({ error: 'Please enter a valid UPI Transaction ID / UTR number.' });
+      }
+
+      let adviser = state.advisers.find((a) => a.email.toLowerCase() === authUser.email.toLowerCase() || a.user_id === authUser.id);
+      if (!adviser) {
+        return res.status(404).json({ error: 'Adviser application not found.' });
+      }
+
+      adviser.payment_status = 'pending_verification';
+      adviser.payment_reference = transactionId;
+      adviser.updated_at = new Date().toISOString();
+
+      try {
+        await supabase
+          .from('advisers')
+          .update({
+            payment_status: 'pending_verification',
+            payment_reference: transactionId,
+            updated_at: adviser.updated_at,
+          })
+          .eq('adviser_id', adviser.adviser_id);
+      } catch {
+        /* ignore */
+      }
+
+      await saveAppState(state);
+      await logAudit('PAYMENT_SUBMITTED_FOR_VERIFICATION', 'advisers', adviser.adviser_id, authUser.email, {
+        transaction_id: transactionId,
+        amount: adviser.registration_fee || 1100,
+      });
+
+      return res.status(200).json({
+        ok: true,
+        message: 'Payment reference submitted successfully. Our team will verify and activate your adviser account.',
+        adviser,
       });
     }
 

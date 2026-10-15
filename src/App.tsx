@@ -13,10 +13,10 @@ import { BuildingDetail, Buildings } from './pages/Buildings';
 import Listings from './pages/Listings';
 import ItemDetail from './pages/ItemDetail';
 import Progress from './pages/Progress';
-import { About, Brochure, Contact, NotFound, AdvisersProgramPage } from './pages/StaticPages';
+import { About, Brochure, Contact, NotFound } from './pages/StaticPages';
 import { PageLoader } from './components/ui';
 
-const AdviserRegistration = lazy(() => import('./pages/advisers/AdviserRegistration'));
+const AdvisersPortal = lazy(() => import('./pages/advisers/AdvisersPortal'));
 const AdviserDashboard = lazy(() => import('./pages/advisers/AdviserDashboard'));
 
 const AdminLayout = lazy(() => import('./admin/AdminLayout'));
@@ -76,12 +76,15 @@ export default function App() {
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/brochure" element={<Brochure />} />
-                <Route path="/advisers-program" element={<AdvisersProgramPage />} />
-                <Route path="/partner-program" element={<Navigate to="/advisers-program" replace />} />
-                <Route path="/advisers/register" element={<AdviserRegistration />} />
                 <Route path="/advisers/dashboard" element={<AdviserDashboard />} />
                 <Route path="*" element={<NotFound />} />
               </Route>
+              {/* Dedicated Minimal White & Orange Advisers Environment */}
+              <Route path="/advisers-program" element={<AdvisersPortal />} />
+              <Route path="/advisers" element={<Navigate to="/advisers-program" replace />} />
+              <Route path="/advisers/register" element={<Navigate to="/advisers-program" replace />} />
+              <Route path="/partner-program" element={<Navigate to="/advisers-program" replace />} />
+              <Route path="/partner" element={<Navigate to="/advisers-program" replace />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<Dashboard />} />

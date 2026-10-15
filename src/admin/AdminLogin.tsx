@@ -28,15 +28,21 @@ export default function AdminLogin() {
   useSeo('Admin Login', undefined, null, true);
 
   useEffect(() => {
-    if (user?.emailVerified) {
-      if (isAdmin) {
-        navigate('/admin', { replace: true });
-      } else {
-        setMsg({
-          type: 'err',
-          text: `Signed in as ${user.email}. This account does not have administrator privileges. Only authorized Iston administrators (e.g. abnixsh@gmail.com, sitaramchaurasiya8@gmail.com) can access the Admin Panel.`,
-        });
-      }
+    if (!user) return;
+    const email = (user.email || '').toLowerCase();
+    const isKnownAdmin =
+      email === 'abnixsh@gmail.com' ||
+      email === 'sitaramchaurasiya8@gmail.com' ||
+      !!user.demo ||
+      !!isAdmin;
+
+    if (isKnownAdmin) {
+      navigate('/admin', { replace: true });
+    } else {
+      setMsg({
+        type: 'err',
+        text: `Signed in as ${user.email}. This account does not have administrator privileges. Only authorized Iston administrators (e.g. abnixsh@gmail.com, sitaramchaurasiya8@gmail.com) can access the Admin Panel.`,
+      });
     }
   }, [user, isAdmin, navigate]);
 

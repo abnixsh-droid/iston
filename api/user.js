@@ -90,11 +90,21 @@ export default async function handler(req, res) {
         const { data: adv } = await supabase.from('advisers').select('*').eq('email', email).maybeSingle();
         if (adv) {
           adviser = adv;
-          profileData.is_adviser = true;
+          profileData.is_adviser = adv.status === 'active';
           profileData.adviser_id = adv.adviser_id;
         }
       } catch {
         /* ignore */
+      }
+
+      if (!adviser) {
+        const state = await readConfig('advisers_state.json', { advisers: [] });
+        const adv = state?.advisers?.find((a) => a.email.toLowerCase() === email.toLowerCase());
+        if (adv) {
+          adviser = adv;
+          profileData.is_adviser = adv.status === 'active';
+          profileData.adviser_id = adv.adviser_id;
+        }
       }
 
       return res.status(200).json({

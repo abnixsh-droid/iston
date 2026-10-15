@@ -382,8 +382,8 @@ export default function Home() {
               <p className="text-sm text-muted">Join our network of real estate advisers & earn tier referral rewards.</p>
             </div>
           </div>
-          <Link to="/advisers-program" className="btn btn-outline">
-            Become an Adviser — Coming Soon
+          <Link to="/advisers-program" className="btn btn-primary bg-orange-600 hover:bg-orange-700 text-white border-0 shadow-md">
+            Become an Adviser
           </Link>
         </div>
       </section>
