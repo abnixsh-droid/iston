@@ -29,6 +29,7 @@ import type { Row } from '../lib/api';
 import { useSeo } from '../lib/seo';
 import { LogoMark } from '../components/Logo';
 import { PageLoader } from '../components/ui';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const NAV = [
   ['/admin', 'Dashboard', LayoutDashboard],
@@ -221,7 +222,9 @@ export default function AdminLayout() {
             </button>
           </div>
         )}
-        <Outlet context={{ me, refreshMe: () => setTick((t) => t + 1) } satisfies AdminCtx} />
+        <ErrorBoundary fallbackTitle="Unable to load this Admin Section">
+          <Outlet context={{ me, refreshMe: () => setTick((t) => t + 1) } satisfies AdminCtx} />
+        </ErrorBoundary>
       </main>
     </div>
   );

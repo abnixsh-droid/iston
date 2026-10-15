@@ -32,7 +32,7 @@ export default function ItemDetail({ kind }: { kind: KindKey }) {
 
   const images = [r.cover_image || K.fallbackImg, ...arr(r.gallery)].filter(Boolean) as string[];
   const amenities = arr(r.amenities);
-  const others = (related.data || []).filter((x) => x.id !== r.id).slice(0, 3);
+  const others = (Array.isArray(related.data) ? related.data : []).filter((x) => x.id !== r.id).slice(0, 3);
   const wa = waHref(s.whatsapp, `Hello Iston Builder Group, I'm interested in "${r.title}"${r.projects?.name ? ` (${r.projects.name})` : ''}. ${window.location.href}`);
   const enquire = () => open({ interest: 'Specific listing', item_type: kind, item_id: r.id, item_title: r.title });
   const share = async () => {

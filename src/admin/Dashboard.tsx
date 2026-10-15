@@ -63,11 +63,11 @@ export default function Dashboard() {
             <Loader2 className="mx-auto h-5 w-5 animate-spin text-navy" />
           ) : enquiries.error ? (
             <p className="text-sm text-rose-600">{enquiries.error}</p>
-          ) : (enquiries.data || []).length === 0 ? (
+          ) : !Array.isArray(enquiries.data) || enquiries.data.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">No enquiries yet.</p>
           ) : (
             <ul className="divide-y divide-line">
-              {(enquiries.data || []).slice(0, 6).map((q) => (
+              {enquiries.data.slice(0, 6).map((q) => (
                 <li key={q.id} className="flex items-center justify-between gap-3 py-3 text-sm">
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-navy">{q.name}</p>

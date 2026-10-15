@@ -15,6 +15,7 @@ import ItemDetail from './pages/ItemDetail';
 import Progress from './pages/Progress';
 import { About, Brochure, Contact, NotFound } from './pages/StaticPages';
 import { PageLoader } from './components/ui';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const AdvisersPortal = lazy(() => import('./pages/advisers/AdvisersPortal'));
 const AdviserRegistration = lazy(() => import('./pages/advisers/AdviserRegistration'));
@@ -62,44 +63,46 @@ export default function App() {
         <BrowserRouter>
           <ScrollTop />
           <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route element={<PublicLayout />}>
-                <Route path="/" element={<Home />} />
-                <Route path="/projects" element={<Projects />} />
-                <Route path="/projects/:slug" element={<ProjectDetail />} />
-                <Route path="/buildings" element={<Buildings />} />
-                <Route path="/buildings/:slug" element={<BuildingDetail />} />
-                <Route path="/properties" element={<Listings key="properties" kind="properties" />} />
-                <Route path="/properties/:slug" element={<ItemDetail key="p" kind="properties" />} />
-                <Route path="/plots" element={<Listings key="plots" kind="plots" />} />
-                <Route path="/plots/:slug" element={<ItemDetail key="pl" kind="plots" />} />
-                <Route path="/society-houses" element={<Listings key="houses" kind="society_houses" />} />
-                <Route path="/society-houses/:slug" element={<ItemDetail key="h" kind="society_houses" />} />
-                <Route path="/under-development" element={<Progress />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/brochure" element={<Brochure />} />
-                <Route path="/advisers/dashboard" element={<AdviserDashboard />} />
-                <Route path="*" element={<NotFound />} />
-              </Route>
-              {/* Dedicated Minimal White & Orange Advisers Environment */}
-              <Route path="/advisers-program" element={<AdvisersPortal />} />
-              <Route path="/advisers" element={<Navigate to="/advisers-program" replace />} />
-              <Route path="/advisers/apply" element={<AdviserRegistration />} />
-              <Route path="/advisers/register" element={<AdviserRegistration />} />
-              <Route path="/partner-program" element={<Navigate to="/advisers-program" replace />} />
-              <Route path="/partner" element={<Navigate to="/advisers-program" replace />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="advisers" element={<AdvisersAdmin />} />
-                <Route path="enquiries" element={<Enquiries />} />
-                <Route path="brochure" element={<BrochurePage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="account" element={<AccountPage />} />
-                <Route path=":entity" element={<CrudPage key="crud" />} />
-              </Route>
-            </Routes>
+            <ErrorBoundary>
+              <Routes>
+                <Route element={<PublicLayout />}>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/projects" element={<Projects />} />
+                  <Route path="/projects/:slug" element={<ProjectDetail />} />
+                  <Route path="/buildings" element={<Buildings />} />
+                  <Route path="/buildings/:slug" element={<BuildingDetail />} />
+                  <Route path="/properties" element={<Listings key="properties" kind="properties" />} />
+                  <Route path="/properties/:slug" element={<ItemDetail key="p" kind="properties" />} />
+                  <Route path="/plots" element={<Listings key="plots" kind="plots" />} />
+                  <Route path="/plots/:slug" element={<ItemDetail key="pl" kind="plots" />} />
+                  <Route path="/society-houses" element={<Listings key="houses" kind="society_houses" />} />
+                  <Route path="/society-houses/:slug" element={<ItemDetail key="h" kind="society_houses" />} />
+                  <Route path="/under-development" element={<Progress />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/brochure" element={<Brochure />} />
+                  <Route path="/advisers/dashboard" element={<AdviserDashboard />} />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+                {/* Dedicated Minimal White & Orange Advisers Environment */}
+                <Route path="/advisers-program" element={<AdvisersPortal />} />
+                <Route path="/advisers" element={<Navigate to="/advisers-program" replace />} />
+                <Route path="/advisers/apply" element={<AdviserRegistration />} />
+                <Route path="/advisers/register" element={<AdviserRegistration />} />
+                <Route path="/partner-program" element={<Navigate to="/advisers-program" replace />} />
+                <Route path="/partner" element={<Navigate to="/advisers-program" replace />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="advisers" element={<AdvisersAdmin />} />
+                  <Route path="enquiries" element={<Enquiries />} />
+                  <Route path="brochure" element={<BrochurePage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="account" element={<AccountPage />} />
+                  <Route path=":entity" element={<CrudPage key="crud" />} />
+                </Route>
+              </Routes>
+            </ErrorBoundary>
           </Suspense>
         </BrowserRouter>
       </SettingsProvider>

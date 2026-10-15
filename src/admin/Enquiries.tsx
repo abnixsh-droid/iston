@@ -43,15 +43,18 @@ export default function Enquiries() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
 
-  const rows = useMemo(
-    () =>
-      (data || []).filter((r) => {
-        if (status && r.status !== status) return false;
-        if (!q) return true;
-        return [r.name, r.phone, r.email, r.interest, r.item_title, r.message, r.referral_code].filter(Boolean).join(' ').toLowerCase().includes(q.toLowerCase());
-      }),
-    [data, q, status]
-  );
+  const rows = useMemo(() => {
+    const list = Array.isArray(data) ? data : [];
+    return list.filter((r) => {
+      if (status && r.status !== status) return false;
+      if (!q) return true;
+      return [r.name, r.phone, r.email, r.interest, r.item_title, r.message, r.referral_code]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(q.toLowerCase());
+    });
+  }, [data, q, status]);
 
   const setRowStatus = async (id: number, s: string) => {
     try {
