@@ -15,7 +15,15 @@ export function useLang() {
 }
 
 /** Compact header pill: shows "हिंदी" in English mode and "English" in Hindi mode. */
-export default function LanguageToggle({ solid = true, full = false }: { solid?: boolean; full?: boolean }) {
+export default function LanguageToggle({
+  solid = true,
+  full = false,
+  variant = 'default',
+}: {
+  solid?: boolean;
+  full?: boolean;
+  variant?: 'default' | 'white';
+}) {
   const lang = useLang();
   const toHindi = lang === 'en';
   const label = toHindi ? 'Translate to Hindi — हिंदी में देखें' : 'Switch to English — अंग्रेज़ी में देखें';
@@ -37,6 +45,8 @@ export default function LanguageToggle({ solid = true, full = false }: { solid?:
     );
   }
 
+  const isWhite = variant === 'white' || !solid;
+
   return (
     <button
       data-no-translate
@@ -44,11 +54,13 @@ export default function LanguageToggle({ solid = true, full = false }: { solid?:
       title={label}
       aria-label={label}
       className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition ${
-        solid ? 'border-line text-navy hover:border-navy' : 'border-white/30 text-white hover:bg-white/10'
+        isWhite
+          ? 'border-white/30 text-white bg-white/5 hover:bg-white/15 hover:border-white/50 shadow-xs'
+          : 'border-line text-navy hover:border-navy'
       }`}
     >
-      <Languages className="h-4 w-4" />
-      {toHindi ? <span className="font-hindi text-[14px]">हिंदी</span> : <span>English</span>}
+      <Languages className="h-4 w-4 text-white" />
+      {toHindi ? <span className="font-hindi text-[14px] text-white">हिंदी</span> : <span className="text-white">English</span>}
     </button>
   );
 }

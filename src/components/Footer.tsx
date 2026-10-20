@@ -76,9 +76,8 @@ export default function Footer() {
           <div className="lg:col-span-2">
             {col('Company', [
               ['/about', 'About Us'],
-              ['/under-development', 'Construction Progress'],
               ['/brochure', 'Download Brochure'],
-              ['/advisers-program', 'Adviser Login'],
+              ['/advisers-program', 'Adviser Portal'],
               ['/terms', 'Terms & Conditions'],
               ['/contact', 'Contact'],
             ])}

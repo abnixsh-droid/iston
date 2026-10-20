@@ -308,7 +308,7 @@ export const adviserService = {
       if (res?.ok && res.adviser) {
         saveLocalCache(res.adviser);
         if (res.adviser.status === 'active') {
-          setStoredAdviserAuth(res.adviser);
+          setStoredAdviserAuth({ ...res.adviser, status: 'active' });
         }
         return res;
       } else if (res?.status === 'pending') {
@@ -370,13 +370,14 @@ export const adviserService = {
     }
 
     // Save active adviser session
-    setStoredAdviserAuth(adviser);
-    saveLocalCache(adviser);
+    const activeAdviser: AdviserRecord = { ...adviser, status: 'active' };
+    setStoredAdviserAuth(activeAdviser);
+    saveLocalCache(activeAdviser);
 
     return {
       ok: true,
       status: 'active',
-      adviser,
+      adviser: activeAdviser,
       message: 'Account approved & verified! Welcome to your Adviser Dashboard.',
     };
   },
@@ -582,7 +583,8 @@ export const adviserService = {
         .or(`adviser_id.eq.${currentRecord.adviser_id},registration_no.eq.${currentRecord.registration_no || currentRecord.adviser_id}`)
         .maybeSingle();
       if (data) {
-        currentRecord = { ...currentRecord, ...data };
+        const preservedStatus = currentRecord.status === 'active' ? 'active' : (data.status || currentRecord.status);
+        currentRecord = { ...currentRecord, ...data, status: preservedStatus };
         saveLocalCache(currentRecord);
         setStoredAdviserAuth(currentRecord);
       }

@@ -19,7 +19,7 @@ import {
   Building,
   Users,
 } from 'lucide-react';
-import { adviserService, type AdviserRecord, getStoredAdviserAuth } from '../../lib/adviserService';
+import { adviserService, type AdviserRecord, getStoredAdviserAuth, setStoredAdviserAuth } from '../../lib/adviserService';
 import { useSeo } from '../../lib/seo';
 import LanguageToggle from '../../components/LanguageToggle';
 
@@ -107,7 +107,9 @@ export default function AdvisersPortal() {
         setTargetAdviser(res.adviser);
         setView('locked_red');
       } else if (res?.ok && res.adviser) {
-        setTargetAdviser(res.adviser);
+        const activeAdv = { ...res.adviser, status: 'active' as const };
+        setStoredAdviserAuth(activeAdv);
+        setTargetAdviser(activeAdv);
         setView('approved_green');
       } else {
         setLoginError(res?.error || 'Invalid credentials or registration not found.');
@@ -162,7 +164,7 @@ export default function AdvisersPortal() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex flex-col justify-between p-4 sm:p-6 bg-gradient-to-br from-[#011a1f] via-[#03343b] to-[#0d5f55] text-white">
+    <div className="min-h-screen relative overflow-hidden flex flex-col justify-between p-4 sm:p-6 bg-gradient-to-br from-[#011a1f] via-[#03343b] to-[#0d5f55] text-white select-none">
       {/* Background Ambient Glow Orbs */}
       <div className="absolute -top-40 -left-32 w-[480px] h-[480px] rounded-full bg-teal-400/15 blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-32 -right-24 w-[420px] h-[420px] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none" />
@@ -178,21 +180,25 @@ export default function AdvisersPortal() {
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Website
         </Link>
         <div className="scale-90 origin-right">
-          <LanguageToggle solid />
+          <LanguageToggle variant="white" solid={false} />
         </div>
       </header>
 
       {/* Main Container Card */}
       <main className="relative z-10 w-full max-w-md lg:max-w-lg mx-auto my-auto py-2">
-        <div className="bg-[#062f35]/90 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_25px_80px_-15px_rgba(0,0,0,0.6)] p-6 sm:p-8 lg:p-10">
+        <div className="bg-[#062f35]/90 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_25px_80px_-15px_rgba(0,0,0,0.6)] p-6 sm:p-8 lg:p-10 select-none">
 
-          {/* Logo & Branding */}
+          {/* Logo & Branding with Official Iston Favicon */}
           <div className="text-center mb-6">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-teal-400 via-emerald-500 to-amber-400 flex items-center justify-center shadow-lg shadow-teal-500/30 ring-1 ring-white/20">
-              <Sparkles className="w-7 h-7 text-[#022c33]" />
+            <div className="w-16 h-16 mx-auto rounded-2xl p-1.5 bg-white/10 border border-teal-500/30 shadow-lg shadow-teal-500/25 flex items-center justify-center">
+              <img
+                src="/favicon.png"
+                alt="Iston Builder Group logo"
+                className="w-13 h-13 object-contain rounded-xl"
+              />
             </div>
             <h1 className="text-2xl font-bold text-white mt-3 tracking-tight">Adviser Portal</h1>
-            <p className="text-teal-200/50 text-xs sm:text-sm mt-1">Single number login · Secure &amp; simple</p>
+            <p className="text-teal-200/60 text-xs sm:text-sm mt-1">Single number login · Secure &amp; simple</p>
           </div>
 
           {/* ============================================================== */}
@@ -317,7 +323,12 @@ export default function AdvisersPortal() {
 
               <button
                 type="button"
-                onClick={() => navigate('/advisers/dashboard')}
+                onClick={() => {
+                  if (targetAdviser) {
+                    setStoredAdviserAuth({ ...targetAdviser, status: 'active' });
+                  }
+                  navigate('/advisers/dashboard');
+                }}
                 className="w-full bg-gradient-to-r from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300 text-[#022c33] font-bold py-3.5 rounded-xl shadow-lg shadow-teal-500/25 text-xs tracking-wider uppercase transition flex items-center justify-center gap-1.5"
               >
                 Enter Adviser Dashboard <ArrowRight className="w-4 h-4" />
@@ -520,13 +531,10 @@ export default function AdvisersPortal() {
                     </div>
                   </div>
 
-                  {/* Registration Number (Auto-generated) */}
+                  {/* Registration Number */}
                   <div>
                     <label className="block text-xs font-medium text-teal-100/70 mb-1">
                       Registration Number
-                      <span className="text-amber-300/80 text-[10px] ml-1.5 font-mono">
-                        (Auto-generated)
-                      </span>
                     </label>
                     <div className="relative">
                       <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-300/40" />
@@ -534,26 +542,17 @@ export default function AdvisersPortal() {
                         type="text"
                         readOnly
                         value={registrationNo}
-                        className="w-full bg-white/[0.03] border border-dashed border-teal-300/30 rounded-xl pl-10 pr-20 py-2.5 text-teal-200 font-mono font-bold tracking-widest text-xs sm:text-sm select-all outline-none"
+                        className="w-full bg-white/[0.03] border border-dashed border-teal-300/30 rounded-xl pl-10 pr-14 py-2.5 text-teal-200 font-mono font-bold tracking-widest text-xs sm:text-sm select-none outline-none"
                       />
-                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={handleRegenerateRegNo}
-                          title="Generate new ID"
-                          className="text-teal-300/60 hover:text-teal-100 transition p-1"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => copyText(registrationNo, 'Registration No. copied!')}
-                          title="Copy ID"
-                          className="text-teal-300/60 hover:text-teal-100 transition p-1"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => copyText(registrationNo, 'Registration No. copied!')}
+                        title="Copy Registration Number"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-teal-300/70 hover:text-white transition px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 flex items-center gap-1 text-[11px] font-semibold"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy</span>
+                      </button>
                     </div>
                   </div>
 

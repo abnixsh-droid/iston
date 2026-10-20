@@ -81,7 +81,7 @@ export default function App() {
                   <Route path="/plots/:slug" element={<ItemDetail key="pl" kind="plots" />} />
                   <Route path="/society-houses" element={<Navigate to="/properties" replace />} />
                   <Route path="/society-houses/:slug" element={<Navigate to="/properties" replace />} />
-                  <Route path="/under-development" element={<Progress />} />
+                  <Route path="/under-development" element={<Navigate to="/projects" replace />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/brochure" element={<Brochure />} />

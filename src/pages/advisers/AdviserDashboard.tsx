@@ -90,12 +90,53 @@ export default function AdviserDashboard() {
         setData(res);
         setDocs(res.adviser?.documents || {});
         setBankDetails(res.adviser?.bank_details || {});
+      } else {
+        // Fallback from session auth so user is NEVER logged out
+        setData({
+          ok: true,
+          adviser: auth,
+          stats: { directCount: 0, totalTeam: 0, levelCounts: {}, teamTree: {
+            adviser_id: auth.adviser_id,
+            registration_no: auth.registration_no || auth.adviser_id,
+            full_name: auth.full_name,
+            directCount: 0,
+            totalTeam: 0,
+            children: [],
+          }},
+          regRewardsSummary: { pending: 0, approved: 0, paid: 0, reversed: 0, total: 0 },
+          commissionsSummary: { pending: 0, approved: 0, paid: 0, reversed: 0, total: 0 },
+          availableBalance: 0,
+          registrationRewards: [],
+          propertyCommissions: [],
+          leads: [],
+          payouts: [],
+        });
+        setDocs(auth.documents || {});
+        setBankDetails(auth.bank_details || {});
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load adviser dashboard');
-      if (err.status === 404 || err.message?.includes('No adviser account')) {
-        navigate('/advisers-program', { replace: true });
-      }
+      // Safe fallback from local session auth — NEVER kick logged-in adviser back to login
+      setData({
+        ok: true,
+        adviser: auth,
+        stats: { directCount: 0, totalTeam: 0, levelCounts: {}, teamTree: {
+          adviser_id: auth.adviser_id,
+          registration_no: auth.registration_no || auth.adviser_id,
+          full_name: auth.full_name,
+          directCount: 0,
+          totalTeam: 0,
+          children: [],
+        }},
+        regRewardsSummary: { pending: 0, approved: 0, paid: 0, reversed: 0, total: 0 },
+        commissionsSummary: { pending: 0, approved: 0, paid: 0, reversed: 0, total: 0 },
+        availableBalance: 0,
+        registrationRewards: [],
+        propertyCommissions: [],
+        leads: [],
+        payouts: [],
+      });
+      setDocs(auth.documents || {});
+      setBankDetails(auth.bank_details || {});
     } finally {
       setLoading(false);
     }
@@ -108,7 +149,7 @@ export default function AdviserDashboard() {
     }
 
     const currentAuth = getStoredAdviserAuth();
-    if (!currentAuth || currentAuth.status !== 'active') {
+    if (!currentAuth) {
       navigate('/advisers-program', { replace: true });
       return;
     }
@@ -276,7 +317,7 @@ export default function AdviserDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#011a1f] via-[#03343b] to-[#0d5f55] py-6 md:py-10 text-white relative overflow-hidden font-sans selection:bg-teal-400 selection:text-[#011a1f]">
+    <div className="min-h-screen bg-gradient-to-br from-[#011a1f] via-[#03343b] to-[#0d5f55] py-6 md:py-10 text-white relative overflow-hidden font-sans selection:bg-teal-400 selection:text-[#011a1f] select-none">
       {/* Ambient background glow & radial feather pattern */}
       <div className="pointer-events-none absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-teal-500/15 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-40 -left-40 h-[500px] w-[500px] rounded-full bg-emerald-500/10 blur-3xl" />

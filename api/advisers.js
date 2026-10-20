@@ -652,24 +652,49 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. AUTHENTICATED: Get Adviser Dashboard Data
+    // 3. Get Adviser Dashboard Data (Single number registration OR Google user)
     if (action === 'get_dashboard') {
-      const userRes = await getUser(req);
-      if (userRes.error) return res.status(userRes.code || 401).json({ error: userRes.error });
-      const authUser = userRes.user;
+      let adviser = null;
+      const adviserId = String(req.query.adviser_id || (req.body && req.body.adviser_id) || '').trim().toUpperCase();
+      const registrationNo = String(req.query.registration_no || (req.body && req.body.registration_no) || '').trim().toUpperCase();
 
-      let adviser = state.advisers.find((a) => a.email.toLowerCase() === authUser.email.toLowerCase() || a.user_id === authUser.id);
-      if (!adviser) {
-        try {
-          const { data } = await supabase.from('advisers').select('*').eq('email', authUser.email.toLowerCase()).maybeSingle();
-          if (data) adviser = data;
-        } catch {
-          /* ignore */
+      if (adviserId || registrationNo) {
+        adviser = state.advisers.find((a) =>
+          (a.adviser_id && a.adviser_id.toUpperCase() === adviserId) ||
+          (a.registration_no && a.registration_no.toUpperCase() === (registrationNo || adviserId))
+        );
+        if (!adviser) {
+          try {
+            const { data } = await supabase
+              .from('advisers')
+              .select('*')
+              .or(`adviser_id.ilike.${adviserId || registrationNo},registration_no.ilike.${registrationNo || adviserId}`)
+              .maybeSingle();
+            if (data) adviser = data;
+          } catch {
+            /* ignore */
+          }
         }
       }
 
       if (!adviser) {
-        return res.status(404).json({ error: 'No adviser account found for this user.' });
+        const userRes = await getUser(req);
+        if (!userRes.error && userRes.user) {
+          const authUser = userRes.user;
+          adviser = state.advisers.find((a) => a.email.toLowerCase() === authUser.email.toLowerCase() || a.user_id === authUser.id);
+          if (!adviser) {
+            try {
+              const { data } = await supabase.from('advisers').select('*').eq('email', authUser.email.toLowerCase()).maybeSingle();
+              if (data) adviser = data;
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+      }
+
+      if (!adviser) {
+        return res.status(404).json({ error: 'No adviser account found.' });
       }
 
       // Compute team statistics

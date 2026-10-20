@@ -9,14 +9,13 @@ import { useEnquiry } from '../contexts/EnquiryContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { telHref, waHref } from '../lib/format';
+import { getStoredAdviserAuth } from '../lib/adviserService';
 
 export const NAV: [string, string][] = [
   ['/projects', 'Projects'],
   ['/buildings', 'Buildings'],
   ['/properties', 'Flats'],
   ['/plots', 'Plots'],
-  ['/under-development', 'Progress'],
-  ['/advisers-program', 'Adviser Login'],
   ['/about', 'About'],
   ['/contact', 'Contact'],
 ];
@@ -46,6 +45,8 @@ export default function Header() {
   }, [menu]);
 
   const solid = !isHome || scrolled || menu;
+  const adviserAuth = getStoredAdviserAuth();
+  const isAdviserLoggedIn = Boolean(adviserAuth);
 
   return (
     <>
@@ -73,10 +74,15 @@ export default function Header() {
           </nav>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Link
-              to="/advisers-program"
-              className="bg-orange-600 hover:bg-orange-700 text-white font-bold border-0 shadow-xs flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] sm:text-xs sm:px-3.5 sm:py-1.5 transition shrink-0"
+              to={isAdviserLoggedIn ? '/advisers/dashboard' : '/advisers-program'}
+              className={
+                isAdviserLoggedIn
+                  ? 'bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-300 hover:to-emerald-400 text-[#022c33] font-black border-0 shadow-md shadow-teal-500/25 flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] sm:text-xs sm:px-4 sm:py-1.5 transition shrink-0 ring-2 ring-teal-300/40'
+                  : 'bg-orange-600 hover:bg-orange-700 text-white font-bold border-0 shadow-xs flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] sm:text-xs sm:px-3.5 sm:py-1.5 transition shrink-0'
+              }
             >
-              Adviser Login
+              {isAdviserLoggedIn && <span className="h-2 w-2 rounded-full bg-[#022c33] animate-pulse" />}
+              {isAdviserLoggedIn ? 'Adviser' : 'Adviser Login'}
             </Link>
             <div className="hidden sm:block">
               <LanguageToggle solid={solid} />
@@ -186,7 +192,7 @@ export default function Header() {
                 ['/', 'Home'] as [string, string],
                 ...NAV,
                 ['/brochure', 'Download Brochure'] as [string, string],
-                ['/advisers-program', 'Adviser Login'] as [string, string],
+                (isAdviserLoggedIn ? ['/advisers/dashboard', 'Adviser'] : ['/advisers-program', 'Adviser Login']) as [string, string],
                 ...(isAdmin ? ([['/admin', 'Admin Panel'] as [string, string]]) : []),
                 ...(isAdviser ? ([['/advisers/dashboard', 'Adviser Dashboard'] as [string, string]]) : []),
                 ...(!user ? ([['/admin/login', 'Admin Login'] as [string, string]]) : []),

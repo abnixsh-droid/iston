@@ -24,7 +24,6 @@ const TILES: [string, string, string, string][] = [
   ['/buildings', 'Buildings', 'Towers & wings', '/images/building.jpg'],
   ['/properties', 'Flats', 'Apartments & residences', '/images/interior.jpg'],
   ['/plots', 'Plots', 'Land parcels', '/images/plot.jpg'],
-  ['/under-development', 'Under Development', 'Construction progress', '/images/construction.jpg'],
 ];
 
 export default function Home() {
@@ -35,7 +34,6 @@ export default function Home() {
   const projects = useApi<Row[]>('/api/content?type=projects');
   const featured = useApi<Row[]>('/api/content?type=properties&featured=1&limit=6');
   const promos = useApi<Row[]>('/api/content?type=promotions');
-  const progress = useApi<Row[]>('/api/content?type=progress_updates&limit=3');
 
   const plist = projects.data || [];
   const hero = plist.find((p) => p.slug === s.hero_project_slug) || plist.find((p) => p.status === 'current') || null;
@@ -252,49 +250,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PROGRESS */}
-      <section className="py-20 md:py-28">
-        <div className="container-x grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-4">
-            <p className="eyebrow mb-4">On Site</p>
-            <h2 className="font-display text-4xl leading-[1.02] text-navy md:text-5xl">Under development</h2>
-            <p className="mt-4 text-[15px] leading-relaxed text-muted">Follow construction milestones as our projects take shape.</p>
-            <Link to="/under-development" className="btn btn-outline mt-7">
-              Track progress <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <div className="space-y-4 lg:col-span-8">
-            {progress.loading ? (
-              <SkeletonGrid n={2} />
-            ) : (progress.data || []).length === 0 ? (
-              <EmptyState title="Progress updates coming soon" />
-            ) : (
-              (progress.data || []).map((u) => (
-                <motion.div key={u.id} {...reveal} className="flex gap-4 rounded-[1.5rem] border border-line p-4 md:gap-6 md:p-5">
-                  <Img src={u.image || '/images/construction.jpg'} alt={u.title} className="h-24 w-24 shrink-0 rounded-2xl md:h-28 md:w-40" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[10px] font-bold tracking-[0.18em] text-brass uppercase">{u.projects?.name || 'Project'}</span>
-                      <DemoBadge show={u.is_demo} />
-                    </div>
-                    <p className="mt-1 font-display text-2xl leading-tight text-navy">{u.title}</p>
-                    {typeof u.progress_percent === 'number' ? (
-                      <div className="mt-3 flex items-center gap-3">
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-mist">
-                          <div className="h-full rounded-full bg-navy" style={{ width: `${Math.min(100, u.progress_percent)}%` }} />
-                        </div>
-                        <span className="text-xs font-bold text-navy">{u.progress_percent}%</span>
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-xs text-muted">{show(u.stage, 'Stage update coming soon')}</p>
-                    )}
-                  </div>
-                </motion.div>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
+
 
       {/* ABOUT + BROCHURE */}
       <section className="pb-20 md:pb-28">
