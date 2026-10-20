@@ -173,13 +173,10 @@ export default function AdminLayout() {
         <div className="flex-1 overflow-y-auto">{sidebar}</div>
         <div className="border-t border-white/10 p-4 text-xs text-white/60">
           <p className="truncate">{me.email}</p>
-          <div className="mt-3 flex gap-2">
-            <Link to="/" target="_blank" className="flex items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1.5 text-white hover:bg-white/20">
-              <ExternalLink className="h-3 w-3" /> Site
+          <div className="mt-3">
+            <Link to="/" className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-white/15 px-3 py-2 text-white hover:bg-white/25 font-semibold text-xs transition">
+              <Home className="h-3.5 w-3.5" /> Back to Website
             </Link>
-            <button onClick={signOut} className="flex items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1.5 text-white hover:bg-white/20">
-              <LogOut className="h-3 w-3" /> Sign out
-            </button>
           </div>
         </div>
       </aside>
@@ -189,9 +186,9 @@ export default function AdminLayout() {
           <Menu className="h-5 w-5" />
         </button>
         <p className="font-display text-lg tracking-[0.12em]">ISTON Admin</p>
-        <button onClick={signOut} aria-label="Sign out" className="rounded-lg p-2 hover:bg-white/10">
-          <LogOut className="h-4 w-4" />
-        </button>
+        <Link to="/" aria-label="Back to Website" className="flex items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1 text-xs text-white hover:bg-white/20">
+          <Home className="h-3.5 w-3.5" /> <span className="text-[11px] font-semibold">Home</span>
+        </Link>
       </header>
       {nav && (
         <div className="fixed inset-0 z-50 bg-navy-deep/60 lg:hidden" onClick={() => setNav(false)}>

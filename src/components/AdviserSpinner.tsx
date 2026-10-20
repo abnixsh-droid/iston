@@ -7,7 +7,6 @@ import {
   PhoneCall,
   Sparkles,
   X,
-  ChevronUp,
 } from 'lucide-react';
 
 interface AdviserSpinnerProps {
@@ -50,10 +49,10 @@ export default function AdviserSpinner({ activeTab, onSelectTab }: AdviserSpinne
           <button
             type="button"
             onClick={() => handleAction('home')}
-            className="group flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-white text-navy font-bold text-xs shadow-lg border border-line hover:border-orange-500 hover:text-orange-600 transition"
+            className="group flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-[#062f35]/95 backdrop-blur-xl border border-teal-500/30 text-teal-100 hover:border-teal-300 hover:text-white shadow-xl transition"
           >
-            <span className="text-[11px] font-semibold text-muted group-hover:text-orange-600">Website Home</span>
-            <span className="w-8 h-8 rounded-full bg-mist group-hover:bg-orange-50 grid place-items-center text-navy group-hover:text-orange-600 transition">
+            <span className="text-[11px] font-semibold text-teal-200/80 group-hover:text-white">Website Home</span>
+            <span className="w-8 h-8 rounded-full bg-[#021f24] group-hover:bg-teal-500/20 grid place-items-center text-teal-300 transition border border-teal-500/20">
               <Home className="w-4 h-4" />
             </span>
           </button>
@@ -62,16 +61,20 @@ export default function AdviserSpinner({ activeTab, onSelectTab }: AdviserSpinne
           <button
             type="button"
             onClick={() => handleAction('dashboard')}
-            className={`group flex items-center gap-2.5 px-3.5 py-2 rounded-full font-bold text-xs shadow-lg border transition ${
+            className={`group flex items-center gap-2.5 px-3.5 py-2 rounded-full font-bold text-xs shadow-xl border transition ${
               activeTab === 'overview'
-                ? 'bg-navy text-white border-navy'
-                : 'bg-white text-navy border-line hover:border-orange-500 hover:text-orange-600'
+                ? 'bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] border-transparent font-black shadow-teal-500/20'
+                : 'bg-[#062f35]/95 backdrop-blur-xl border-teal-500/30 text-teal-100 hover:border-teal-300 hover:text-white'
             }`}
           >
             <span className="text-[11px]">Dashboard</span>
-            <span className={`w-8 h-8 rounded-full grid place-items-center transition ${
-              activeTab === 'overview' ? 'bg-orange-600 text-white' : 'bg-mist group-hover:bg-orange-50 text-navy group-hover:text-orange-600'
-            }`}>
+            <span
+              className={`w-8 h-8 rounded-full grid place-items-center transition ${
+                activeTab === 'overview'
+                  ? 'bg-[#022c33] text-teal-300'
+                  : 'bg-[#021f24] group-hover:bg-teal-500/20 text-teal-300 border border-teal-500/20'
+              }`}
+            >
               <LayoutDashboard className="w-4 h-4" />
             </span>
           </button>
@@ -80,16 +83,20 @@ export default function AdviserSpinner({ activeTab, onSelectTab }: AdviserSpinne
           <button
             type="button"
             onClick={() => handleAction('profile')}
-            className={`group flex items-center gap-2.5 px-3.5 py-2 rounded-full font-bold text-xs shadow-lg border transition ${
+            className={`group flex items-center gap-2.5 px-3.5 py-2 rounded-full font-bold text-xs shadow-xl border transition ${
               activeTab === 'profile'
-                ? 'bg-orange-600 text-white border-orange-600'
-                : 'bg-white text-navy border-line hover:border-orange-500 hover:text-orange-600'
+                ? 'bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] border-transparent font-black shadow-teal-500/20'
+                : 'bg-[#062f35]/95 backdrop-blur-xl border-teal-500/30 text-teal-100 hover:border-teal-300 hover:text-white'
             }`}
           >
             <span className="text-[11px]">Profile &amp; KYC</span>
-            <span className={`w-8 h-8 rounded-full grid place-items-center transition ${
-              activeTab === 'profile' ? 'bg-white text-orange-600' : 'bg-mist group-hover:bg-orange-50 text-navy group-hover:text-orange-600'
-            }`}>
+            <span
+              className={`w-8 h-8 rounded-full grid place-items-center transition ${
+                activeTab === 'profile'
+                  ? 'bg-[#022c33] text-teal-300'
+                  : 'bg-[#021f24] group-hover:bg-teal-500/20 text-teal-300 border border-teal-500/20'
+              }`}
+            >
               <User className="w-4 h-4" />
             </span>
           </button>
@@ -98,10 +105,10 @@ export default function AdviserSpinner({ activeTab, onSelectTab }: AdviserSpinne
           <button
             type="button"
             onClick={() => handleAction('contact')}
-            className="group flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-white text-navy font-bold text-xs shadow-lg border border-line hover:border-orange-500 hover:text-orange-600 transition"
+            className="group flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-[#062f35]/95 backdrop-blur-xl border border-teal-500/30 text-teal-100 hover:border-teal-300 hover:text-white shadow-xl transition"
           >
-            <span className="text-[11px] font-semibold text-muted group-hover:text-orange-600">Contact Support</span>
-            <span className="w-8 h-8 rounded-full bg-mist group-hover:bg-orange-50 grid place-items-center text-navy group-hover:text-orange-600 transition">
+            <span className="text-[11px] font-semibold text-teal-200/80 group-hover:text-white">Contact Support</span>
+            <span className="w-8 h-8 rounded-full bg-[#021f24] group-hover:bg-teal-500/20 grid place-items-center text-teal-300 transition border border-teal-500/20">
               <PhoneCall className="w-4 h-4" />
             </span>
           </button>
@@ -114,8 +121,8 @@ export default function AdviserSpinner({ activeTab, onSelectTab }: AdviserSpinne
         onClick={() => setIsOpen((prev) => !prev)}
         className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 ring-4 ${
           isOpen
-            ? 'bg-navy text-white ring-orange-500/30 rotate-90 scale-95'
-            : 'bg-orange-600 hover:bg-orange-700 text-white ring-orange-600/20 hover:scale-105'
+            ? 'bg-[#021f24] text-teal-300 ring-teal-400/40 rotate-90 scale-95 border border-teal-500/40'
+            : 'bg-gradient-to-r from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300 text-[#022c33] ring-teal-300/30 hover:scale-105 shadow-teal-500/30'
         }`}
         title="Adviser Quick Menu (Home, Dashboard, Profile, Contact)"
         aria-label="Adviser Quick Menu"
@@ -124,7 +131,7 @@ export default function AdviserSpinner({ activeTab, onSelectTab }: AdviserSpinne
           <X className="w-6 h-6" />
         ) : (
           <div className="relative flex items-center justify-center">
-            <Sparkles className="w-6 h-6 animate-spin [animation-duration:6s]" />
+            <Sparkles className="w-6 h-6 animate-spin [animation-duration:8s]" />
           </div>
         )}
       </button>

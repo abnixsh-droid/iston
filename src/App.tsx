@@ -87,13 +87,13 @@ export default function App() {
                   <Route path="/brochure" element={<Brochure />} />
                   <Route path="/terms" element={<TermsAndConditions />} />
                   <Route path="/terms-and-conditions" element={<Navigate to="/terms" replace />} />
-                  <Route path="/advisers/dashboard" element={<AdviserDashboard />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
-                {/* Dedicated Minimal White & Orange Advisers Environment */}
+                {/* Dedicated Dark Teal / Emerald Adviser Portal & Dashboard */}
                 <Route path="/advisers-program" element={<AdvisersPortal />} />
                 <Route path="/advisers-login" element={<AdvisersPortal />} />
                 <Route path="/advisers" element={<Navigate to="/advisers-program" replace />} />
+                <Route path="/advisers/dashboard" element={<AdviserDashboard />} />
                 <Route path="/advisers/apply" element={<AdviserRegistration />} />
                 <Route path="/advisers/register" element={<AdviserRegistration />} />
                 <Route path="/partner-program" element={<Navigate to="/advisers-program" replace />} />

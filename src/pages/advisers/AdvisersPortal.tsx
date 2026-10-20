@@ -1,28 +1,25 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Users,
-  CheckCircle2,
-  TrendingUp,
-  Building,
-  ArrowRight,
-  ShieldAlert,
-  ShieldCheck,
   Lock,
-  Unlock,
   Check,
   Copy,
   RotateCcw,
   Sparkles,
-  Phone,
-  FileText,
-  BadgeAlert,
   ArrowLeft,
-  KeyRound,
-  UserCheck,
+  Eye,
+  EyeOff,
+  User,
+  Phone,
+  Gift,
+  Hash,
+  CheckCircle2,
+  ArrowRight,
+  ShieldAlert,
+  Building,
+  Users,
 } from 'lucide-react';
-import { adviserService, type AdviserRecord, getStoredAdviserAuth, setStoredAdviserAuth } from '../../lib/adviserService';
-import { inr } from '../../lib/format';
+import { adviserService, type AdviserRecord, getStoredAdviserAuth } from '../../lib/adviserService';
 import { useSeo } from '../../lib/seo';
 import LanguageToggle from '../../components/LanguageToggle';
 
@@ -30,39 +27,49 @@ export default function AdvisersPortal() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Active view: 'register' | 'login' | 'locked_red' | 'approved_green'
-  const [view, setView] = useState<'register' | 'login' | 'locked_red' | 'approved_green'>('register');
+  // Active view: 'login' | 'register' | 'locked_red' | 'approved_green'
+  const [view, setView] = useState<'login' | 'register' | 'locked_red' | 'approved_green'>('login');
 
-  // Registration Form Fields
+  // Login Form States
+  const [loginType, setLoginType] = useState<'reg' | 'mobile'>('reg');
+  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [submittingLogin, setSubmittingLogin] = useState(false);
+
+  // Register Form States
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [registrationNo, setRegistrationNo] = useState(adviserService.generateRegistrationNo());
   const [referralNo, setReferralNo] = useState('');
   const [password, setPassword] = useState('');
   const [rePassword, setRePassword] = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegRePassword, setShowRegRePassword] = useState(false);
   const [regError, setRegError] = useState('');
   const [submittingReg, setSubmittingReg] = useState(false);
 
-  // Login Form Fields (-- single number login --)
-  const [loginIdentifier, setLoginIdentifier] = useState('');
-  const [loginTokenOrPassword, setLoginTokenOrPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [submittingLogin, setSubmittingLogin] = useState(false);
-
-  // Target Adviser Record (for Red Locked screen or Green Approved screen)
+  // Target Adviser (for Red Locked screen or Green Approved screen)
   const [targetAdviser, setTargetAdviser] = useState<AdviserRecord | null>(null);
-  const [copiedRegNo, setCopiedRegNo] = useState(false);
 
-  useSeo('Adviser Login & Registration — Iston Builder Group', 'Official adviser registration and single number token login portal.');
+  // Toast State
+  const [toastMsg, setToastMsg] = useState('');
 
-  // Pre-fill referral code from query param if available
+  useSeo('Adviser Portal — Iston Builder Group', 'Single number login · Secure & simple adviser registration and access.');
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 2500);
+  };
+
   useEffect(() => {
     const ref = searchParams.get('ref') || searchParams.get('sponsor');
     if (ref) {
       setReferralNo(ref.toUpperCase());
+      setView('register');
     }
 
-    // Check if user already has an active session
     const currentSession = getStoredAdviserAuth();
     if (currentSession && currentSession.status === 'active') {
       setTargetAdviser(currentSession);
@@ -70,17 +77,49 @@ export default function AdvisersPortal() {
   }, [searchParams]);
 
   const handleRegenerateRegNo = () => {
-    setRegistrationNo(adviserService.generateRegistrationNo());
+    const newNo = adviserService.generateRegistrationNo();
+    setRegistrationNo(newNo);
+    showToast(`Generated ${newNo}`);
   };
 
-  const copyRegistrationNo = (no?: string) => {
-    const val = no || registrationNo;
+  const copyText = (val: string, label = 'Copied!') => {
     navigator.clipboard.writeText(val);
-    setCopiedRegNo(true);
-    setTimeout(() => setCopiedRegNo(false), 2000);
+    showToast(label);
   };
 
-  // Handle Adviser Registration Submit
+  // Handle Login Submit
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+
+    if (!loginIdentifier.trim() || !loginPassword.trim()) {
+      return setLoginError('Please enter both your identifier and token/password.');
+    }
+
+    setSubmittingLogin(true);
+    try {
+      const res = await adviserService.adviserLogin({
+        identifier: loginIdentifier.trim(),
+        tokenOrPassword: loginPassword.trim(),
+      });
+
+      if (res?.status === 'pending' && res.adviser) {
+        setTargetAdviser(res.adviser);
+        setView('locked_red');
+      } else if (res?.ok && res.adviser) {
+        setTargetAdviser(res.adviser);
+        setView('approved_green');
+      } else {
+        setLoginError(res?.error || 'Invalid credentials or registration not found.');
+      }
+    } catch (err: any) {
+      setLoginError(err?.message || 'Error during login.');
+    } finally {
+      setSubmittingLogin(false);
+    }
+  };
+
+  // Handle Register Submit
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError('');
@@ -96,7 +135,7 @@ export default function AdvisersPortal() {
       return setRegError('Password must be at least 4 characters long.');
     }
     if (password !== rePassword) {
-      return setRegError('Password and Re-Password do not match.');
+      return setRegError('Passwords do not match.');
     }
 
     setSubmittingReg(true);
@@ -116,525 +155,509 @@ export default function AdvisersPortal() {
         setRegError(res?.error || 'Registration failed. Please try again.');
       }
     } catch (err: any) {
-      setRegError(err?.message || 'Error creating adviser registration.');
+      setRegError(err?.message || 'Error creating registration.');
     } finally {
       setSubmittingReg(false);
     }
   };
 
-  // Handle Adviser Login Submit
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError('');
-
-    if (!loginIdentifier.trim()) {
-      return setLoginError('Please enter your Registration Number or Mobile number.');
-    }
-    if (!loginTokenOrPassword.trim()) {
-      return setLoginError('Please enter your Token Number or Password.');
-    }
-
-    setSubmittingLogin(true);
-    try {
-      const res = await adviserService.adviserLogin({
-        identifier: loginIdentifier.trim(),
-        tokenOrPassword: loginTokenOrPassword.trim(),
-      });
-
-      if (res?.status === 'pending' && res.adviser) {
-        // Pending approval -> Show RED SCREEN
-        setTargetAdviser(res.adviser);
-        setView('locked_red');
-      } else if (res?.ok && res.adviser) {
-        // Approved -> Show GREEN SCREEN
-        setTargetAdviser(res.adviser);
-        setView('approved_green');
-      } else {
-        setLoginError(res?.error || 'Invalid credentials or registration not found.');
-      }
-    } catch (err: any) {
-      setLoginError(err?.message || 'Error during adviser login.');
-    } finally {
-      setSubmittingLogin(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900 font-sans selection:bg-orange-500 selection:text-white">
-      {/* TOP BRAND BAR */}
-      <nav className="border-b border-neutral-200 bg-white sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3 sm:gap-6">
-            <Link to="/" className="flex items-center gap-2 text-neutral-900 font-bold tracking-tight">
-              <img
-                src="/images/logo.jpg"
-                alt="Iston Builder Group logo"
-                width={34}
-                height={34}
-                className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg object-cover ring-1 ring-neutral-200 shadow-2xs"
-              />
-              <span className="leading-tight">
-                <span className="block text-sm font-semibold tracking-wide uppercase text-neutral-900">
-                  Iston <span className="text-orange-600 font-bold">Advisers</span>
-                </span>
-                <span className="block text-[8px] font-bold tracking-[0.2em] text-neutral-400 uppercase">
-                  Adviser Login &amp; Portal
-                </span>
-              </span>
-            </Link>
-            <Link
-              to="/"
-              className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-neutral-500 hover:text-orange-600 transition"
-            >
-              ← Main Website
-            </Link>
-          </div>
+    <div className="min-h-screen relative overflow-hidden flex flex-col justify-between p-4 sm:p-6 bg-gradient-to-br from-[#011a1f] via-[#03343b] to-[#0d5f55] text-white">
+      {/* Background Ambient Glow Orbs */}
+      <div className="absolute -top-40 -left-32 w-[480px] h-[480px] rounded-full bg-teal-400/15 blur-[120px] pointer-events-none" />
+      <div className="absolute -bottom-32 -right-24 w-[420px] h-[420px] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/3 right-[-100px] w-[300px] h-[300px] rounded-full bg-amber-400/10 blur-[90px] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
-          <div className="flex items-center gap-3">
-            <LanguageToggle solid={true} />
-            {targetAdviser?.status === 'active' && (
-              <Link
-                to="/advisers/dashboard"
-                className="px-3.5 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-xs flex items-center gap-1.5"
-              >
-                <UserCheck className="w-3.5 h-3.5" /> Dashboard
-              </Link>
-            )}
-          </div>
+      {/* Top Header Bar */}
+      <header className="relative z-20 max-w-4xl w-full mx-auto flex items-center justify-between pb-4">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-100/70 hover:text-white transition px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Website
+        </Link>
+        <div className="scale-90 origin-right">
+          <LanguageToggle solid />
         </div>
-      </nav>
+      </header>
 
-      <main className="py-8 md:py-14 px-4">
-        <div className="max-w-4xl mx-auto">
+      {/* Main Container Card */}
+      <main className="relative z-10 w-full max-w-md lg:max-w-lg mx-auto my-auto py-2">
+        <div className="bg-[#062f35]/90 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_25px_80px_-15px_rgba(0,0,0,0.6)] p-6 sm:p-8 lg:p-10">
+
+          {/* Logo & Branding */}
+          <div className="text-center mb-6">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-teal-400 via-emerald-500 to-amber-400 flex items-center justify-center shadow-lg shadow-teal-500/30 ring-1 ring-white/20">
+              <Sparkles className="w-7 h-7 text-[#022c33]" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mt-3 tracking-tight">Adviser Portal</h1>
+            <p className="text-teal-200/50 text-xs sm:text-sm mt-1">Single number login · Secure &amp; simple</p>
+          </div>
+
           {/* ============================================================== */}
-          {/* VIEW: RED SCREEN — ACCOUNT LOCKED / PENDING CASH VERIFICATION   */}
+          {/* VIEW: RED SCREEN — LOCKED / PENDING CASH VERIFICATION          */}
           {/* ============================================================== */}
           {view === 'locked_red' && targetAdviser && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="rounded-3xl border-2 border-rose-500 bg-white p-6 md:p-8 shadow-lg text-center relative overflow-hidden">
-                <div className="w-14 h-14 rounded-full bg-rose-600 text-white flex items-center justify-center mx-auto shadow-md">
-                  <Lock className="w-7 h-7" />
+            <div className="space-y-5 animate-in fade-in duration-300">
+              <div className="text-center">
+                <div className="w-12 h-12 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center mx-auto mb-2">
+                  <Lock className="w-6 h-6" />
                 </div>
-
-                <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-[11px] font-bold uppercase tracking-wider">
-                  <BadgeAlert className="w-3.5 h-3.5 text-rose-600" /> Account Locked · Cash Verification Pending
-                </div>
-
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-navy mt-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-bold uppercase tracking-wider">
                   Verification Pending
-                </h1>
+                </span>
+                <h2 className="text-lg font-bold text-white mt-1.5">Account Locked</h2>
+                <p className="text-xs text-teal-100/60 mt-0.5">Pay ₹1,100 cash at office to receive your Token.</p>
+              </div>
 
-                <p className="mt-1 text-xs text-muted max-w-md mx-auto">
-                  Your registration is recorded. Complete the offline cash payment at the office to receive your Login Token.
+              {/* Registration Number Box */}
+              <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 text-xs space-y-1.5">
+                <div className="flex items-center justify-between text-teal-100/60 text-[11px]">
+                  <span>Your Registration Number:</span>
+                  <button
+                    type="button"
+                    onClick={() => copyText(targetAdviser.registration_no || targetAdviser.adviser_id)}
+                    className="text-teal-300 hover:text-white font-bold flex items-center gap-1"
+                  >
+                    <Copy className="w-3 h-3" /> Copy
+                  </button>
+                </div>
+                <p className="font-mono text-xl font-bold text-rose-400 tracking-wider">
+                  {targetAdviser.registration_no || targetAdviser.adviser_id}
                 </p>
-
-                {/* REGISTRATION DETAILS CARD */}
-                <div className="mt-5 max-w-sm mx-auto p-4 rounded-2xl bg-mist/60 border border-line text-left">
-                  <div className="flex items-center justify-between pb-2 border-b border-line text-xs">
-                    <span className="text-muted font-medium text-[11px]">Your Registration Number:</span>
-                    <button
-                      type="button"
-                      onClick={() => copyRegistrationNo(targetAdviser.registration_no || targetAdviser.adviser_id)}
-                      className="text-[11px] text-orange-600 font-bold hover:underline flex items-center gap-1"
-                    >
-                      {copiedRegNo ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                      {copiedRegNo ? 'Copied' : 'Copy'}
-                    </button>
-                  </div>
-                  <p className="font-mono text-xl font-black text-rose-700 tracking-wider mt-2 select-all">
-                    {targetAdviser.registration_no || targetAdviser.adviser_id}
-                  </p>
-
-                  <div className="mt-2.5 pt-2 border-t border-line text-xs space-y-1 text-neutral-700">
-                    <p><b className="text-navy">Name:</b> {targetAdviser.full_name}</p>
-                    <p><b className="text-navy">Mobile:</b> {targetAdviser.phone}</p>
-                    {targetAdviser.sponsor_id && (
-                      <p><b className="text-navy">Sponsor No:</b> {targetAdviser.sponsor_id}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* 3-STEP OFFLINE CASH ACTIVATION */}
-                <div className="mt-5 max-w-lg mx-auto grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left text-xs">
-                  <div className="p-3 rounded-xl bg-mist/40 border border-line">
-                    <span className="w-5 h-5 rounded-full bg-navy text-white text-[10px] font-bold grid place-items-center mb-1.5">1</span>
-                    <p className="font-bold text-navy text-[11px]">Pay ₹1,100 Cash</p>
-                    <p className="text-[10px] text-muted mt-0.5">Submit registration fee in cash at the Iston office.</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-mist/40 border border-line">
-                    <span className="w-5 h-5 rounded-full bg-navy text-white text-[10px] font-bold grid place-items-center mb-1.5">2</span>
-                    <p className="font-bold text-navy text-[11px]">Admin Approval</p>
-                    <p className="text-[10px] text-muted mt-0.5">Admin verifies cash and issues your Login Token.</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-mist/40 border border-line">
-                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-bold grid place-items-center mb-1.5">3</span>
-                    <p className="font-bold text-navy text-[11px]">Login with Token</p>
-                    <p className="text-[10px] text-muted mt-0.5">Access your dashboard with your Reg No &amp; Token.</p>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLoginIdentifier(targetAdviser.registration_no || targetAdviser.adviser_id);
-                      setView('login');
-                    }}
-                    className="btn btn-primary text-xs font-bold flex items-center gap-1.5"
-                  >
-                    <KeyRound className="w-4 h-4" /> Have Your Token? Login
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setView('register');
-                      setRegistrationNo(adviserService.generateRegistrationNo());
-                    }}
-                    className="btn btn-outline text-xs"
-                  >
-                    Register Another Account
-                  </button>
+                <div className="pt-2 border-t border-white/5 text-[11px] text-teal-100/70 space-y-0.5">
+                  <p><span className="text-teal-100/40">Name:</span> {targetAdviser.full_name}</p>
+                  <p><span className="text-teal-100/40">Mobile:</span> {targetAdviser.phone}</p>
                 </div>
               </div>
 
-              {/* 2 WAYS TO EARN COMPACT PREVIEW */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="p-5 rounded-2xl bg-white border border-line shadow-xs">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-7 h-7 rounded-lg bg-orange-100 text-orange-700 grid place-items-center">
-                      <Building className="w-4 h-4" />
-                    </span>
-                    <span className="font-bold text-navy text-sm">Sell Property</span>
-                  </div>
-                  <p className="text-xs text-muted leading-relaxed">
-                    Earn <b>10% direct sales commission</b> on company brokerage for every flat or residential plot buyer you introduce.
-                  </p>
+              {/* Minimal 3-Step Offline Guide */}
+              <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                  <span className="font-bold text-teal-300 block">1. Pay Cash</span>
+                  <span className="text-teal-100/40 mt-0.5 block">₹1,100 at office</span>
                 </div>
-
-                <div className="p-5 rounded-2xl bg-white border border-line shadow-xs">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 grid place-items-center">
-                      <Users className="w-4 h-4" />
-                    </span>
-                    <span className="font-bold text-navy text-sm">Make a Team</span>
-                  </div>
-                  <p className="text-xs text-muted leading-relaxed">
-                    Earn <b>₹300 instant joining reward</b> credited to your wallet for every adviser registered under your referral code.
-                  </p>
+                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                  <span className="font-bold text-teal-300 block">2. Approval</span>
+                  <span className="text-teal-100/40 mt-0.5 block">Token issued</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                  <span className="font-bold text-teal-300 block">3. Login</span>
+                  <span className="text-teal-100/40 mt-0.5 block">Start earning</span>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* ============================================================== */}
-          {/* VIEW: GREEN SCREEN — ACCOUNT APPROVED & TOKEN VERIFIED          */}
-          {/* ============================================================== */}
-          {view === 'approved_green' && targetAdviser && (
-            <div className="rounded-3xl border-2 border-emerald-500 bg-linear-to-b from-emerald-500/10 via-emerald-500/5 to-white p-8 md:p-12 shadow-xl text-center max-w-xl mx-auto animate-in zoom-in-95 duration-300">
-              <div className="w-20 h-20 rounded-full bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-xl shadow-emerald-600/30">
-                <CheckCircle2 className="w-10 h-10" />
+              {/* 2 Ways to Earn Summary */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                  <div className="flex items-center gap-1 text-teal-300 font-bold text-[11px] mb-0.5">
+                    <Building className="w-3.5 h-3.5" /> Sell Property
+                  </div>
+                  <p className="text-[10px] text-teal-100/60 leading-tight">10% direct sales brokerage commission.</p>
+                </div>
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                  <div className="flex items-center gap-1 text-amber-300 font-bold text-[11px] mb-0.5">
+                    <Users className="w-3.5 h-3.5" /> Make a Team
+                  </div>
+                  <p className="text-[10px] text-teal-100/60 leading-tight">₹300 joining bonus for each member.</p>
+                </div>
               </div>
 
-              <div className="inline-flex items-center gap-1.5 mt-4 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold uppercase tracking-wider">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Account Approved &amp; Verified
-              </div>
-
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-neutral-900 mt-3">
-                Welcome, {targetAdviser.full_name}!
-              </h1>
-
-              <p className="mt-2 text-sm text-neutral-600 leading-relaxed">
-                Your cash registration has been verified by admin and your Login Token has been authenticated.
-              </p>
-
-              <div className="mt-6 p-4 rounded-2xl bg-white border border-emerald-200 text-left text-xs space-y-1.5 shadow-xs">
-                <p><b className="text-neutral-800">Registration No:</b> <span className="font-mono text-emerald-800 font-bold">{targetAdviser.registration_no || targetAdviser.adviser_id}</span></p>
-                <p><b className="text-neutral-800">Mobile Number:</b> {targetAdviser.phone}</p>
-                {targetAdviser.token_number && (
-                  <p><b className="text-neutral-800">Verified Token:</b> <span className="font-mono text-neutral-900">{targetAdviser.token_number}</span></p>
-                )}
-                <p><b className="text-neutral-800">Status:</b> <span className="font-bold text-emerald-700 uppercase">Active Adviser</span></p>
-              </div>
-
-              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => navigate('/advisers/dashboard')}
-                  className="w-full sm:w-auto px-8 py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2"
-                >
-                  Enter Adviser Dashboard <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ============================================================== */}
-          {/* VIEW: MAIN TABS (REGISTRATION & SINGLE NUMBER LOGIN)           */}
-          {/* ============================================================== */}
-          {(view === 'register' || view === 'login') && (
-            <div className="max-w-xl mx-auto space-y-6">
-              {/* TAB SELECTOR */}
-              <div className="p-1 rounded-2xl bg-neutral-200/80 flex items-center text-xs font-bold">
+              {/* Action Buttons */}
+              <div className="pt-2 flex flex-col gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    setView('register');
-                    setRegError('');
+                    setLoginIdentifier(targetAdviser.registration_no || targetAdviser.adviser_id);
+                    setView('login');
                   }}
-                  className={`flex-1 py-2.5 rounded-xl transition text-center ${
-                    view === 'register' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-600 hover:text-neutral-900'
-                  }`}
+                  className="w-full bg-gradient-to-r from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300 text-[#022c33] font-bold py-3 rounded-xl shadow-lg shadow-teal-500/20 text-xs tracking-wider uppercase transition"
                 >
-                  Register as Adviser
+                  Have Your Token? Login Now
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRegistrationNo(adviserService.generateRegistrationNo());
+                    setView('register');
+                  }}
+                  className="w-full py-2.5 text-xs text-teal-100/60 hover:text-white transition"
+                >
+                  Register Another Account
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ============================================================== */}
+          {/* VIEW: GREEN SCREEN — APPROVED & TOKEN VERIFIED                 */}
+          {/* ============================================================== */}
+          {view === 'approved_green' && targetAdviser && (
+            <div className="space-y-5 text-center animate-in zoom-in-95 duration-300">
+              <div className="w-14 h-14 rounded-full bg-teal-400/20 border border-teal-300/40 text-teal-300 flex items-center justify-center mx-auto shadow-lg shadow-teal-500/20">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+
+              <div>
+                <span className="px-2.5 py-0.5 rounded-full bg-teal-400/20 text-teal-300 border border-teal-300/30 text-[10px] font-bold uppercase tracking-wider">
+                  Verified &amp; Approved
+                </span>
+                <h2 className="text-xl font-bold text-white mt-2">Welcome, {targetAdviser.full_name}!</h2>
+                <p className="text-xs text-teal-100/60 mt-0.5">Your adviser account is active.</p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 text-left text-xs space-y-1">
+                <p><span className="text-teal-100/50">Reg No:</span> <b className="font-mono text-teal-200">{targetAdviser.registration_no || targetAdviser.adviser_id}</b></p>
+                <p><span className="text-teal-100/50">Mobile:</span> <b>{targetAdviser.phone}</b></p>
+                {targetAdviser.token_number && (
+                  <p><span className="text-teal-100/50">Token:</span> <b className="font-mono text-teal-200">{targetAdviser.token_number}</b></p>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigate('/advisers/dashboard')}
+                className="w-full bg-gradient-to-r from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300 text-[#022c33] font-bold py-3.5 rounded-xl shadow-lg shadow-teal-500/25 text-xs tracking-wider uppercase transition flex items-center justify-center gap-1.5"
+              >
+                Enter Adviser Dashboard <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* ============================================================== */}
+          {/* VIEW: LOGIN & REGISTER TABS                                    */}
+          {/* ============================================================== */}
+          {(view === 'login' || view === 'register') && (
+            <div>
+              {/* Tabs */}
+              <div className="flex bg-white/[0.06] rounded-xl p-1 mb-6 border border-white/5 text-xs font-semibold">
                 <button
                   type="button"
                   onClick={() => {
                     setView('login');
                     setLoginError('');
                   }}
-                  className={`flex-1 py-2.5 rounded-xl transition text-center ${
-                    view === 'login' ? 'bg-orange-600 text-white shadow-sm' : 'text-neutral-600 hover:text-neutral-900'
+                  className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${
+                    view === 'login'
+                      ? 'bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] shadow-lg shadow-teal-500/20 font-bold'
+                      : 'text-teal-100/60 hover:text-teal-100 hover:bg-white/5'
                   }`}
                 >
-                  Adviser Login (-- single number login --)
+                  Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setView('register');
+                    setRegError('');
+                  }}
+                  className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${
+                    view === 'register'
+                      ? 'bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] shadow-lg shadow-teal-500/20 font-bold'
+                      : 'text-teal-100/60 hover:text-teal-100 hover:bg-white/5'
+                  }`}
+                >
+                  Register
                 </button>
               </div>
 
-              {/* ---------------- REGISTER FORM ---------------- */}
-              {view === 'register' && (
-                <div className="rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8 shadow-sm">
-                  <div className="mb-6">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
-                      Step 1 of 2 · Application
-                    </span>
-                    <h1 className="text-2xl font-black text-neutral-900 mt-2">
-                      Adviser Registration
-                    </h1>
-                    <p className="text-xs text-neutral-500 mt-1">
-                      Fill out your details to generate your registration number. No online payment required.
-                    </p>
+              {/* ---------------- LOGIN FORM ---------------- */}
+              {view === 'login' && (
+                <form onSubmit={handleLoginSubmit} className="space-y-4" autoComplete="off">
+                  {/* Identifier Type Selector */}
+                  <div>
+                    <label className="block text-xs font-medium text-teal-100/70 mb-1.5">Login with</label>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoginType('reg');
+                          setLoginIdentifier('');
+                        }}
+                        className={`py-2 px-3 rounded-xl font-semibold border transition flex items-center justify-center gap-1.5 ${
+                          loginType === 'reg'
+                            ? 'bg-teal-400/15 border-teal-300/40 text-teal-100'
+                            : 'border-white/10 text-teal-100/50 hover:bg-white/5 hover:text-teal-100/80'
+                        }`}
+                      >
+                        <Hash className="w-3.5 h-3.5" /> Registration No.
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoginType('mobile');
+                          setLoginIdentifier('');
+                        }}
+                        className={`py-2 px-3 rounded-xl font-semibold border transition flex items-center justify-center gap-1.5 ${
+                          loginType === 'mobile'
+                            ? 'bg-teal-400/15 border-teal-300/40 text-teal-100'
+                            : 'border-white/10 text-teal-100/50 hover:bg-white/5 hover:text-teal-100/80'
+                        }`}
+                      >
+                        <Phone className="w-3.5 h-3.5" /> Mobile
+                      </button>
+                    </div>
                   </div>
 
+                  {loginError && (
+                    <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-200 text-xs">
+                      {loginError}
+                    </div>
+                  )}
+
+                  {/* Identifier Input */}
+                  <div>
+                    <label className="block text-xs font-medium text-teal-100/70 mb-1">
+                      {loginType === 'reg' ? 'Registration Number' : 'Mobile Number'}
+                    </label>
+                    <div className="relative group">
+                      {loginType === 'reg' ? (
+                        <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-300/40 group-focus-within:text-teal-300 transition" />
+                      ) : (
+                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-300/40 group-focus-within:text-teal-300 transition" />
+                      )}
+                      <input
+                        type="text"
+                        required
+                        value={loginIdentifier}
+                        onChange={(e) => {
+                          if (loginType === 'mobile') {
+                            setLoginIdentifier(e.target.value.replace(/\D/g, '').slice(0, 10));
+                          } else {
+                            setLoginIdentifier(e.target.value.toUpperCase().slice(0, 8));
+                          }
+                        }}
+                        placeholder={loginType === 'reg' ? 'e.g. IB273872' : '10-digit mobile number'}
+                        className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-3.5 py-2.5 text-white placeholder-teal-100/25 outline-none transition focus:border-teal-300/50 focus:bg-white/[0.08] focus:ring-2 focus:ring-teal-300/10 text-xs sm:text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Token / Password */}
+                  <div>
+                    <label className="block text-xs font-medium text-teal-100/70 mb-1">
+                      Token Number / Password
+                    </label>
+                    <div className="relative group">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-300/40 group-focus-within:text-teal-300 transition" />
+                      <input
+                        type={showLoginPassword ? 'text' : 'password'}
+                        required
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        placeholder="Enter token or password"
+                        className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-white placeholder-teal-100/25 outline-none transition focus:border-teal-300/50 focus:bg-white/[0.08] focus:ring-2 focus:ring-teal-300/10 text-xs sm:text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword((p) => !p)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-teal-300/40 hover:text-teal-200 transition"
+                      >
+                        {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={submittingLogin}
+                    className="w-full mt-2 bg-gradient-to-r from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300 text-[#022c33] font-bold py-3 rounded-xl shadow-lg shadow-teal-500/25 hover:shadow-teal-400/40 hover:-translate-y-0.5 transition-all duration-300 text-xs uppercase tracking-wider disabled:opacity-50"
+                  >
+                    {submittingLogin ? 'Signing In...' : 'Sign In'}
+                  </button>
+
+                  <p className="text-center text-[11px] text-teal-100/40 pt-1">
+                    Single number login with Registration No. or verified Mobile.
+                  </p>
+                </form>
+              )}
+
+              {/* ---------------- REGISTER FORM ---------------- */}
+              {view === 'register' && (
+                <form onSubmit={handleRegisterSubmit} className="space-y-3.5" autoComplete="off">
                   {regError && (
-                    <div className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
+                    <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-200 text-xs">
                       {regError}
                     </div>
                   )}
 
-                  <form onSubmit={handleRegisterSubmit} className="space-y-4 text-xs">
-                    {/* Name: (as per aadhar card) */}
-                    <div>
-                      <label className="block font-bold text-neutral-800 mb-1">
-                        Name: <span className="font-normal text-neutral-500">(as per aadhar card)</span> <span className="text-rose-500">*</span>
-                      </label>
+                  {/* Full Name */}
+                  <div>
+                    <label className="block text-xs font-medium text-teal-100/70 mb-1">
+                      Full Name <span className="text-teal-100/40">(as per Aadhaar card)</span> <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative group">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-300/40 group-focus-within:text-teal-300 transition" />
                       <input
                         type="text"
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Enter full name matching your Aadhaar card"
-                        className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                        placeholder="Enter your full name"
+                        className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-3.5 py-2.5 text-white placeholder-teal-100/25 outline-none transition focus:border-teal-300/50 focus:bg-white/[0.08] focus:ring-2 focus:ring-teal-300/10 text-xs sm:text-sm"
                       />
                     </div>
+                  </div>
 
-                    {/* Mobile no: */}
-                    <div>
-                      <label className="block font-bold text-neutral-800 mb-1">
-                        Mobile no: <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="flex">
-                        <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-neutral-300 bg-neutral-100 text-neutral-600 text-xs font-medium">
-                          +91
-                        </span>
-                        <input
-                          type="tel"
-                          required
-                          maxLength={10}
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                          placeholder="10-digit mobile number"
-                          className="w-full h-11 px-3.5 rounded-r-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
-                        />
-                      </div>
+                  {/* Mobile */}
+                  <div>
+                    <label className="block text-xs font-medium text-teal-100/70 mb-1">
+                      Mobile Number <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative group">
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-300/40 group-focus-within:text-teal-300 transition" />
+                      <input
+                        type="tel"
+                        required
+                        maxLength={10}
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                        placeholder="10-digit mobile number"
+                        className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-3.5 py-2.5 text-white placeholder-teal-100/25 outline-none transition focus:border-teal-300/50 focus:bg-white/[0.08] focus:ring-2 focus:ring-teal-300/10 text-xs sm:text-sm font-mono"
+                      />
                     </div>
+                  </div>
 
-                    {/* Registration no: auto generate i.e ( IB273872 ) */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block font-bold text-neutral-800">
-                          Registration no: <span className="font-normal text-neutral-500">(auto generated)</span>
-                        </label>
+                  {/* Registration Number (Auto-generated) */}
+                  <div>
+                    <label className="block text-xs font-medium text-teal-100/70 mb-1">
+                      Registration Number
+                      <span className="text-amber-300/80 text-[10px] ml-1.5 font-mono">
+                        (Auto-generated)
+                      </span>
+                    </label>
+                    <div className="relative">
+                      <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-300/40" />
+                      <input
+                        type="text"
+                        readOnly
+                        value={registrationNo}
+                        className="w-full bg-white/[0.03] border border-dashed border-teal-300/30 rounded-xl pl-10 pr-20 py-2.5 text-teal-200 font-mono font-bold tracking-widest text-xs sm:text-sm select-all outline-none"
+                      />
+                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
                         <button
                           type="button"
                           onClick={handleRegenerateRegNo}
-                          className="text-[11px] text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
-                          title="Generate a different registration number"
+                          title="Generate new ID"
+                          className="text-teal-300/60 hover:text-teal-100 transition p-1"
                         >
-                          <RotateCcw className="w-3 h-3" /> Regenerate
+                          <RotateCcw className="w-3.5 h-3.5" />
                         </button>
-                      </div>
-                      <div className="relative flex items-center">
-                        <input
-                          type="text"
-                          readOnly
-                          value={registrationNo}
-                          className="w-full h-11 px-3.5 pr-20 rounded-xl border border-neutral-300 bg-neutral-100/80 font-mono font-bold text-neutral-900 text-sm focus:outline-hidden select-all"
-                        />
                         <button
                           type="button"
-                          onClick={() => copyRegistrationNo()}
-                          className="absolute right-2 px-2.5 py-1 rounded-lg bg-white border border-neutral-300 hover:bg-neutral-50 text-[10px] font-bold text-neutral-700 flex items-center gap-1"
+                          onClick={() => copyText(registrationNo, 'Registration No. copied!')}
+                          title="Copy ID"
+                          className="text-teal-300/60 hover:text-teal-100 transition p-1"
                         >
-                          {copiedRegNo ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                          {copiedRegNo ? 'Copied' : 'Copy'}
+                          <Copy className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <p className="text-[10px] text-neutral-400 mt-1">
-                        This is your permanent Adviser ID. Keep this number safe.
-                      </p>
                     </div>
+                  </div>
 
-                    {/* Referal No: */}
-                    <div>
-                      <label className="block font-bold text-neutral-800 mb-1">
-                        Referral No: <span className="font-normal text-neutral-400">(optional sponsor registration code)</span>
-                      </label>
+                  {/* Referral Number */}
+                  <div>
+                    <label className="block text-xs font-medium text-teal-100/70 mb-1">
+                      Referral Number <span className="text-teal-100/40">(Optional)</span>
+                    </label>
+                    <div className="relative group">
+                      <Gift className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-300/40 group-focus-within:text-teal-300 transition" />
                       <input
                         type="text"
                         value={referralNo}
                         onChange={(e) => setReferralNo(e.target.value.toUpperCase())}
-                        placeholder="e.g. IB123456 or sponsor code"
-                        className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-xs font-mono text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100 uppercase"
+                        placeholder="e.g. IB123456"
+                        className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-3.5 py-2.5 text-white placeholder-teal-100/25 outline-none transition focus:border-teal-300/50 focus:bg-white/[0.08] focus:ring-2 focus:ring-teal-300/10 text-xs sm:text-sm font-mono"
                       />
                     </div>
+                  </div>
 
-                    {/* Password & Re-Password */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      <div>
-                        <label className="block font-bold text-neutral-800 mb-1">
-                          Password: <span className="text-rose-500">*</span>
-                        </label>
+                  {/* Password & Re-Password */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs font-medium text-teal-100/70 mb-1">
+                        Password <span className="text-rose-400">*</span>
+                      </label>
+                      <div className="relative group">
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-teal-300/40 group-focus-within:text-teal-300 transition" />
                         <input
-                          type="password"
+                          type={showRegPassword ? 'text' : 'password'}
                           required
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Create password"
-                          className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                          placeholder="Password"
+                          className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-9 pr-9 py-2 text-white placeholder-teal-100/25 outline-none transition focus:border-teal-300/50 text-xs"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowRegPassword((p) => !p)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-300/40 hover:text-teal-200 transition"
+                        >
+                          {showRegPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
                       </div>
-                      <div>
-                        <label className="block font-bold text-neutral-800 mb-1">
-                          Re-Password: <span className="text-rose-500">*</span>
-                        </label>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-teal-100/70 mb-1">
+                        Re-Password <span className="text-rose-400">*</span>
+                      </label>
+                      <div className="relative group">
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-teal-300/40 group-focus-within:text-teal-300 transition" />
                         <input
-                          type="password"
+                          type={showRegRePassword ? 'text' : 'password'}
                           required
                           value={rePassword}
                           onChange={(e) => setRePassword(e.target.value)}
-                          placeholder="Re-enter password"
-                          className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                          placeholder="Re-enter"
+                          className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-9 pr-9 py-2 text-white placeholder-teal-100/25 outline-none transition focus:border-teal-300/50 text-xs"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowRegRePassword((p) => !p)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-300/40 hover:text-teal-200 transition"
+                        >
+                          {showRegRePassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
                       </div>
                     </div>
-
-                    <div className="pt-3">
-                      <button
-                        type="submit"
-                        disabled={submittingReg}
-                        className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2"
-                      >
-                        {submittingReg ? 'Registering...' : 'Register & Lock My Adviser ID'}
-                      </button>
-                    </div>
-
-                    <p className="text-center text-[11px] text-neutral-400 pt-2">
-                      After registration, your account will be locked pending offline cash verification. Management will approve and issue your login token.
-                    </p>
-                  </form>
-                </div>
-              )}
-
-              {/* ---------------- LOGIN FORM (-- single number login --) ---------------- */}
-              {view === 'login' && (
-                <div className="rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8 shadow-sm">
-                  <div className="mb-6">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
-                      Adviser Login
-                    </span>
-                    <h1 className="text-2xl font-black text-neutral-900 mt-2">
-                      Single Number Login
-                    </h1>
-                    <p className="text-xs text-neutral-500 mt-1">
-                      Enter your Registration Number (or Mobile) and the Token Number provided after cash approval.
-                    </p>
                   </div>
 
-                  {loginError && (
-                    <div className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
-                      {loginError}
-                    </div>
-                  )}
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={submittingReg}
+                    className="w-full mt-3 bg-gradient-to-r from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300 text-[#022c33] font-bold py-3 rounded-xl shadow-lg shadow-teal-500/25 hover:shadow-teal-400/40 hover:-translate-y-0.5 transition-all duration-300 text-xs uppercase tracking-wider disabled:opacity-50"
+                  >
+                    {submittingReg ? 'Registering...' : 'Create Account'}
+                  </button>
 
-                  <form onSubmit={handleLoginSubmit} className="space-y-4 text-xs">
-                    <div>
-                      <label className="block font-bold text-neutral-800 mb-1">
-                        Registration Number or Mobile: <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={loginIdentifier}
-                        onChange={(e) => setLoginIdentifier(e.target.value.toUpperCase())}
-                        placeholder="e.g. IB273872 or 10-digit mobile"
-                        className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 font-mono text-sm text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100 uppercase"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-bold text-neutral-800 mb-1">
-                        Token Number or Password: <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="password"
-                        required
-                        value={loginTokenOrPassword}
-                        onChange={(e) => setLoginTokenOrPassword(e.target.value)}
-                        placeholder="Enter token number (issued after cash approval)"
-                        className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
-                      />
-                    </div>
-
-                    <div className="pt-2">
-                      <button
-                        type="submit"
-                        disabled={submittingLogin}
-                        className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2"
-                      >
-                        {submittingLogin ? 'Verifying...' : 'Login with Token Number'}
-                      </button>
-                    </div>
-
-                    <div className="pt-2 text-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setView('register');
-                          setRegError('');
-                        }}
-                        className="text-xs text-neutral-600 hover:text-orange-600 font-semibold transition"
-                      >
-                        Don’t have a Registration Number yet? <span className="underline text-orange-600">Register Here</span>
-                      </button>
-                    </div>
-                  </form>
-                </div>
+                  <p className="text-center text-[10px] text-teal-100/40 pt-1">
+                    No online payment. Account activates upon cash receipt at office.
+                  </p>
+                </form>
               )}
             </div>
           )}
+
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-teal-200/30 text-[11px] mt-4 tracking-wide">
+          © {new Date().getFullYear()} Iston Builder Group · Adviser Portal
+        </p>
       </main>
+
+      {/* Floating Bottom Toast */}
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <div className="bg-[#0d4a4e]/95 backdrop-blur-xl border border-teal-300/30 text-teal-50 text-xs font-semibold px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-teal-300" />
+            <span>{toastMsg}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,13 +8,8 @@ import {
   Wallet,
   Building,
   PlusCircle,
-  Clock,
-  ShieldCheck,
   AlertCircle,
   Loader2,
-  ExternalLink,
-  ChevronRight,
-  ChevronDown,
   LogOut,
   User,
   Upload,
@@ -23,10 +18,8 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   PhoneCall,
-  Share2,
   Home,
   LayoutDashboard,
-  Sparkles,
 } from 'lucide-react';
 import { adviserService, type AdviserRecord, getStoredAdviserAuth, setStoredAdviserAuth } from '../../lib/adviserService';
 import { api } from '../../lib/api';
@@ -237,25 +230,31 @@ export default function AdviserDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center p-8 bg-neutral-50 text-neutral-900">
-        <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
-        <p className="mt-3 text-xs font-semibold text-neutral-600">Loading Adviser Portal...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gradient-to-br from-[#011a1f] via-[#03343b] to-[#0d5f55] text-white">
+        <Loader2 className="h-9 w-9 animate-spin text-teal-300" />
+        <p className="mt-4 text-xs font-semibold tracking-wider text-teal-200/80 uppercase">Loading Adviser Portal...</p>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center p-6 bg-neutral-50">
-        <div className="max-w-md w-full rounded-3xl bg-white p-8 text-center border border-line shadow-sm">
-          <AlertCircle className="w-10 h-10 text-rose-600 mx-auto" />
-          <h2 className="text-xl font-bold text-navy mt-4">Dashboard Unavailable</h2>
-          <p className="mt-1 text-xs text-muted">{error}</p>
+      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-[#011a1f] via-[#03343b] to-[#0d5f55]">
+        <div className="max-w-md w-full rounded-3xl bg-[#062f35]/90 backdrop-blur-2xl p-8 text-center border border-teal-500/30 shadow-2xl text-white">
+          <AlertCircle className="w-10 h-10 text-teal-300 mx-auto" />
+          <h2 className="text-xl font-bold mt-4">Dashboard Unavailable</h2>
+          <p className="mt-1 text-xs text-teal-200/70">{error}</p>
           <div className="mt-6 flex gap-2 justify-center">
-            <button onClick={() => session && fetchDashboard(session)} className="btn btn-primary btn-sm text-xs">
+            <button
+              onClick={() => session && fetchDashboard(session)}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] font-bold text-xs"
+            >
               Retry
             </button>
-            <button onClick={handleSignOut} className="btn btn-outline btn-sm text-xs">
+            <button
+              onClick={handleSignOut}
+              className="px-4 py-2 rounded-xl border border-teal-500/30 text-teal-200 hover:text-white font-semibold text-xs"
+            >
               Back to Login
             </button>
           </div>
@@ -277,10 +276,15 @@ export default function AdviserDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 py-6 md:py-10 text-neutral-900">
-      <div className="container-x max-w-6xl">
-        {/* TOP BRAND HEADER & SPINNER SHORTCUTS */}
-        <header className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-3xl border border-line shadow-xs">
+    <div className="min-h-screen bg-gradient-to-br from-[#011a1f] via-[#03343b] to-[#0d5f55] py-6 md:py-10 text-white relative overflow-hidden font-sans selection:bg-teal-400 selection:text-[#011a1f]">
+      {/* Ambient background glow & radial feather pattern */}
+      <div className="pointer-events-none absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-teal-500/15 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -left-40 h-[500px] w-[500px] rounded-full bg-emerald-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(#2dd4bf_1px,transparent_1px)] [background-size:24px_24px] opacity-5" />
+
+      <div className="container-x max-w-6xl relative z-10">
+        {/* TOP BRAND HEADER & QUICK ACTION BAR */}
+        <header className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#062f35]/90 backdrop-blur-2xl p-4 sm:p-5 rounded-3xl border border-teal-500/25 shadow-xl">
           <div className="flex items-center gap-3">
             <Link to="/" className="flex items-center gap-2.5">
               <img
@@ -288,36 +292,36 @@ export default function AdviserDashboard() {
                 alt="Iston Builder Group logo"
                 width={36}
                 height={36}
-                className="h-9 w-9 rounded-xl object-cover ring-1 ring-line"
+                className="h-9 w-9 rounded-xl object-cover ring-1 ring-teal-500/30"
               />
               <span className="leading-tight">
-                <span className="block text-sm font-bold tracking-tight text-navy">ISTON BUILDER GROUP</span>
-                <span className="block text-[9px] font-bold tracking-[0.2em] uppercase text-orange-600">Adviser Portal</span>
+                <span className="block text-sm font-black tracking-tight text-white">ISTON BUILDER GROUP</span>
+                <span className="block text-[9px] font-bold tracking-[0.2em] uppercase text-teal-300">Adviser Portal</span>
               </span>
             </Link>
 
-            <span className="hidden sm:inline-block w-px h-5 bg-line mx-1" />
+            <span className="hidden sm:inline-block w-px h-5 bg-teal-500/20 mx-1" />
 
-            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200">
-              <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Active Adviser
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-[11px] font-bold border border-teal-400/30">
+              <CheckCircle2 className="w-3 h-3 text-teal-300" /> Active Adviser
             </span>
           </div>
 
-          {/* QUICK ACTION BAR (Home, Dashboard, Profile, Contact) */}
+          {/* QUICK ACTION BAR (Home, Dashboard, Profile, Contact, Logout) */}
           <div className="flex items-center gap-1.5 sm:gap-2 self-end sm:self-auto text-xs">
             <Link
               to="/"
-              className="px-3 py-1.5 rounded-xl border border-line hover:border-navy text-neutral-700 font-semibold hover:text-navy transition flex items-center gap-1 text-[11px]"
-              title="Go to Home"
+              className="px-3 py-1.5 rounded-xl border border-teal-500/30 bg-[#021f24]/70 hover:border-teal-300 text-teal-100 hover:text-white transition flex items-center gap-1 text-[11px]"
+              title="Go to Website Home"
             >
-              <Home className="w-3.5 h-3.5" /> <span className="hidden md:inline">Home</span>
+              <Home className="w-3.5 h-3.5 text-teal-300" /> <span className="hidden md:inline">Home</span>
             </Link>
             <button
               onClick={() => setActiveTab('overview')}
               className={`px-3 py-1.5 rounded-xl border font-bold transition flex items-center gap-1 text-[11px] ${
                 activeTab === 'overview'
-                  ? 'bg-navy text-white border-navy'
-                  : 'border-line text-neutral-700 hover:border-navy'
+                  ? 'bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] border-transparent font-black shadow-md shadow-teal-500/20'
+                  : 'border-teal-500/30 bg-[#021f24]/70 text-teal-100 hover:border-teal-300 hover:text-white'
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard
@@ -326,21 +330,21 @@ export default function AdviserDashboard() {
               onClick={() => setActiveTab('profile')}
               className={`px-3 py-1.5 rounded-xl border font-bold transition flex items-center gap-1 text-[11px] ${
                 activeTab === 'profile'
-                  ? 'bg-orange-600 text-white border-orange-600'
-                  : 'border-line text-neutral-700 hover:border-orange-500 hover:text-orange-600'
+                  ? 'bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] border-transparent font-black shadow-md shadow-teal-500/20'
+                  : 'border-teal-500/30 bg-[#021f24]/70 text-teal-100 hover:border-teal-300 hover:text-white'
               }`}
             >
               <User className="w-3.5 h-3.5" /> Profile &amp; KYC
             </button>
             <Link
               to="/contact"
-              className="px-3 py-1.5 rounded-xl border border-line hover:border-navy text-neutral-700 font-semibold hover:text-navy transition flex items-center gap-1 text-[11px]"
+              className="px-3 py-1.5 rounded-xl border border-teal-500/30 bg-[#021f24]/70 hover:border-teal-300 text-teal-100 hover:text-white transition flex items-center gap-1 text-[11px]"
             >
-              <PhoneCall className="w-3.5 h-3.5" /> <span className="hidden md:inline">Contact</span>
+              <PhoneCall className="w-3.5 h-3.5 text-teal-300" /> <span className="hidden md:inline">Contact</span>
             </Link>
             <button
               onClick={handleSignOut}
-              className="px-2.5 py-1.5 rounded-xl border border-line hover:bg-rose-50 text-rose-600 font-semibold transition ml-1"
+              className="px-2.5 py-1.5 rounded-xl border border-rose-500/30 bg-[#021f24]/70 hover:bg-rose-500/20 text-rose-300 font-semibold transition ml-1"
               title="Sign Out"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -349,105 +353,106 @@ export default function AdviserDashboard() {
         </header>
 
         {/* HERO ADVISER PROFILE BANNER */}
-        <section className="rounded-3xl bg-navy p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
+        <section className="rounded-3xl bg-[#062f35]/90 backdrop-blur-2xl border border-teal-500/30 p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs font-black tracking-wider px-3 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                <span className="font-mono text-xs font-black tracking-wider px-3 py-1 rounded-full bg-[#021f24] text-teal-300 border border-teal-400/40">
                   Reg No: {adviser.registration_no || adviser.adviser_id}
                 </span>
                 {adviser.token_number && (
-                  <span className="font-mono text-xs font-bold px-3 py-0.5 rounded-full bg-white/10 text-neutral-300 border border-white/15">
+                  <span className="font-mono text-xs font-bold px-3 py-1 rounded-full bg-white/10 text-teal-100 border border-white/15">
                     Token: {adviser.token_number}
                   </span>
                 )}
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
-                  Verified
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 uppercase">
+                  Verified Adviser
                 </span>
               </div>
 
-              <h1 className="text-2xl sm:text-4xl font-extrabold mt-2.5 tracking-tight">{adviser.full_name}</h1>
-              <p className="mt-1 text-xs text-neutral-400">
-                Mobile: {adviser.phone} · Sponsor: {adviser.sponsor_id || 'Direct'}
+              <h1 className="text-2xl sm:text-4xl font-black mt-3 tracking-tight text-white">{adviser.full_name}</h1>
+              <p className="mt-1 text-xs text-teal-200/70">
+                Mobile: <span className="text-white font-medium">{adviser.phone}</span> · Sponsor:{' '}
+                <span className="text-teal-300 font-medium">{adviser.sponsor_id || 'Direct'}</span>
               </p>
             </div>
 
             {/* Quick Share Referral Box */}
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-3.5 max-w-sm w-full">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-neutral-400 font-medium">Your Referral Code:</span>
-                <span className="font-mono font-black text-white text-sm bg-black/30 px-2 py-0.5 rounded border border-white/10">
+            <div className="rounded-2xl border border-teal-500/30 bg-[#021f24]/90 p-4 max-w-sm w-full">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-teal-200/70 font-medium">Your Referral Code:</span>
+                <span className="font-mono font-black text-teal-300 text-sm bg-[#011a1f] px-2.5 py-0.5 rounded border border-teal-500/40">
                   {referralCode}
                 </span>
               </div>
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-2.5 flex items-center gap-2">
                 <input
                   type="text"
                   readOnly
                   value={referralLink}
-                  className="w-full bg-black/40 text-neutral-200 text-xs px-2.5 py-1.5 rounded-xl font-mono truncate border border-white/10 focus:outline-hidden select-all"
+                  className="w-full bg-[#011a1f] text-teal-100 text-xs px-2.5 py-2 rounded-xl font-mono truncate border border-teal-500/30 focus:outline-hidden select-all"
                 />
                 <button
                   onClick={copyReferralLink}
-                  className="px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs flex items-center gap-1 shrink-0"
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300 text-[#022c33] font-black text-xs flex items-center gap-1 shrink-0 shadow-md shadow-teal-500/20"
                 >
                   {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   {copied ? 'Copied' : 'Copy'}
                 </button>
               </div>
-              <p className="mt-1.5 text-[10px] text-neutral-400">
-                Earn ₹300 for every adviser who registers using your code.
+              <p className="mt-2 text-[10px] text-teal-200/60">
+                Earn ₹300 joining rewards for every active adviser who joins under your code.
               </p>
             </div>
           </div>
         </section>
 
-        {/* COMPACT KPI METRICS ROW */}
+        {/* 4 KPI METRICS ROW */}
         <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-          <div className="p-4 rounded-2xl bg-white border border-line shadow-xs">
-            <span className="text-[11px] font-bold text-muted uppercase flex items-center gap-1.5">
-              <Wallet className="w-3.5 h-3.5 text-emerald-600" /> Available Balance
+          <div className="p-4 rounded-2xl bg-[#062f35]/85 backdrop-blur-xl border border-teal-500/25 shadow-lg">
+            <span className="text-[11px] font-bold text-teal-300 uppercase flex items-center gap-1.5">
+              <Wallet className="w-3.5 h-3.5 text-teal-300" /> Available Balance
             </span>
-            <p className="text-xl sm:text-2xl font-black text-navy mt-1.5">{inr(availableBalance)}</p>
+            <p className="text-xl sm:text-2xl font-black text-white mt-1.5">{inr(availableBalance)}</p>
             <button
               onClick={() => setActiveTab('payouts')}
-              className="text-[11px] text-orange-600 font-bold hover:underline mt-1 inline-block"
+              className="text-[11px] text-teal-300 hover:text-teal-200 font-bold hover:underline mt-1 inline-block"
             >
               Withdraw Funds →
             </button>
           </div>
 
-          <div className="p-4 rounded-2xl bg-white border border-line shadow-xs">
-            <span className="text-[11px] font-bold text-muted uppercase flex items-center gap-1.5">
-              <Building className="w-3.5 h-3.5 text-orange-600" /> Properties Sold
+          <div className="p-4 rounded-2xl bg-[#062f35]/85 backdrop-blur-xl border border-teal-500/25 shadow-lg">
+            <span className="text-[11px] font-bold text-teal-300 uppercase flex items-center gap-1.5">
+              <Building className="w-3.5 h-3.5 text-teal-300" /> Properties Sold
             </span>
-            <p className="text-xl sm:text-2xl font-black text-navy mt-1.5">{data.propertyCommissions?.length || 0}</p>
-            <span className="text-[11px] text-muted">
+            <p className="text-xl sm:text-2xl font-black text-white mt-1.5">{data.propertyCommissions?.length || 0}</p>
+            <span className="text-[11px] text-teal-200/70">
               Earned: {inr(commissionsSummary.approved + commissionsSummary.paid)}
             </span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-white border border-line shadow-xs">
-            <span className="text-[11px] font-bold text-muted uppercase flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-blue-600" /> Team Joined
+          <div className="p-4 rounded-2xl bg-[#062f35]/85 backdrop-blur-xl border border-teal-500/25 shadow-lg">
+            <span className="text-[11px] font-bold text-teal-300 uppercase flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-teal-300" /> Team Joined
             </span>
-            <p className="text-xl sm:text-2xl font-black text-navy mt-1.5">{stats.directCount}</p>
-            <span className="text-[11px] text-muted">Total Network: {stats.totalTeam}</span>
+            <p className="text-xl sm:text-2xl font-black text-white mt-1.5">{stats.directCount}</p>
+            <span className="text-[11px] text-teal-200/70">Total Network: {stats.totalTeam}</span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-white border border-line shadow-xs">
-            <span className="text-[11px] font-bold text-muted uppercase flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-600" /> Joining Rewards
+          <div className="p-4 rounded-2xl bg-[#062f35]/85 backdrop-blur-xl border border-teal-500/25 shadow-lg">
+            <span className="text-[11px] font-bold text-emerald-300 uppercase flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-300" /> Joining Rewards
             </span>
-            <p className="text-xl sm:text-2xl font-black text-emerald-700 mt-1.5">
+            <p className="text-xl sm:text-2xl font-black text-emerald-300 mt-1.5">
               {inr(regRewardsSummary.approved + regRewardsSummary.paid)}
             </p>
-            <span className="text-[11px] text-muted">₹300 per active member</span>
+            <span className="text-[11px] text-teal-200/70">₹300 per active member</span>
           </div>
         </div>
 
-        {/* CLEAN TAB NAVIGATION */}
-        <div className="mt-8 border-b border-line flex gap-2 overflow-x-auto pb-px">
+        {/* TAB NAVIGATION PILLS */}
+        <div className="mt-8 border-b border-teal-500/20 flex gap-2 overflow-x-auto pb-3">
           {[
             ['overview', 'Overview & Ways to Earn'],
             ['team', `Referral Tree (${stats.totalTeam})`],
@@ -458,10 +463,10 @@ export default function AdviserDashboard() {
             <button
               key={t}
               onClick={() => setActiveTab(t as any)}
-              className={`px-4 py-2.5 text-xs font-bold whitespace-nowrap transition border-b-2 ${
+              className={`px-4 py-2 text-xs font-bold whitespace-nowrap transition rounded-xl ${
                 activeTab === t
-                  ? 'border-orange-600 text-orange-600'
-                  : 'border-transparent text-muted hover:text-navy hover:border-line'
+                  ? 'bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] font-black shadow-md shadow-teal-500/20'
+                  : 'bg-[#062f35]/60 hover:bg-[#062f35] text-teal-200/70 hover:text-white border border-teal-500/20'
               }`}
             >
               {label}
@@ -477,44 +482,44 @@ export default function AdviserDashboard() {
             {/* 2 MAIN CARDS: SELL PROPERTY & MAKE A TEAM */}
             <div className="grid md:grid-cols-2 gap-5">
               {/* WAY 1: SELL PROPERTY */}
-              <div className="rounded-3xl border border-line bg-white p-6 shadow-xs flex flex-col justify-between">
+              <div className="rounded-3xl border border-teal-500/30 bg-[#062f35]/90 backdrop-blur-2xl p-6 shadow-xl flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-[10px] font-bold uppercase">
+                    <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30 text-[10px] font-bold uppercase">
                       Way to Earn #1
                     </span>
-                    <span className="text-xs font-black text-orange-600">10% Direct Sales Brokerage</span>
+                    <span className="text-xs font-black text-teal-300">10% Direct Sales Brokerage</span>
                   </div>
 
-                  <h3 className="text-xl font-bold text-navy mt-3">Sell Property</h3>
-                  <p className="text-xs text-muted mt-1 leading-relaxed">
-                    Refer clients for flats and plots. When a deal is closed, 10% direct commission from company brokerage is instantly credited to your wallet.
+                  <h3 className="text-xl font-bold text-white mt-3">Sell Property</h3>
+                  <p className="text-xs text-teal-200/70 mt-1 leading-relaxed">
+                    Refer buyers for flats and plots. When a deal is closed, 10% direct brokerage commission is credited to your wallet.
                   </p>
 
-                  <div className="mt-4 p-3 rounded-2xl bg-mist/60 border border-line grid grid-cols-2 gap-2 text-xs">
+                  <div className="mt-4 p-3.5 rounded-2xl bg-[#021f24]/80 border border-teal-500/20 grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-[10px] text-muted uppercase font-semibold">Properties Closed</span>
-                      <p className="text-xl font-black text-navy mt-0.5">{data.propertyCommissions?.length || 0}</p>
+                      <span className="text-[10px] text-teal-300/80 uppercase font-semibold">Properties Closed</span>
+                      <p className="text-xl font-black text-white mt-0.5">{data.propertyCommissions?.length || 0}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-muted uppercase font-semibold">Commissions</span>
-                      <p className="text-xl font-black text-orange-600 mt-0.5">
+                      <span className="text-[10px] text-teal-300/80 uppercase font-semibold">Commissions</span>
+                      <p className="text-xl font-black text-teal-300 mt-0.5">
                         {inr(commissionsSummary.approved + commissionsSummary.paid)}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-line flex gap-2">
+                <div className="mt-5 pt-3 border-t border-teal-500/20 flex gap-2">
                   <button
                     onClick={() => setLeadModal(true)}
-                    className="flex-1 py-2 px-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300 text-[#022c33] font-bold text-xs shadow-md shadow-teal-500/20 transition flex items-center justify-center gap-1.5"
                   >
                     <PlusCircle className="w-3.5 h-3.5" /> Submit Buyer Lead
                   </button>
                   <button
                     onClick={() => setActiveTab('leads')}
-                    className="py-2 px-3 rounded-xl border border-line hover:border-navy text-navy font-semibold text-xs"
+                    className="py-2 px-3 rounded-xl border border-teal-500/30 hover:border-teal-300 text-teal-200 hover:text-white font-semibold text-xs transition"
                   >
                     View Leads
                   </button>
@@ -522,45 +527,45 @@ export default function AdviserDashboard() {
               </div>
 
               {/* WAY 2: MAKE A TEAM */}
-              <div className="rounded-3xl border border-line bg-white p-6 shadow-xs flex flex-col justify-between">
+              <div className="rounded-3xl border border-teal-500/30 bg-[#062f35]/90 backdrop-blur-2xl p-6 shadow-xl flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold uppercase">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold uppercase">
                       Way to Earn #2
                     </span>
-                    <span className="text-xs font-black text-emerald-700">₹300 Joining Bonus</span>
+                    <span className="text-xs font-black text-emerald-300">₹300 Joining Bonus</span>
                   </div>
 
-                  <h3 className="text-xl font-bold text-navy mt-3">Make a Team</h3>
-                  <p className="text-xs text-muted mt-1 leading-relaxed">
+                  <h3 className="text-xl font-bold text-white mt-3">Make a Team</h3>
+                  <p className="text-xs text-teal-200/70 mt-1 leading-relaxed">
                     Build your partnership tree. Every member who joins using your referral code earns you ₹300 joining rewards upon approval.
                   </p>
 
-                  <div className="mt-4 p-3 rounded-2xl bg-emerald-50/50 border border-emerald-200 grid grid-cols-2 gap-2 text-xs">
+                  <div className="mt-4 p-3.5 rounded-2xl bg-[#021f24]/80 border border-teal-500/20 grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-[10px] text-muted uppercase font-semibold">Joined by You</span>
-                      <p className="text-xl font-black text-navy mt-0.5">{stats.directCount}</p>
+                      <span className="text-[10px] text-emerald-300/80 uppercase font-semibold">Joined by You</span>
+                      <p className="text-xl font-black text-white mt-0.5">{stats.directCount}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-muted uppercase font-semibold">Rewards Earned</span>
-                      <p className="text-xl font-black text-emerald-700 mt-0.5">
+                      <span className="text-[10px] text-emerald-300/80 uppercase font-semibold">Rewards Earned</span>
+                      <p className="text-xl font-black text-emerald-300 mt-0.5">
                         {inr(regRewardsSummary.approved + regRewardsSummary.paid)}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-line flex gap-2">
+                <div className="mt-5 pt-3 border-t border-teal-500/20 flex gap-2">
                   <button
                     onClick={copyReferralLink}
-                    className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300 text-[#022c33] font-bold text-xs shadow-md shadow-teal-500/20 transition flex items-center justify-center gap-1.5"
                   >
                     {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                     {copied ? 'Copied' : 'Share Referral Link'}
                   </button>
                   <button
                     onClick={() => setActiveTab('team')}
-                    className="py-2 px-3 rounded-xl border border-line hover:border-navy text-navy font-semibold text-xs"
+                    className="py-2 px-3 rounded-xl border border-teal-500/30 hover:border-teal-300 text-teal-200 hover:text-white font-semibold text-xs transition"
                   >
                     Inspect Tree
                   </button>
@@ -569,15 +574,15 @@ export default function AdviserDashboard() {
             </div>
 
             {/* VISUAL HIERARCHY TREE COMPONENT */}
-            <div className="rounded-3xl border border-line bg-white p-6 shadow-xs">
+            <div className="rounded-3xl border border-teal-500/30 bg-[#062f35]/90 backdrop-blur-2xl p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-bold text-navy">Your Direct Referral Tree</h3>
-                  <p className="text-xs text-muted">Members joined under your code and how many members they have recruited.</p>
+                  <h3 className="text-lg font-bold text-white">Your Direct Referral Tree</h3>
+                  <p className="text-xs text-teal-200/70">Members joined under your code and how many members they have recruited.</p>
                 </div>
                 <button
                   onClick={() => setActiveTab('team')}
-                  className="text-xs font-bold text-orange-600 hover:underline flex items-center gap-1"
+                  className="text-xs font-bold text-teal-300 hover:text-teal-200 hover:underline flex items-center gap-1"
                 >
                   Full Network View →
                 </button>
@@ -602,21 +607,21 @@ export default function AdviserDashboard() {
         {/* TAB 2: REFERRAL TREE FULL NETWORK                              */}
         {/* ============================================================== */}
         {activeTab === 'team' && (
-          <div className="mt-6 rounded-3xl border border-line bg-white p-6 sm:p-8 shadow-xs space-y-6 animate-in fade-in duration-200">
+          <div className="mt-6 rounded-3xl border border-teal-500/30 bg-[#062f35]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-xl space-y-6 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-2xl font-bold text-navy">Complete Referral Network Tree</h2>
-                <p className="text-xs text-muted mt-0.5">
+                <h2 className="text-2xl font-bold text-white">Complete Referral Network Tree</h2>
+                <p className="text-xs text-teal-200/70 mt-0.5">
                   Visual hierarchy showing every adviser registered under you and their downline counts.
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold text-navy bg-mist px-2.5 py-1 rounded-lg">
+                <span className="text-xs font-mono font-bold text-teal-300 bg-[#021f24] border border-teal-500/30 px-3 py-1.5 rounded-xl">
                   {referralCode}
                 </span>
                 <button
                   onClick={copyReferralLink}
-                  className="px-3 py-1.5 rounded-xl bg-orange-600 text-white font-bold text-xs hover:bg-orange-700 shadow-xs flex items-center gap-1"
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] font-bold text-xs hover:from-teal-200 hover:to-teal-300 shadow-md shadow-teal-500/20 flex items-center gap-1"
                 >
                   {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   {copied ? 'Copied' : 'Copy Link'}
@@ -635,11 +640,11 @@ export default function AdviserDashboard() {
 
             {/* Direct Members Table */}
             {data.registrationRewards?.length > 0 && (
-              <div className="pt-4 border-t border-line">
-                <h3 className="font-bold text-navy text-sm mb-3">Joining Bonus Ledgers (₹300 / Member)</h3>
-                <div className="overflow-x-auto">
+              <div className="pt-4 border-t border-teal-500/20">
+                <h3 className="font-bold text-white text-sm mb-3">Joining Bonus Ledgers (₹300 / Member)</h3>
+                <div className="overflow-x-auto rounded-2xl border border-teal-500/20">
                   <table className="w-full text-left text-xs">
-                    <thead className="border-b border-line bg-mist/60 text-muted uppercase font-bold tracking-wider">
+                    <thead className="border-b border-teal-500/20 bg-[#021f24]/90 text-teal-300 uppercase font-bold tracking-wider">
                       <tr>
                         <th className="py-2.5 px-3">Date</th>
                         <th className="py-2.5 px-3">Member Name</th>
@@ -648,15 +653,15 @@ export default function AdviserDashboard() {
                         <th className="py-2.5 px-3">Reward</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-line">
+                    <tbody className="divide-y divide-teal-500/10 bg-[#062f35]/50">
                       {data.registrationRewards.map((r: any) => (
-                        <tr key={r.id} className="hover:bg-mist/30">
-                          <td className="py-2.5 px-3 font-mono text-muted">{fmtDate(r.created_at)}</td>
-                          <td className="py-2.5 px-3 font-semibold text-navy">{r.source_adviser_name || 'Member'}</td>
-                          <td className="py-2.5 px-3 font-mono text-muted">{r.source_adviser_id}</td>
-                          <td className="py-2.5 px-3">Level {r.level}</td>
+                        <tr key={r.id} className="hover:bg-[#021f24]/60 transition">
+                          <td className="py-2.5 px-3 font-mono text-teal-200/70">{fmtDate(r.created_at)}</td>
+                          <td className="py-2.5 px-3 font-semibold text-white">{r.source_adviser_name || 'Member'}</td>
+                          <td className="py-2.5 px-3 font-mono text-teal-300">{r.source_adviser_id}</td>
+                          <td className="py-2.5 px-3 text-teal-100">Level {r.level}</td>
                           <td className="py-2.5 px-3">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                               ₹{r.amount} {r.status}
                             </span>
                           </td>
@@ -674,30 +679,30 @@ export default function AdviserDashboard() {
         {/* TAB 3: PROPERTY LEADS & SALES                                   */}
         {/* ============================================================== */}
         {activeTab === 'leads' && (
-          <div className="mt-6 rounded-3xl border border-line bg-white p-6 sm:p-8 shadow-xs space-y-6 animate-in fade-in duration-200">
+          <div className="mt-6 rounded-3xl border border-teal-500/30 bg-[#062f35]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-xl space-y-6 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-navy">Property Leads &amp; Sales</h2>
-                <p className="text-xs text-muted mt-0.5">
+                <h2 className="text-2xl font-bold text-white">Property Leads &amp; Sales</h2>
+                <p className="text-xs text-teal-200/70 mt-0.5">
                   Submit prospective buyers. When a deal closes, 10% direct sales commission is credited.
                 </p>
               </div>
               <button
                 onClick={() => setLeadModal(true)}
-                className="px-4 py-2 rounded-xl bg-orange-600 text-white font-bold text-xs hover:bg-orange-700 shadow-xs flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] font-bold text-xs hover:from-teal-200 hover:to-teal-300 shadow-md shadow-teal-500/20 flex items-center gap-1.5"
               >
                 <PlusCircle className="w-4 h-4" /> Submit Buyer Lead
               </button>
             </div>
 
             {data.leads?.length === 0 ? (
-              <div className="py-12 text-center text-xs text-muted border border-dashed border-line rounded-2xl">
+              <div className="py-12 text-center text-xs text-teal-200/60 border border-dashed border-teal-500/30 rounded-2xl bg-[#021f24]/50">
                 No buyer leads registered yet. Click "Submit Buyer Lead" to log interested clients.
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-2xl border border-teal-500/20">
                 <table className="w-full text-left text-xs">
-                  <thead className="border-b border-line bg-mist/60 text-muted font-bold uppercase tracking-wider">
+                  <thead className="border-b border-teal-500/20 bg-[#021f24]/90 text-teal-300 font-bold uppercase tracking-wider">
                     <tr>
                       <th className="py-3 px-4">Date</th>
                       <th className="py-3 px-4">Buyer Name</th>
@@ -706,15 +711,15 @@ export default function AdviserDashboard() {
                       <th className="py-3 px-4">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-line">
+                  <tbody className="divide-y divide-teal-500/10 bg-[#062f35]/50">
                     {data.leads.map((l: any) => (
-                      <tr key={l.id} className="hover:bg-mist/30">
-                        <td className="py-3 px-4 font-mono text-muted">{fmtDate(l.created_at)}</td>
-                        <td className="py-3 px-4 font-bold text-navy">{l.lead_name}</td>
-                        <td className="py-3 px-4 text-muted">{l.lead_phone}</td>
-                        <td className="py-3 px-4 text-navy">{l.property_title}</td>
+                      <tr key={l.id} className="hover:bg-[#021f24]/60 transition">
+                        <td className="py-3 px-4 font-mono text-teal-200/70">{fmtDate(l.created_at)}</td>
+                        <td className="py-3 px-4 font-bold text-white">{l.lead_name}</td>
+                        <td className="py-3 px-4 text-teal-200/70">{l.lead_phone}</td>
+                        <td className="py-3 px-4 text-teal-100">{l.property_title}</td>
                         <td className="py-3 px-4">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-mist text-navy">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-teal-500/20 text-teal-300 border border-teal-400/30">
                             {l.status}
                           </span>
                         </td>
@@ -731,104 +736,104 @@ export default function AdviserDashboard() {
         {/* TAB 4: PROFILE & KYC DOCUMENT UPLOADS                           */}
         {/* ============================================================== */}
         {activeTab === 'profile' && (
-          <div className="mt-6 rounded-3xl border border-line bg-white p-6 sm:p-10 shadow-xs animate-in fade-in duration-200">
+          <div className="mt-6 rounded-3xl border border-teal-500/30 bg-[#062f35]/90 backdrop-blur-2xl p-6 sm:p-10 shadow-xl animate-in fade-in duration-200">
             <div className="max-w-3xl">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-teal-300 bg-teal-500/20 px-2.5 py-1 rounded-full border border-teal-400/30">
                 KYC &amp; Verification
               </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-navy mt-2">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-2">
                 Adviser Profile &amp; KYC Upload
               </h2>
-              <p className="mt-1 text-xs text-muted">
+              <p className="mt-1 text-xs text-teal-200/70">
                 Upload your Aadhaar Card, PAN Card, Photo, and Bank Details. All documents are securely stored and verified in the Admin Panel.
               </p>
 
               {docsSuccess && (
-                <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> {docsSuccess}
+                <div className="mt-4 p-3 rounded-xl bg-teal-500/20 border border-teal-400/30 text-teal-200 text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-teal-300" /> {docsSuccess}
                 </div>
               )}
 
               <form onSubmit={handleSaveDocuments} className="mt-6 space-y-6 text-xs">
                 {/* 1. Profile Summary Card */}
-                <div className="p-4 rounded-2xl bg-mist/60 border border-line grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="p-4 rounded-2xl bg-[#021f24]/80 border border-teal-500/20 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                   <div>
-                    <span className="text-muted text-[10px] uppercase font-bold">Name</span>
-                    <p className="font-bold text-navy truncate">{adviser.full_name}</p>
+                    <span className="text-teal-300/80 text-[10px] uppercase font-bold">Name</span>
+                    <p className="font-bold text-white truncate">{adviser.full_name}</p>
                   </div>
                   <div>
-                    <span className="text-muted text-[10px] uppercase font-bold">Mobile</span>
-                    <p className="font-bold text-navy">{adviser.phone}</p>
+                    <span className="text-teal-300/80 text-[10px] uppercase font-bold">Mobile</span>
+                    <p className="font-bold text-white">{adviser.phone}</p>
                   </div>
                   <div>
-                    <span className="text-muted text-[10px] uppercase font-bold">Reg No</span>
-                    <p className="font-mono font-bold text-orange-600">{adviser.registration_no || adviser.adviser_id}</p>
+                    <span className="text-teal-300/80 text-[10px] uppercase font-bold">Reg No</span>
+                    <p className="font-mono font-bold text-teal-300">{adviser.registration_no || adviser.adviser_id}</p>
                   </div>
                   <div>
-                    <span className="text-muted text-[10px] uppercase font-bold">Login Token</span>
-                    <p className="font-mono font-bold text-navy">{adviser.token_number || 'N/A'}</p>
+                    <span className="text-teal-300/80 text-[10px] uppercase font-bold">Login Token</span>
+                    <p className="font-mono font-bold text-white">{adviser.token_number || 'N/A'}</p>
                   </div>
                 </div>
 
                 {/* 2. Upload Document Cards */}
                 <div>
-                  <h3 className="font-bold text-sm text-navy mb-3 flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-orange-600" /> Identity Documents
+                  <h3 className="font-bold text-sm text-white mb-3 flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-teal-300" /> Identity Documents
                   </h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                     {/* Aadhaar Card */}
-                    <div className="p-4 rounded-2xl border-2 border-dashed border-line hover:border-orange-500 transition text-center bg-mist/20">
-                      <span className="font-bold text-navy block text-xs mb-1">Aadhaar Card</span>
+                    <div className="p-4 rounded-2xl border-2 border-dashed border-teal-500/30 hover:border-teal-300 transition text-center bg-[#021f24]/60">
+                      <span className="font-bold text-white block text-xs mb-1">Aadhaar Card</span>
                       {docs.aadhar_front ? (
                         <div className="mb-2">
-                          <img src={docs.aadhar_front} alt="Aadhaar" className="h-20 w-full object-cover rounded-lg border border-line" />
-                          <span className="text-[10px] text-emerald-700 font-bold block mt-1">✓ Uploaded</span>
+                          <img src={docs.aadhar_front} alt="Aadhaar" className="h-20 w-full object-cover rounded-lg border border-teal-500/30" />
+                          <span className="text-[10px] text-teal-300 font-bold block mt-1">✓ Uploaded</span>
                         </div>
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-mist text-muted grid place-items-center mx-auto mb-2">
+                        <div className="w-10 h-10 rounded-full bg-[#011a1f] text-teal-300 grid place-items-center mx-auto mb-2 border border-teal-500/20">
                           <Upload className="w-4 h-4" />
                         </div>
                       )}
-                      <label className="btn btn-sm btn-outline cursor-pointer w-full text-[11px]">
+                      <label className="px-3 py-1.5 rounded-xl border border-teal-500/30 hover:border-teal-300 text-teal-200 hover:text-white font-semibold cursor-pointer w-full text-[11px] block transition">
                         Choose File
                         <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleFileUpload(e, 'aadhar_front')} />
                       </label>
                     </div>
 
                     {/* PAN Card */}
-                    <div className="p-4 rounded-2xl border-2 border-dashed border-line hover:border-orange-500 transition text-center bg-mist/20">
-                      <span className="font-bold text-navy block text-xs mb-1">PAN Card</span>
+                    <div className="p-4 rounded-2xl border-2 border-dashed border-teal-500/30 hover:border-teal-300 transition text-center bg-[#021f24]/60">
+                      <span className="font-bold text-white block text-xs mb-1">PAN Card</span>
                       {docs.pan_card ? (
                         <div className="mb-2">
-                          <img src={docs.pan_card} alt="PAN Card" className="h-20 w-full object-cover rounded-lg border border-line" />
-                          <span className="text-[10px] text-emerald-700 font-bold block mt-1">✓ Uploaded</span>
+                          <img src={docs.pan_card} alt="PAN Card" className="h-20 w-full object-cover rounded-lg border border-teal-500/30" />
+                          <span className="text-[10px] text-teal-300 font-bold block mt-1">✓ Uploaded</span>
                         </div>
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-mist text-muted grid place-items-center mx-auto mb-2">
+                        <div className="w-10 h-10 rounded-full bg-[#011a1f] text-teal-300 grid place-items-center mx-auto mb-2 border border-teal-500/20">
                           <CreditCard className="w-4 h-4" />
                         </div>
                       )}
-                      <label className="btn btn-sm btn-outline cursor-pointer w-full text-[11px]">
+                      <label className="px-3 py-1.5 rounded-xl border border-teal-500/30 hover:border-teal-300 text-teal-200 hover:text-white font-semibold cursor-pointer w-full text-[11px] block transition">
                         Choose File
                         <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleFileUpload(e, 'pan_card')} />
                       </label>
                     </div>
 
                     {/* Passport Photo */}
-                    <div className="p-4 rounded-2xl border-2 border-dashed border-line hover:border-orange-500 transition text-center bg-mist/20">
-                      <span className="font-bold text-navy block text-xs mb-1">Adviser Photo</span>
+                    <div className="p-4 rounded-2xl border-2 border-dashed border-teal-500/30 hover:border-teal-300 transition text-center bg-[#021f24]/60">
+                      <span className="font-bold text-white block text-xs mb-1">Adviser Photo</span>
                       {docs.photo ? (
                         <div className="mb-2">
-                          <img src={docs.photo} alt="Photo" className="h-20 w-20 mx-auto object-cover rounded-full border border-line" />
-                          <span className="text-[10px] text-emerald-700 font-bold block mt-1">✓ Uploaded</span>
+                          <img src={docs.photo} alt="Photo" className="h-20 w-20 mx-auto object-cover rounded-full border border-teal-500/30" />
+                          <span className="text-[10px] text-teal-300 font-bold block mt-1">✓ Uploaded</span>
                         </div>
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-mist text-muted grid place-items-center mx-auto mb-2">
+                        <div className="w-10 h-10 rounded-full bg-[#011a1f] text-teal-300 grid place-items-center mx-auto mb-2 border border-teal-500/20">
                           <ImageIcon className="w-4 h-4" />
                         </div>
                       )}
-                      <label className="btn btn-sm btn-outline cursor-pointer w-full text-[11px]">
+                      <label className="px-3 py-1.5 rounded-xl border border-teal-500/30 hover:border-teal-300 text-teal-200 hover:text-white font-semibold cursor-pointer w-full text-[11px] block transition">
                         Choose File
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'photo')} />
                       </label>
@@ -838,59 +843,59 @@ export default function AdviserDashboard() {
 
                 {/* 3. Bank & Payout Details */}
                 <div className="space-y-3 pt-2">
-                  <h3 className="font-bold text-sm text-navy flex items-center gap-1.5">
-                    <Wallet className="w-4 h-4 text-emerald-600" /> Bank &amp; Payout Details
+                  <h3 className="font-bold text-sm text-white flex items-center gap-1.5">
+                    <Wallet className="w-4 h-4 text-teal-300" /> Bank &amp; Payout Details
                   </h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block font-semibold text-navy mb-1 text-[11px]">Account Holder Name</label>
+                      <label className="block font-semibold text-teal-200 mb-1 text-[11px]">Account Holder Name</label>
                       <input
                         type="text"
                         value={bankDetails.account_holder_name || ''}
                         onChange={(e) => setBankDetails((b) => ({ ...b, account_holder_name: e.target.value }))}
                         placeholder="Name as per bank account"
-                        className="input text-xs"
+                        className="w-full bg-[#021f24] border border-teal-500/30 rounded-xl px-3 py-2 text-white placeholder-teal-200/40 text-xs focus:border-teal-300 focus:outline-hidden"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-navy mb-1 text-[11px]">Bank Name</label>
+                      <label className="block font-semibold text-teal-200 mb-1 text-[11px]">Bank Name</label>
                       <input
                         type="text"
                         value={bankDetails.bank_name || ''}
                         onChange={(e) => setBankDetails((b) => ({ ...b, bank_name: e.target.value }))}
                         placeholder="e.g. State Bank of India, HDFC"
-                        className="input text-xs"
+                        className="w-full bg-[#021f24] border border-teal-500/30 rounded-xl px-3 py-2 text-white placeholder-teal-200/40 text-xs focus:border-teal-300 focus:outline-hidden"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-navy mb-1 text-[11px]">Account Number</label>
+                      <label className="block font-semibold text-teal-200 mb-1 text-[11px]">Account Number</label>
                       <input
                         type="text"
                         value={bankDetails.account_number || ''}
                         onChange={(e) => setBankDetails((b) => ({ ...b, account_number: e.target.value }))}
                         placeholder="Enter account number"
-                        className="input text-xs font-mono"
+                        className="w-full bg-[#021f24] border border-teal-500/30 rounded-xl px-3 py-2 text-white placeholder-teal-200/40 text-xs font-mono focus:border-teal-300 focus:outline-hidden"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-navy mb-1 text-[11px]">IFSC Code</label>
+                      <label className="block font-semibold text-teal-200 mb-1 text-[11px]">IFSC Code</label>
                       <input
                         type="text"
                         value={bankDetails.ifsc || ''}
                         onChange={(e) => setBankDetails((b) => ({ ...b, ifsc: e.target.value.toUpperCase() }))}
                         placeholder="e.g. SBIN0001234"
-                        className="input text-xs font-mono uppercase"
+                        className="w-full bg-[#021f24] border border-teal-500/30 rounded-xl px-3 py-2 text-white placeholder-teal-200/40 text-xs font-mono uppercase focus:border-teal-300 focus:outline-hidden"
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block font-semibold text-navy mb-1 text-[11px]">UPI ID (Optional)</label>
+                      <label className="block font-semibold text-teal-200 mb-1 text-[11px]">UPI ID (Optional)</label>
                       <input
                         type="text"
                         value={bankDetails.upi_id || ''}
                         onChange={(e) => setBankDetails((b) => ({ ...b, upi_id: e.target.value }))}
                         placeholder="e.g. username@okhdfcbank"
-                        className="input text-xs font-mono"
+                        className="w-full bg-[#021f24] border border-teal-500/30 rounded-xl px-3 py-2 text-white placeholder-teal-200/40 text-xs font-mono focus:border-teal-300 focus:outline-hidden"
                       />
                     </div>
                   </div>
@@ -900,7 +905,7 @@ export default function AdviserDashboard() {
                   <button
                     type="submit"
                     disabled={savingDocs}
-                    className="btn btn-primary text-xs font-bold flex items-center gap-2"
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300 text-[#022c33] font-bold text-xs shadow-md shadow-teal-500/20 flex items-center gap-2"
                   >
                     {savingDocs ? 'Saving Details...' : 'Save Profile & KYC Details'}
                   </button>
@@ -914,39 +919,39 @@ export default function AdviserDashboard() {
         {/* TAB 5: WALLET & PAYOUTS                                         */}
         {/* ============================================================== */}
         {activeTab === 'payouts' && (
-          <div className="mt-6 rounded-3xl border border-line bg-white p-6 sm:p-8 shadow-xs space-y-6 animate-in fade-in duration-200">
+          <div className="mt-6 rounded-3xl border border-teal-500/30 bg-[#062f35]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-xl space-y-6 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-navy">Wallet &amp; Payouts</h2>
-                <p className="text-xs text-muted mt-0.5">
+                <h2 className="text-2xl font-bold text-white">Wallet &amp; Payouts</h2>
+                <p className="text-xs text-teal-200/70 mt-0.5">
                   Direct withdrawal of earned referral bonuses and property commissions to your bank account.
                 </p>
               </div>
               <button
                 onClick={() => setPayoutModal(true)}
                 disabled={availableBalance <= 0}
-                className="btn btn-primary text-xs font-bold disabled:opacity-50"
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] font-bold text-xs hover:from-teal-200 hover:to-teal-300 shadow-md shadow-teal-500/20 disabled:opacity-50"
               >
                 Request Withdrawal ({inr(availableBalance)})
               </button>
             </div>
 
-            <div className="p-4 rounded-2xl bg-orange-50/80 border border-orange-200 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-[#021f24]/90 border border-teal-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <span className="text-[11px] font-bold text-orange-900 uppercase">Available for Withdrawal:</span>
-                <p className="text-2xl font-black text-orange-700">{inr(availableBalance)}</p>
+                <span className="text-[11px] font-bold text-teal-300 uppercase">Available for Withdrawal:</span>
+                <p className="text-2xl sm:text-3xl font-black text-white">{inr(availableBalance)}</p>
               </div>
-              <span className="text-xs text-muted">Settled via NEFT / UPI to registered bank</span>
+              <span className="text-xs text-teal-200/70">Settled via NEFT / UPI to registered bank</span>
             </div>
 
             {data.payouts?.length === 0 ? (
-              <div className="py-12 text-center text-xs text-muted border border-dashed border-line rounded-2xl">
+              <div className="py-12 text-center text-xs text-teal-200/60 border border-dashed border-teal-500/30 rounded-2xl bg-[#021f24]/50">
                 No withdrawal requests submitted yet.
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-2xl border border-teal-500/20">
                 <table className="w-full text-left text-xs">
-                  <thead className="border-b border-line bg-mist/60 text-muted font-bold uppercase tracking-wider">
+                  <thead className="border-b border-teal-500/20 bg-[#021f24]/90 text-teal-300 font-bold uppercase tracking-wider">
                     <tr>
                       <th className="py-3 px-4">Date</th>
                       <th className="py-3 px-4">Amount</th>
@@ -954,14 +959,14 @@ export default function AdviserDashboard() {
                       <th className="py-3 px-4">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-line">
+                  <tbody className="divide-y divide-teal-500/10 bg-[#062f35]/50">
                     {data.payouts.map((p: any) => (
-                      <tr key={p.id}>
-                        <td className="py-3 px-4 font-mono text-muted">{fmtDate(p.created_at)}</td>
-                        <td className="py-3 px-4 font-bold text-navy">{inr(p.amount)}</td>
-                        <td className="py-3 px-4 uppercase">{p.payment_method}</td>
+                      <tr key={p.id} className="hover:bg-[#021f24]/60 transition">
+                        <td className="py-3 px-4 font-mono text-teal-200/70">{fmtDate(p.created_at)}</td>
+                        <td className="py-3 px-4 font-bold text-white">{inr(p.amount)}</td>
+                        <td className="py-3 px-4 uppercase text-teal-100">{p.payment_method}</td>
                         <td className="py-3 px-4">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-mist text-navy">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-teal-500/20 text-teal-300 border border-teal-400/30">
                             {p.status}
                           </span>
                         </td>
@@ -980,46 +985,46 @@ export default function AdviserDashboard() {
 
       {/* ---------------- SUBMIT LEAD MODAL ---------------- */}
       {leadModal && (
-        <div className="fixed inset-0 z-50 bg-navy/60 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-line">
-            <h3 className="text-xl font-bold text-navy">Submit Buyer Lead</h3>
-            <p className="text-xs text-muted mt-0.5">Enter client information to register this buyer under your code.</p>
+        <div className="fixed inset-0 z-50 bg-[#011a1f]/80 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in">
+          <div className="bg-[#062f35] rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-teal-500/30 text-white">
+            <h3 className="text-xl font-bold text-white">Submit Buyer Lead</h3>
+            <p className="text-xs text-teal-200/70 mt-0.5">Enter client information to register this buyer under your code.</p>
 
             {leadSuccess && (
-              <div className="mt-3 p-3 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-semibold">
+              <div className="mt-3 p-3 rounded-xl bg-teal-500/20 border border-teal-400/30 text-teal-200 text-xs font-semibold">
                 {leadSuccess}
               </div>
             )}
 
             <form onSubmit={handleLeadSubmit} className="mt-4 space-y-3 text-xs">
               <div>
-                <label className="block font-semibold text-navy mb-1">Buyer Name *</label>
+                <label className="block font-semibold text-teal-200 mb-1">Buyer Name *</label>
                 <input
                   type="text"
                   required
                   value={leadName}
                   onChange={(e) => setLeadName(e.target.value)}
                   placeholder="Full name of interested client"
-                  className="input text-xs"
+                  className="w-full bg-[#021f24] border border-teal-500/30 rounded-xl px-3 py-2 text-white placeholder-teal-200/40 text-xs focus:border-teal-300 focus:outline-hidden"
                 />
               </div>
               <div>
-                <label className="block font-semibold text-navy mb-1">Buyer Mobile *</label>
+                <label className="block font-semibold text-teal-200 mb-1">Buyer Mobile *</label>
                 <input
                   type="tel"
                   required
                   value={leadPhone}
                   onChange={(e) => setLeadPhone(e.target.value)}
                   placeholder="10-digit mobile number"
-                  className="input text-xs"
+                  className="w-full bg-[#021f24] border border-teal-500/30 rounded-xl px-3 py-2 text-white placeholder-teal-200/40 text-xs focus:border-teal-300 focus:outline-hidden"
                 />
               </div>
               <div>
-                <label className="block font-semibold text-navy mb-1">Property Requirement *</label>
+                <label className="block font-semibold text-teal-200 mb-1">Property Requirement *</label>
                 <select
                   value={leadPropertyTitle}
                   onChange={(e) => setLeadPropertyTitle(e.target.value)}
-                  className="input text-xs"
+                  className="w-full bg-[#021f24] border border-teal-500/30 rounded-xl px-3 py-2 text-white text-xs focus:border-teal-300 focus:outline-hidden"
                 >
                   <option value="Umroli Project (Flats)">Umroli Project (Flats)</option>
                   <option value="Residential Plots">Residential Plots</option>
@@ -1027,13 +1032,13 @@ export default function AdviserDashboard() {
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-navy mb-1">Notes (Optional)</label>
+                <label className="block font-semibold text-teal-200 mb-1">Notes (Optional)</label>
                 <textarea
                   value={leadNotes}
                   onChange={(e) => setLeadNotes(e.target.value)}
                   placeholder="Budget, preferred visit date..."
                   rows={2}
-                  className="input text-xs"
+                  className="w-full bg-[#021f24] border border-teal-500/30 rounded-xl px-3 py-2 text-white placeholder-teal-200/40 text-xs focus:border-teal-300 focus:outline-hidden"
                 />
               </div>
 
@@ -1041,14 +1046,14 @@ export default function AdviserDashboard() {
                 <button
                   type="submit"
                   disabled={submittingLead}
-                  className="btn btn-primary flex-1 text-xs font-bold"
+                  className="flex-1 py-2 rounded-xl bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] font-bold text-xs hover:from-teal-200 hover:to-teal-300 shadow-md shadow-teal-500/20"
                 >
                   {submittingLead ? 'Submitting...' : 'Register Lead'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setLeadModal(false)}
-                  className="btn btn-outline text-xs"
+                  className="px-4 py-2 rounded-xl border border-teal-500/30 text-teal-200 hover:text-white text-xs font-semibold"
                 >
                   Cancel
                 </button>
@@ -1060,20 +1065,20 @@ export default function AdviserDashboard() {
 
       {/* ---------------- PAYOUT REQUEST MODAL ---------------- */}
       {payoutModal && (
-        <div className="fixed inset-0 z-50 bg-navy/60 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-line">
-            <h3 className="text-xl font-bold text-navy">Request Withdrawal</h3>
-            <p className="text-xs text-muted mt-0.5">Available balance: <b>{inr(availableBalance)}</b></p>
+        <div className="fixed inset-0 z-50 bg-[#011a1f]/80 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in">
+          <div className="bg-[#062f35] rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-teal-500/30 text-white">
+            <h3 className="text-xl font-bold text-white">Request Withdrawal</h3>
+            <p className="text-xs text-teal-200/70 mt-0.5">Available balance: <b className="text-white">{inr(availableBalance)}</b></p>
 
             {payoutSuccess && (
-              <div className="mt-3 p-3 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-semibold">
+              <div className="mt-3 p-3 rounded-xl bg-teal-500/20 border border-teal-400/30 text-teal-200 text-xs font-semibold">
                 {payoutSuccess}
               </div>
             )}
 
             <form onSubmit={handlePayoutSubmit} className="mt-4 space-y-3 text-xs">
               <div>
-                <label className="block font-semibold text-navy mb-1">Amount (₹) *</label>
+                <label className="block font-semibold text-teal-200 mb-1">Amount (₹) *</label>
                 <input
                   type="number"
                   required
@@ -1082,15 +1087,15 @@ export default function AdviserDashboard() {
                   value={payoutAmount}
                   onChange={(e) => setPayoutAmount(e.target.value)}
                   placeholder="Enter withdrawal amount"
-                  className="input text-xs font-mono"
+                  className="w-full bg-[#021f24] border border-teal-500/30 rounded-xl px-3 py-2 text-white placeholder-teal-200/40 text-xs font-mono focus:border-teal-300 focus:outline-hidden"
                 />
               </div>
               <div>
-                <label className="block font-semibold text-navy mb-1">Payout Method</label>
+                <label className="block font-semibold text-teal-200 mb-1">Payout Method</label>
                 <select
                   value={payoutMethod}
                   onChange={(e) => setPayoutMethod(e.target.value)}
-                  className="input text-xs"
+                  className="w-full bg-[#021f24] border border-teal-500/30 rounded-xl px-3 py-2 text-white text-xs focus:border-teal-300 focus:outline-hidden"
                 >
                   <option value="bank_transfer">Direct Bank Transfer (NEFT/IMPS)</option>
                   <option value="upi">UPI Transfer</option>
@@ -1102,14 +1107,14 @@ export default function AdviserDashboard() {
                 <button
                   type="submit"
                   disabled={submittingPayout}
-                  className="btn btn-primary flex-1 text-xs font-bold"
+                  className="flex-1 py-2 rounded-xl bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] font-bold text-xs hover:from-teal-200 hover:to-teal-300 shadow-md shadow-teal-500/20"
                 >
                   {submittingPayout ? 'Submitting...' : 'Confirm Request'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPayoutModal(false)}
-                  className="btn btn-outline text-xs"
+                  className="px-4 py-2 rounded-xl border border-teal-500/30 text-teal-200 hover:text-white text-xs font-semibold"
                 >
                   Cancel
                 </button>
@@ -1147,21 +1152,21 @@ function ReferralTreeCanvas({
   const children = root?.children || [];
 
   return (
-    <div className="rounded-3xl bg-neutral-900 text-white p-6 sm:p-8 shadow-xl relative overflow-hidden border border-neutral-800">
+    <div className="rounded-3xl bg-[#021f24]/95 text-white p-6 sm:p-8 shadow-2xl relative overflow-hidden border border-teal-500/30">
       {/* Tree Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-teal-500/20">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400 bg-orange-500/20 px-2.5 py-0.5 rounded-full border border-orange-500/30">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-teal-300 bg-teal-500/20 px-2.5 py-0.5 rounded-full border border-teal-400/30">
             Adviser Tree
           </span>
-          <h3 className="text-xl font-bold mt-1.5">Network Downline</h3>
+          <h3 className="text-xl font-bold mt-1.5 text-white">Network Downline</h3>
         </div>
         <div className="flex items-center gap-3 text-xs">
-          <span className="text-neutral-400">
-            Direct Members: <b className="text-emerald-400 font-mono">{root?.directCount || 0}</b>
+          <span className="text-teal-200/70">
+            Direct Members: <b className="text-teal-300 font-mono">{root?.directCount || 0}</b>
           </span>
-          <span className="text-neutral-500">|</span>
-          <span className="text-neutral-400">
+          <span className="text-teal-500/40">|</span>
+          <span className="text-teal-200/70">
             Total Team: <b className="text-white font-mono">{root?.totalTeam || 0}</b>
           </span>
         </div>
@@ -1170,38 +1175,38 @@ function ReferralTreeCanvas({
       {/* Visual Tree Layout */}
       <div className="mt-8 flex flex-col items-center">
         {/* ROOT NODE: You */}
-        <div className="w-full max-w-xs p-4 rounded-2xl bg-white/10 border-2 border-orange-500 text-center relative shadow-lg">
-          <span className="inline-block px-2 py-0.5 rounded-full bg-orange-600 text-white text-[9px] font-black uppercase tracking-wider mb-1">
+        <div className="w-full max-w-xs p-4 rounded-2xl bg-[#062f35] border-2 border-teal-400 text-center relative shadow-[0_0_25px_rgba(45,212,191,0.2)]">
+          <span className="inline-block px-2.5 py-0.5 rounded-full bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] text-[9px] font-black uppercase tracking-wider mb-1.5 shadow-xs">
             You (Root)
           </span>
           <h4 className="text-sm font-bold text-white">{root?.full_name}</h4>
-          <p className="font-mono text-xs text-orange-400 font-bold">{root?.registration_no}</p>
-          <div className="mt-2 pt-2 border-t border-white/10 flex justify-around text-xs">
+          <p className="font-mono text-xs text-teal-300 font-bold">{root?.registration_no}</p>
+          <div className="mt-2.5 pt-2 border-t border-teal-500/20 flex justify-around text-xs">
             <div>
-              <span className="text-[9px] text-neutral-400 block uppercase">Direct Joined</span>
-              <span className="font-black text-emerald-400 text-xs">{root?.directCount || 0}</span>
+              <span className="text-[9px] text-teal-200/60 block uppercase">Direct Joined</span>
+              <span className="font-black text-teal-300 text-xs">{root?.directCount || 0}</span>
             </div>
-            <div className="w-px h-5 bg-white/10" />
+            <div className="w-px h-5 bg-teal-500/20" />
             <div>
-              <span className="text-[9px] text-neutral-400 block uppercase">Total Network</span>
+              <span className="text-[9px] text-teal-200/60 block uppercase">Total Network</span>
               <span className="font-black text-white text-xs">{root?.totalTeam || 0}</span>
             </div>
           </div>
         </div>
 
         {/* Stem Line down from root */}
-        <div className="w-0.5 h-6 bg-orange-500" />
+        <div className="w-0.5 h-6 bg-teal-400" />
 
         {/* EMPTY STATE */}
         {children.length === 0 ? (
-          <div className="w-full max-w-sm p-5 rounded-2xl bg-white/5 border border-dashed border-white/20 text-center text-xs text-neutral-400 space-y-2.5">
+          <div className="w-full max-w-sm p-5 rounded-2xl bg-[#062f35]/60 border border-dashed border-teal-500/30 text-center text-xs text-teal-200/70 space-y-2.5">
             <p className="font-semibold text-white">No members have joined under you yet.</p>
-            <p className="text-[11px] text-neutral-400">
-              Share your referral code <b className="text-orange-400 font-mono">{referralCode}</b> with advisers to build your team.
+            <p className="text-[11px] text-teal-200/70">
+              Share your referral code <b className="text-teal-300 font-mono">{referralCode}</b> with advisers to build your team.
             </p>
             <button
               onClick={copyReferralLink}
-              className="btn btn-sm btn-primary text-xs inline-flex items-center gap-1.5"
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-300 to-teal-400 text-[#022c33] font-bold text-xs inline-flex items-center gap-1.5 shadow-md shadow-teal-500/20"
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? 'Copied' : 'Copy Referral Link'}
@@ -1210,7 +1215,7 @@ function ReferralTreeCanvas({
         ) : (
           <div className="w-full">
             {/* Horizontal branch line */}
-            <div className="hidden sm:block w-3/4 max-w-xl h-0.5 bg-neutral-700 mx-auto" />
+            <div className="hidden sm:block w-3/4 max-w-xl h-0.5 bg-teal-500/30 mx-auto" />
 
             {/* LEVEL 1 CARDS */}
             <div className="mt-4 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -1222,11 +1227,11 @@ function ReferralTreeCanvas({
                 return (
                   <div
                     key={c.adviser_id}
-                    className="p-3.5 rounded-2xl bg-white/10 border border-white/15 hover:border-orange-400 transition shadow-sm flex flex-col justify-between"
+                    className="p-3.5 rounded-2xl bg-[#062f35]/90 border border-teal-500/30 hover:border-teal-300 transition shadow-md flex flex-col justify-between"
                   >
                     <div>
                       <div className="flex items-center justify-between">
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold uppercase">
+                        <span className="px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30 text-[9px] font-bold uppercase">
                           Direct Member
                         </span>
                         <span
@@ -1239,13 +1244,13 @@ function ReferralTreeCanvas({
                       </div>
 
                       <h5 className="font-bold text-white text-sm mt-1.5">{c.full_name}</h5>
-                      <p className="font-mono text-xs text-neutral-300">{c.registration_no || c.adviser_id}</p>
-                      <p className="text-[11px] text-neutral-400 mt-0.5">Mobile: {c.phone}</p>
+                      <p className="font-mono text-xs text-teal-300">{c.registration_no || c.adviser_id}</p>
+                      <p className="text-[11px] text-teal-200/70 mt-0.5">Mobile: {c.phone}</p>
 
                       {/* HOW MANY MEMBERS JOINED UNDER HIM */}
-                      <div className="mt-2.5 p-2 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between">
-                        <span className="text-[10px] text-neutral-400">Members under him:</span>
-                        <span className="font-mono font-bold text-xs text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
+                      <div className="mt-2.5 p-2 rounded-xl bg-[#011a1f] border border-teal-500/30 flex items-center justify-between">
+                        <span className="text-[10px] text-teal-200/70">Members under him:</span>
+                        <span className="font-mono font-bold text-xs text-teal-300 bg-teal-950/80 px-2 py-0.5 rounded border border-teal-500/30">
                           {c.directCount || 0} members
                         </span>
                       </div>
@@ -1253,24 +1258,24 @@ function ReferralTreeCanvas({
 
                     {/* DOWNLINE EXPANDER */}
                     {hasSub && (
-                      <div className="mt-2.5 pt-2 border-t border-white/10">
+                      <div className="mt-2.5 pt-2 border-t border-teal-500/20">
                         <button
                           type="button"
                           onClick={() => toggleNode(c.adviser_id)}
-                          className="w-full text-center py-1 rounded-lg bg-white/5 hover:bg-white/10 text-orange-400 font-bold text-[10px] transition flex items-center justify-center gap-1"
+                          className="w-full text-center py-1 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 font-bold text-[10px] transition flex items-center justify-center gap-1 border border-teal-500/20"
                         >
                           {isExpanded ? 'Hide' : 'View'} Downline ({subChildren.length})
                         </button>
 
                         {isExpanded && (
-                          <div className="mt-2 space-y-1.5 pl-2.5 border-l-2 border-orange-500/40">
+                          <div className="mt-2 space-y-1.5 pl-2.5 border-l-2 border-teal-400/40">
                             {subChildren.map((sub: any) => (
-                              <div key={sub.adviser_id} className="p-1.5 rounded-lg bg-black/30 border border-white/5 text-[10px]">
+                              <div key={sub.adviser_id} className="p-2 rounded-lg bg-[#011a1f] border border-teal-500/20 text-[10px]">
                                 <div className="flex justify-between font-semibold text-white">
                                   <span>{sub.full_name}</span>
-                                  <span className="font-mono text-orange-400">{sub.registration_no}</span>
+                                  <span className="font-mono text-teal-300">{sub.registration_no}</span>
                                 </div>
-                                <div className="flex justify-between text-neutral-400 text-[9px]">
+                                <div className="flex justify-between text-teal-200/60 text-[9px] mt-0.5">
                                   <span>{sub.phone}</span>
                                   <span>Team: {sub.directCount || 0}</span>
                                 </div>
