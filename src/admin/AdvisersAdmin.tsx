@@ -464,23 +464,25 @@ export default function AdvisersAdmin() {
 
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <p className="text-xs font-semibold text-muted">Management & Financial Controls</p>
-          <h1 className="font-display text-4xl text-navy">Advisers Program Admin</h1>
+          <span className="text-[10px] font-bold text-orange-600 uppercase tracking-widest bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
+            Adviser Network Management
+          </span>
+          <h1 className="font-display text-3xl sm:text-4xl text-navy mt-1">Advisers &amp; Referral Control</h1>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSaleModal(true)}
-            className="btn btn-primary btn-sm flex items-center gap-1.5"
+            className="btn btn-primary btn-sm flex items-center gap-1.5 text-xs font-bold"
           >
-            <PlusCircle className="w-4 h-4" /> Verify Property Sale
+            <PlusCircle className="w-4 h-4" /> Record Property Sale
           </button>
         </div>
       </div>
 
       {/* ADMIN NAVIGATION TABS */}
-      <div className="border-b border-line flex gap-2 overflow-x-auto pb-px mb-8">
+      <div className="border-b border-line flex gap-2 overflow-x-auto pb-px mb-6">
         {[
           ['advisers', `Advisers (${advisers.length})`],
           ['tree', 'Referral Hierarchy Tree'],
@@ -494,7 +496,7 @@ export default function AdvisersAdmin() {
           <button
             key={t}
             onClick={() => setTab(t as any)}
-            className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition border-b-2 ${
+            className={`px-3.5 py-2 text-xs font-semibold whitespace-nowrap transition border-b-2 ${
               tab === t ? 'border-navy text-navy font-bold' : 'border-transparent text-muted hover:text-navy hover:border-line'
             }`}
           >
@@ -508,27 +510,25 @@ export default function AdvisersAdmin() {
         <section className="space-y-6">
           {/* PENDING APPROVALS ALERT CARD */}
           {advisers.filter((a) => a.status === 'pending' || a.payment_status === 'pending_cash' || a.payment_status === 'pending_verification').length > 0 && (
-            <div className="p-5 rounded-3xl bg-orange-50 border-2 border-orange-300 shadow-xs">
+            <div className="p-5 rounded-3xl bg-amber-50/70 border border-amber-300 shadow-xs">
               <div className="flex items-center gap-2.5">
-                <span className="w-8 h-8 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold text-sm">
+                <span className="w-7 h-7 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold text-xs">
                   {advisers.filter((a) => a.status === 'pending' || a.payment_status === 'pending_cash' || a.payment_status === 'pending_verification').length}
                 </span>
                 <div>
-                  <h3 className="font-bold text-orange-950 text-sm">Adviser Registrations Awaiting Cash Approval</h3>
-                  <p className="text-xs text-orange-800">
-                    Registration fee is ₹1,100 (cash). Verify the cash payment received, then click <b>"Confirm Cash & Approve"</b> to generate their login token.
-                  </p>
+                  <h3 className="font-bold text-navy text-sm">Registrations Awaiting Cash Verification</h3>
+                  <p className="text-[11px] text-muted">Confirm ₹1,100 cash payment received at office to activate account &amp; issue Token Number.</p>
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="mt-3.5 grid gap-3 sm:grid-cols-2">
                 {advisers
                   .filter((a) => a.status === 'pending' || a.payment_status === 'pending_cash' || a.payment_status === 'pending_verification')
                   .map((a) => {
                     const regNo = a.registration_no || a.adviser_id;
                     const kycCount = getKycCount(a);
                     return (
-                      <div key={a.adviser_id} className="p-4 rounded-2xl bg-white border border-orange-200 flex flex-col justify-between gap-3 shadow-xs">
+                      <div key={a.adviser_id} className="p-4 rounded-2xl bg-white border border-amber-200 flex flex-col justify-between gap-3 shadow-xs">
                         <div>
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-navy text-sm">{a.full_name}</span>
@@ -537,27 +537,16 @@ export default function AdvisersAdmin() {
                             </span>
                           </div>
                           <div className="mt-2 space-y-1 text-xs">
-                            <p className="text-muted">
-                              <span className="font-semibold text-navy">Mobile:</span> {a.phone}
-                            </p>
-                            <p className="text-muted">
-                              <span className="font-semibold text-navy">Sponsor / Referral No:</span> {a.sponsor_code || a.sponsor_id || 'Direct'}
-                            </p>
+                            <p className="text-muted"><b className="text-navy">Mobile:</b> {a.phone}</p>
+                            <p className="text-muted"><b className="text-navy">Sponsor:</b> {a.sponsor_code || a.sponsor_id || 'Direct'}</p>
                             {a.password && (
-                              <p className="text-muted">
-                                <span className="font-semibold text-navy">Password:</span> <span className="font-mono bg-mist px-1.5 py-0.5 rounded font-semibold text-navy">{a.password}</span>
-                              </p>
-                            )}
-                            {a.payment_reference && (
-                              <p className="text-muted">
-                                <span className="font-semibold text-navy">Note / Ref:</span> {a.payment_reference}
-                              </p>
+                              <p className="text-muted"><b className="text-navy">Password:</b> <span className="font-mono bg-mist px-1.5 py-0.5 rounded text-navy">{a.password}</span></p>
                             )}
                           </div>
 
-                          <div className="mt-3 flex items-center justify-between text-xs pt-2 border-t border-line">
-                            <span className="text-[11px] font-semibold text-muted">
-                              KYC Docs: <b className={kycCount > 0 ? 'text-emerald-700' : 'text-amber-700'}>{kycCount}/4 Uploaded</b>
+                          <div className="mt-2.5 flex items-center justify-between text-xs pt-2 border-t border-line">
+                            <span className="text-[11px] text-muted">
+                              KYC: <b className={kycCount > 0 ? 'text-emerald-700' : 'text-amber-700'}>{kycCount}/4 Uploaded</b>
                             </span>
                             <button
                               type="button"
@@ -573,18 +562,18 @@ export default function AdvisersAdmin() {
                           <button
                             onClick={() => handleApproveCash(a)}
                             disabled={approvingCashId === a.adviser_id}
-                            className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition"
+                            className="flex-1 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition"
                           >
                             {approvingCashId === a.adviser_id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             ) : (
                               <CheckCircle className="w-3.5 h-3.5" />
                             )}
-                            Confirm Cash & Approve
+                            Confirm Cash &amp; Approve
                           </button>
                           <button
                             onClick={() => updateAdviserStatus(a.adviser_id, 'rejected')}
-                            className="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold hover:bg-rose-100"
+                            className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold hover:bg-rose-100"
                           >
                             Reject
                           </button>

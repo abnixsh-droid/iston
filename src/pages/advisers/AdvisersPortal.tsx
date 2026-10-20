@@ -210,77 +210,79 @@ export default function AdvisersPortal() {
           {/* VIEW: RED SCREEN — ACCOUNT LOCKED / PENDING CASH VERIFICATION   */}
           {/* ============================================================== */}
           {view === 'locked_red' && targetAdviser && (
-            <div className="space-y-8 animate-in fade-in duration-300">
-              <div className="rounded-3xl border-2 border-rose-500 bg-linear-to-b from-rose-500/10 via-rose-500/5 to-white p-6 md:p-10 shadow-xl text-center relative overflow-hidden">
-                <div className="w-16 h-16 rounded-full bg-rose-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-rose-600/30">
-                  <Lock className="w-8 h-8" />
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="rounded-3xl border-2 border-rose-500 bg-white p-6 md:p-8 shadow-lg text-center relative overflow-hidden">
+                <div className="w-14 h-14 rounded-full bg-rose-600 text-white flex items-center justify-center mx-auto shadow-md">
+                  <Lock className="w-7 h-7" />
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 mt-4 px-3 py-1 rounded-full bg-rose-100 text-rose-800 border border-rose-300 text-xs font-bold uppercase tracking-wider">
-                  <BadgeAlert className="w-3.5 h-3.5 text-rose-600" /> Account Locked · Approval Pending
+                <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-[11px] font-bold uppercase tracking-wider">
+                  <BadgeAlert className="w-3.5 h-3.5 text-rose-600" /> Account Locked · Cash Verification Pending
                 </div>
 
-                <h1 className="text-2xl sm:text-4xl font-extrabold text-neutral-900 mt-3">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-navy mt-2">
                   Verification Pending
                 </h1>
 
-                <p className="mt-2 text-sm text-neutral-600 max-w-xl mx-auto leading-relaxed">
-                  Your registration has been recorded successfully. Cash payment verification is required before your account is unlocked.
+                <p className="mt-1 text-xs text-muted max-w-md mx-auto">
+                  Your registration is recorded. Complete the offline cash payment at the office to receive your Login Token.
                 </p>
 
                 {/* REGISTRATION DETAILS CARD */}
-                <div className="mt-6 max-w-md mx-auto p-4 sm:p-5 rounded-2xl bg-white border border-rose-200 shadow-sm text-left">
-                  <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
-                    <span className="text-xs text-neutral-500 font-medium">Auto-Generated Registration No:</span>
+                <div className="mt-5 max-w-sm mx-auto p-4 rounded-2xl bg-mist/60 border border-line text-left">
+                  <div className="flex items-center justify-between pb-2 border-b border-line text-xs">
+                    <span className="text-muted font-medium text-[11px]">Your Registration Number:</span>
                     <button
                       type="button"
                       onClick={() => copyRegistrationNo(targetAdviser.registration_no || targetAdviser.adviser_id)}
-                      className="text-xs text-orange-600 font-bold hover:underline flex items-center gap-1"
+                      className="text-[11px] text-orange-600 font-bold hover:underline flex items-center gap-1"
                     >
                       {copiedRegNo ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                       {copiedRegNo ? 'Copied' : 'Copy'}
                     </button>
                   </div>
-                  <p className="font-mono text-2xl font-black text-rose-700 tracking-wider mt-2 select-all">
+                  <p className="font-mono text-xl font-black text-rose-700 tracking-wider mt-2 select-all">
                     {targetAdviser.registration_no || targetAdviser.adviser_id}
                   </p>
 
-                  <div className="mt-3 pt-3 border-t border-neutral-100 text-xs space-y-1 text-neutral-600">
-                    <p><b className="text-neutral-800">Name:</b> {targetAdviser.full_name}</p>
-                    <p><b className="text-neutral-800">Mobile:</b> {targetAdviser.phone}</p>
+                  <div className="mt-2.5 pt-2 border-t border-line text-xs space-y-1 text-neutral-700">
+                    <p><b className="text-navy">Name:</b> {targetAdviser.full_name}</p>
+                    <p><b className="text-navy">Mobile:</b> {targetAdviser.phone}</p>
                     {targetAdviser.sponsor_id && (
-                      <p><b className="text-neutral-800">Referral Sponsor:</b> {targetAdviser.sponsor_id}</p>
+                      <p><b className="text-navy">Sponsor No:</b> {targetAdviser.sponsor_id}</p>
                     )}
-                    <p><b className="text-neutral-800">Payment Mode:</b> Cash Payment</p>
                   </div>
                 </div>
 
-                {/* CASH NOTICE BOX */}
-                <div className="mt-6 max-w-xl mx-auto p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900 text-left leading-relaxed">
-                  <p className="font-bold text-sm mb-1 text-rose-950 flex items-center gap-1.5">
-                    <ShieldAlert className="w-4 h-4 text-rose-600" /> Offline Cash Payment Instructions:
-                  </p>
-                  <p>
-                    1. <b>No Online 1,100 Payment:</b> There is no online payment gateway. Please hand over the registration fee in cash at the Iston Builder Group office or to your authorized executive.
-                  </p>
-                  <p className="mt-1">
-                    2. <b>Admin Approval:</b> Once your cash is received, management will review your details in the Admin Panel and approve your account.
-                  </p>
-                  <p className="mt-1">
-                    3. <b>Token Issuance:</b> Upon approval, you will receive your unique <b>Token Number</b>. You will then be able to log in with your Registration Number and Token Number to enter your full dashboard.
-                  </p>
+                {/* 3-STEP OFFLINE CASH ACTIVATION */}
+                <div className="mt-5 max-w-lg mx-auto grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left text-xs">
+                  <div className="p-3 rounded-xl bg-mist/40 border border-line">
+                    <span className="w-5 h-5 rounded-full bg-navy text-white text-[10px] font-bold grid place-items-center mb-1.5">1</span>
+                    <p className="font-bold text-navy text-[11px]">Pay ₹1,100 Cash</p>
+                    <p className="text-[10px] text-muted mt-0.5">Submit registration fee in cash at the Iston office.</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-mist/40 border border-line">
+                    <span className="w-5 h-5 rounded-full bg-navy text-white text-[10px] font-bold grid place-items-center mb-1.5">2</span>
+                    <p className="font-bold text-navy text-[11px]">Admin Approval</p>
+                    <p className="text-[10px] text-muted mt-0.5">Admin verifies cash and issues your Login Token.</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-mist/40 border border-line">
+                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-bold grid place-items-center mb-1.5">3</span>
+                    <p className="font-bold text-navy text-[11px]">Login with Token</p>
+                    <p className="text-[10px] text-muted mt-0.5">Access your dashboard with your Reg No &amp; Token.</p>
+                  </div>
                 </div>
 
-                <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                   <button
                     type="button"
                     onClick={() => {
                       setLoginIdentifier(targetAdviser.registration_no || targetAdviser.adviser_id);
                       setView('login');
                     }}
-                    className="px-6 py-2.5 rounded-full bg-neutral-900 text-white font-bold text-xs hover:bg-neutral-800 transition shadow-sm flex items-center gap-1.5"
+                    className="btn btn-primary text-xs font-bold flex items-center gap-1.5"
                   >
-                    <KeyRound className="w-4 h-4 text-orange-400" /> Have Your Token? Login Now
+                    <KeyRound className="w-4 h-4" /> Have Your Token? Login
                   </button>
                   <button
                     type="button"
@@ -288,99 +290,37 @@ export default function AdvisersPortal() {
                       setView('register');
                       setRegistrationNo(adviserService.generateRegistrationNo());
                     }}
-                    className="px-5 py-2.5 rounded-full border border-neutral-300 text-neutral-700 font-semibold text-xs hover:bg-neutral-50 transition"
+                    className="btn btn-outline text-xs"
                   >
                     Register Another Account
                   </button>
                 </div>
               </div>
 
-              {/* ============================================================== */}
-              {/* DETAILS BELOW ABOUT OUR PLANS & EARNING POTENTIAL              */}
-              {/* ============================================================== */}
-              <div className="rounded-3xl border border-neutral-200 bg-white p-6 md:p-10 shadow-sm space-y-8">
-                <div className="text-center max-w-2xl mx-auto">
-                  <span className="text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
-                    Comprehensive Plan Overview
-                  </span>
-                  <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 mt-3">
-                    How the Iston Advisers Program Works
-                  </h2>
-                  <p className="mt-2 text-xs sm:text-sm text-neutral-500">
-                    Our accredited adviser ecosystem offers two powerful ways to generate substantial revenue with clear, RERA-compliant policies.
+              {/* 2 WAYS TO EARN COMPACT PREVIEW */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="p-5 rounded-2xl bg-white border border-line shadow-xs">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-7 h-7 rounded-lg bg-orange-100 text-orange-700 grid place-items-center">
+                      <Building className="w-4 h-4" />
+                    </span>
+                    <span className="font-bold text-navy text-sm">Sell Property</span>
+                  </div>
+                  <p className="text-xs text-muted leading-relaxed">
+                    Earn <b>10% direct sales commission</b> on company brokerage for every flat or residential plot buyer you introduce.
                   </p>
                 </div>
 
-                {/* 2 WAYS TO EARN SHOWCASE */}
-                <div className="grid gap-6 md:grid-cols-2">
-                  {/* WAY 1: SELL PROPERTY */}
-                  <div className="p-6 rounded-2xl bg-orange-50/60 border-2 border-orange-200 flex flex-col justify-between">
-                    <div>
-                      <div className="w-10 h-10 rounded-xl bg-orange-600 text-white flex items-center justify-center mb-4 shadow-sm">
-                        <Building className="w-5 h-5" />
-                      </div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-orange-700">Way to Earn #1</span>
-                      <h3 className="text-xl font-bold text-neutral-900 mt-1">Sell Property</h3>
-                      <p className="mt-2 text-xs text-neutral-600 leading-relaxed">
-                        Introduce verified buyers for Iston residential flats, commercial properties, and land parcels. Earn direct sales commission and team overrides from company brokerage.
-                      </p>
-
-                      <div className="mt-4 p-3 rounded-xl bg-white border border-orange-200 text-xs space-y-1.5">
-                        <div className="flex justify-between font-bold text-neutral-800">
-                          <span>Direct Seller Commission:</span>
-                          <span className="text-orange-600 text-sm">10%</span>
-                        </div>
-                        <div className="flex justify-between text-neutral-600 text-[11px]">
-                          <span>Level 1 Upline Override:</span>
-                          <span className="font-semibold">5%</span>
-                        </div>
-                        <div className="flex justify-between text-neutral-600 text-[11px]">
-                          <span>Level 2 Upline Override:</span>
-                          <span className="font-semibold">4%</span>
-                        </div>
-                        <div className="flex justify-between text-neutral-600 text-[11px]">
-                          <span>Level 3 Upline Override:</span>
-                          <span className="font-semibold">3%</span>
-                        </div>
-                        <div className="flex justify-between text-neutral-600 text-[11px]">
-                          <span>Level 4 Upline Override:</span>
-                          <span className="font-semibold">2%</span>
-                        </div>
-                        <div className="flex justify-between text-neutral-600 text-[11px]">
-                          <span>Level 5+ Uplines:</span>
-                          <span className="font-semibold">1% each</span>
-                        </div>
-                      </div>
-                    </div>
+                <div className="p-5 rounded-2xl bg-white border border-line shadow-xs">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 grid place-items-center">
+                      <Users className="w-4 h-4" />
+                    </span>
+                    <span className="font-bold text-navy text-sm">Make a Team</span>
                   </div>
-
-                  {/* WAY 2: MAKE A TEAM */}
-                  <div className="p-6 rounded-2xl bg-emerald-50/60 border-2 border-emerald-200 flex flex-col justify-between">
-                    <div>
-                      <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-4 shadow-sm">
-                        <Users className="w-5 h-5" />
-                      </div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Way to Earn #2</span>
-                      <h3 className="text-xl font-bold text-neutral-900 mt-1">Make a Team</h3>
-                      <p className="mt-2 text-xs text-neutral-600 leading-relaxed">
-                        Build your team by sharing your unique Registration Number as a referral code. Expand an unlimited-depth network and earn instant joining bonuses.
-                      </p>
-
-                      <div className="mt-4 p-3 rounded-xl bg-white border border-emerald-200 text-xs space-y-2">
-                        <div className="flex justify-between items-center font-bold text-neutral-800">
-                          <span>Direct Sponsor Joining Reward:</span>
-                          <span className="text-emerald-700 text-sm font-black">₹300 / Member</span>
-                        </div>
-                        <p className="text-[11px] text-neutral-500">
-                          Every time a user joins with your referral code and their cash registration is approved, ₹300 is directly credited to your earnings wallet.
-                        </p>
-                        <div className="pt-2 border-t border-neutral-100 flex justify-between text-[11px] text-neutral-600 font-medium">
-                          <span>Tiered Uplines:</span>
-                          <span>Level 2: ₹200 · Level 3+: ₹100</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <p className="text-xs text-muted leading-relaxed">
+                    Earn <b>₹300 instant joining reward</b> credited to your wallet for every adviser registered under your referral code.
+                  </p>
                 </div>
               </div>
             </div>

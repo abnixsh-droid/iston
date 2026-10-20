@@ -532,7 +532,7 @@ export const adviserService = {
   async getDashboard(target?: AppUser | AdviserRecord | null): Promise<{
     ok: boolean;
     adviser: AdviserRecord;
-    stats: { directCount: number; totalTeam: number; levelCounts: Record<string, number> };
+    stats: { directCount: number; totalTeam: number; levelCounts: Record<string, number>; teamTree?: any };
     regRewardsSummary: { pending: number; approved: number; paid: number; reversed: number; total: number };
     commissionsSummary: { pending: number; approved: number; paid: number; reversed: number; total: number };
     availableBalance: number;
@@ -746,6 +746,52 @@ export const adviserService = {
     const totalPaidOut = payouts.filter((p) => p.status === 'approved' || p.status === 'paid').reduce((a, b) => a + (Number(b.amount) || 0), 0);
     const availableBalance = Math.max(0, totalEarnings - totalPaidOut);
 
+    // Compute interactive team tree with member counts for dashboard
+    const teamTree = {
+      adviser_id: currentRecord.adviser_id,
+      registration_no: currentRecord.registration_no || currentRecord.adviser_id,
+      full_name: currentRecord.full_name,
+      status: currentRecord.status,
+      directCount,
+      totalTeam,
+      children: directReferrals.map((c) => {
+        const cRef = (c.referral_code || c.registration_no || c.adviser_id || '').toUpperCase();
+        const cId = (c.adviser_id || '').toUpperCase();
+        const cChildren = allAdvisers.filter((sub) => {
+          const subSc = (sub.sponsor_code || '').toUpperCase();
+          const subSi = (sub.sponsor_id || '').toUpperCase();
+          return (subSc && subSc === cRef) || (subSi && (subSi === cId || subSi === cRef));
+        });
+        return {
+          adviser_id: c.adviser_id,
+          registration_no: c.registration_no || c.adviser_id,
+          full_name: c.full_name,
+          phone: c.phone,
+          status: c.status,
+          created_at: c.created_at,
+          directCount: cChildren.length,
+          children: cChildren.map((sub) => {
+            const subRef = (sub.referral_code || sub.registration_no || sub.adviser_id || '').toUpperCase();
+            const subId = (sub.adviser_id || '').toUpperCase();
+            const subSub = allAdvisers.filter((s3) => {
+              const s3Sc = (s3.sponsor_code || '').toUpperCase();
+              const s3Si = (s3.sponsor_id || '').toUpperCase();
+              return (s3Sc && s3Sc === subRef) || (s3Si && (s3Si === subId || s3Si === subRef));
+            });
+            return {
+              adviser_id: sub.adviser_id,
+              registration_no: sub.registration_no || sub.adviser_id,
+              full_name: sub.full_name,
+              phone: sub.phone,
+              status: sub.status,
+              created_at: sub.created_at,
+              directCount: subSub.length,
+            };
+          }),
+        };
+      }),
+    };
+
     return {
       ok: true,
       adviser: currentRecord,
@@ -753,6 +799,7 @@ export const adviserService = {
         directCount,
         totalTeam,
         levelCounts,
+        teamTree,
       },
       regRewardsSummary,
       commissionsSummary,
