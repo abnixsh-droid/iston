@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { api, useApi } from '../lib/api';
 import supabase from '../lib/supabase';
-import { adviserService } from '../lib/adviserService';
+import { adviserService, fetchCloudAdvisers } from '../lib/adviserService';
 import { fmtDate, inr } from '../lib/format';
 import { useSeo } from '../lib/seo';
 
@@ -110,7 +110,14 @@ export default function AdvisersAdmin() {
         /* ignore */
       }
 
-      // 3. Merge with local cache so user transactions submitted on this browser are NEVER lost
+      // 3. Merge with cloud storage and local cache so advisers from any phone or laptop are NEVER lost
+      const cloud = await fetchCloudAdvisers();
+      for (const item of cloud) {
+        const idx = list.findIndex((a) => a.adviser_id === item.adviser_id || (a.email && item.email && a.email.toLowerCase() === item.email.toLowerCase()));
+        if (idx >= 0) list[idx] = { ...list[idx], ...item };
+        else list.push(item);
+      }
+
       const cached = adviserService.getAllCached();
       for (const item of cached) {
         const idx = list.findIndex((a) => a.adviser_id === item.adviser_id || (a.email && item.email && a.email.toLowerCase() === item.email.toLowerCase()));

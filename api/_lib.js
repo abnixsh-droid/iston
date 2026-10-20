@@ -21,10 +21,24 @@ export function cors(req, res) {
   return false;
 }
 
-/* ---------- private config (Supabase Storage, service-role / table fallback) ---------- */
+/* ---------- private config (Supabase Settings Table, Supabase Storage, and Table fallback) ---------- */
 export async function readConfig(name, fallback) {
+  // 1. Try Supabase settings table (Cloud-persistent across all devices and serverless containers)
   try {
-    // 1. Try Supabase storage
+    const { data, error } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', `config_${name}`)
+      .maybeSingle();
+    if (!error && data && data.value) {
+      return JSON.parse(data.value);
+    }
+  } catch {
+    /* fallback to storage */
+  }
+
+  // 2. Try Supabase storage
+  try {
     const { data, error } = await supabase.storage.from('config').download(name);
     if (!error && data) {
       return JSON.parse(await data.text());
@@ -33,8 +47,16 @@ export async function readConfig(name, fallback) {
     /* fallback to DB or default */
   }
 
-  // 2. If reading admins.json, also check admin_allowlist table
+  // 3. If reading admins.json, also check admin_emails and admin_allowlist tables
   if (name === 'admins.json') {
+    try {
+      const { data: list, error: listErr } = await supabase.from('admin_emails').select('email');
+      if (!listErr && Array.isArray(list) && list.length > 0) {
+        return list.map((r) => r.email.toLowerCase());
+      }
+    } catch {
+      /* ignore */
+    }
     try {
       const { data: list, error: listErr } = await supabase.from('admin_allowlist').select('email');
       if (!listErr && Array.isArray(list) && list.length > 0) {
@@ -49,20 +71,31 @@ export async function readConfig(name, fallback) {
 }
 
 export async function writeConfig(name, obj) {
+  const jsonStr = typeof obj === 'string' ? obj : JSON.stringify(obj);
+
+  // 1. Persist to Supabase settings table (Instant cloud persistence across all laptops, phones, and containers)
   try {
-    const { error } = await supabase.storage
+    await supabase
+      .from('settings')
+      .upsert({ key: `config_${name}`, value: jsonStr }, { onConflict: 'key' });
+  } catch (err) {
+    console.warn(`writeConfig settings sync error for ${name}:`, err.message);
+  }
+
+  // 2. Also try Supabase storage
+  try {
+    await supabase.storage
       .from('config')
-      .upload(name, Buffer.from(JSON.stringify(obj)), { contentType: 'application/json', upsert: true, cacheControl: '0' });
-    if (!error) return;
+      .upload(name, Buffer.from(jsonStr), { contentType: 'application/json', upsert: true, cacheControl: '0' });
   } catch {
     /* continue to table sync */
   }
 
-  // If writing admins.json, also sync to admin_allowlist table
+  // 3. If writing admins.json, also sync to admin_emails table
   if (name === 'admins.json' && Array.isArray(obj)) {
     try {
       for (const email of obj) {
-        await supabase.from('admin_allowlist').upsert({ email: email.toLowerCase(), added_by: 'admin' }, { onConflict: 'email' });
+        await supabase.from('admin_emails').upsert({ email: email.toLowerCase() }, { onConflict: 'email' });
       }
     } catch {
       /* ignore */

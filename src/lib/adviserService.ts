@@ -95,6 +95,86 @@ function saveLocalCache(adviser: AdviserRecord) {
   }
 }
 
+/**
+ * Sync adviser state across devices via Supabase cloud settings table.
+ * Guarantees cross-device access (e.g. registered on phone, login on laptop).
+ */
+export async function syncAdviserToCloud(adviser: AdviserRecord) {
+  try {
+    const { data } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'config_advisers_state.json')
+      .maybeSingle();
+
+    let state: any = { advisers: [] };
+    if (data?.value) {
+      try {
+        state = JSON.parse(data.value);
+      } catch {
+        state = { advisers: [] };
+      }
+    }
+    if (!state.advisers || !Array.isArray(state.advisers)) state.advisers = [];
+
+    const idx = state.advisers.findIndex(
+      (a: any) =>
+        (a.registration_no && adviser.registration_no && a.registration_no.toUpperCase() === adviser.registration_no.toUpperCase()) ||
+        a.adviser_id.toUpperCase() === adviser.adviser_id.toUpperCase() ||
+        (a.phone && adviser.phone && a.phone.replace(/\D/g, '') === adviser.phone.replace(/\D/g, ''))
+    );
+    if (idx >= 0) {
+      state.advisers[idx] = { ...state.advisers[idx], ...adviser };
+    } else {
+      state.advisers.push(adviser);
+    }
+
+    await supabase
+      .from('settings')
+      .upsert({ key: 'config_advisers_state.json', value: JSON.stringify(state) }, { onConflict: 'key' });
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Fetch all advisers from Supabase cloud settings table to hydrate local cache across devices.
+ */
+export async function fetchCloudAdvisers(): Promise<AdviserRecord[]> {
+  try {
+    const { data } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'config_advisers_state.json')
+      .maybeSingle();
+
+    if (data?.value) {
+      const parsed = JSON.parse(data.value);
+      if (parsed?.advisers && Array.isArray(parsed.advisers)) {
+        const cache = getLocalCache();
+        for (const adv of parsed.advisers) {
+          const idx = cache.advisers.findIndex(
+            (a) =>
+              (a.registration_no && adv.registration_no && a.registration_no.toUpperCase() === adv.registration_no.toUpperCase()) ||
+              a.adviser_id.toUpperCase() === adv.adviser_id.toUpperCase() ||
+              (a.phone && adv.phone && a.phone.replace(/\D/g, '') === adv.phone.replace(/\D/g, ''))
+          );
+          if (idx >= 0) {
+            cache.advisers[idx] = { ...cache.advisers[idx], ...adv };
+          } else {
+            cache.advisers.push(adv);
+          }
+        }
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cache));
+        return cache.advisers;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return getLocalCache().advisers;
+}
+
 export const adviserService = {
   /**
    * Auto-generate a unique Registration Number in the format IB + 6 random digits (e.g. IB273872)
@@ -155,12 +235,21 @@ export const adviserService = {
     }
 
     // 3. Check local cache
-    const cached = getLocalCache().advisers.find(
+    let cached = getLocalCache().advisers.find(
       (a) =>
         (a.referral_code && a.referral_code.toUpperCase() === normalized) ||
         (a.registration_no && a.registration_no.toUpperCase() === normalized) ||
         (a.adviser_id && a.adviser_id.toUpperCase() === normalized)
     );
+    if (!cached) {
+      const cloud = await fetchCloudAdvisers();
+      cached = cloud.find(
+        (a) =>
+          (a.referral_code && a.referral_code.toUpperCase() === normalized) ||
+          (a.registration_no && a.registration_no.toUpperCase() === normalized) ||
+          (a.adviser_id && a.adviser_id.toUpperCase() === normalized)
+      );
+    }
     if (cached) {
       return {
         ok: true,
@@ -220,6 +309,7 @@ export const adviserService = {
       });
       if (res?.ok && res.adviser) {
         saveLocalCache(res.adviser);
+        syncAdviserToCloud(res.adviser);
         return res;
       } else if (res?.error) {
         return { ok: false, error: res.error };
@@ -268,6 +358,7 @@ export const adviserService = {
     }
 
     saveLocalCache(newAdviser);
+    syncAdviserToCloud(newAdviser);
     return { ok: true, adviser: newAdviser };
   },
 
@@ -341,6 +432,16 @@ export const adviserService = {
         return aReg === ident || (cleanIdentDigits && aPhone === cleanIdentDigits);
       });
       if (cached) adviser = cached;
+    }
+
+    // 3. Cloud settings table fallback (Ensures registrations made on phone can log in immediately on laptop)
+    if (!adviser) {
+      const cloudAdvisers = await fetchCloudAdvisers();
+      adviser = cloudAdvisers.find((a) => {
+        const aReg = (a.registration_no || a.adviser_id || '').toUpperCase();
+        const aPhone = (a.phone || '').replace(/\D/g, '');
+        return aReg === ident || (cleanIdentDigits && aPhone === cleanIdentDigits);
+      }) || null;
     }
 
     if (!adviser) {
@@ -446,6 +547,7 @@ export const adviserService = {
       };
       updated = cache.advisers[idx];
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cache));
+      syncAdviserToCloud(updated);
     }
 
     const currentAuth = getStoredAdviserAuth();
@@ -519,6 +621,7 @@ export const adviserService = {
         cache.advisers[idx].activated_at = new Date().toISOString();
         cache.advisers[idx].updated_at = new Date().toISOString();
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cache));
+        syncAdviserToCloud(cache.advisers[idx]);
         return cache.advisers[idx];
       }
     } catch {
