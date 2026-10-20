@@ -12,10 +12,9 @@ const INTERESTS = [
   'Umroli project',
   'Flats / Apartments',
   'Plots',
-  'Society Houses',
   'Site visit',
   'Brochure request',
-  'Advisers Program',
+  'Adviser Login / Network',
 ];
 
 export default function EnquiryForm({ preset = {}, compact = false }: { preset?: EnquiryOpts; compact?: boolean }) {

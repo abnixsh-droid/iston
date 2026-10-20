@@ -1,85 +1,185 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Users,
   CheckCircle2,
   TrendingUp,
   Building,
   ArrowRight,
+  ShieldAlert,
   ShieldCheck,
-  Sparkles,
-  ChevronRight,
-  Home,
-  MapPin,
-  Layers,
-  Award,
-  Wallet,
-  PhoneCall,
-  Clock,
+  Lock,
+  Unlock,
   Check,
   Copy,
+  RotateCcw,
+  Sparkles,
+  Phone,
+  FileText,
+  BadgeAlert,
+  ArrowLeft,
+  KeyRound,
+  UserCheck,
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { adviserService, type AdviserRecord } from '../../lib/adviserService';
+import { adviserService, type AdviserRecord, getStoredAdviserAuth, setStoredAdviserAuth } from '../../lib/adviserService';
 import { inr } from '../../lib/format';
 import { useSeo } from '../../lib/seo';
 import LanguageToggle from '../../components/LanguageToggle';
 
 export default function AdvisersPortal() {
-  const { user, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [adviserAccount, setAdviserAccount] = useState<AdviserRecord | null>(null);
-  const [loadingAdviser, setLoadingAdviser] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
+  // Active view: 'register' | 'login' | 'locked_red' | 'approved_green'
+  const [view, setView] = useState<'register' | 'login' | 'locked_red' | 'approved_green'>('register');
 
-  useSeo('Advisers Program — Iston Builder Group', 'Accredited real estate advisers network. Earn registration referral rewards and property sales commissions.');
+  // Registration Form Fields
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [registrationNo, setRegistrationNo] = useState(adviserService.generateRegistrationNo());
+  const [referralNo, setReferralNo] = useState('');
+  const [password, setPassword] = useState('');
+  const [rePassword, setRePassword] = useState('');
+  const [regError, setRegError] = useState('');
+  const [submittingReg, setSubmittingReg] = useState(false);
 
-  // Load adviser profile for logged in user
+  // Login Form Fields (-- single number login --)
+  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [loginTokenOrPassword, setLoginTokenOrPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [submittingLogin, setSubmittingLogin] = useState(false);
+
+  // Target Adviser Record (for Red Locked screen or Green Approved screen)
+  const [targetAdviser, setTargetAdviser] = useState<AdviserRecord | null>(null);
+  const [copiedRegNo, setCopiedRegNo] = useState(false);
+
+  useSeo('Adviser Login & Registration — Iston Builder Group', 'Official adviser registration and single number token login portal.');
+
+  // Pre-fill referral code from query param if available
   useEffect(() => {
-    if (!user) return;
-    setLoadingAdviser(true);
-    adviserService
-      .getDashboard(user)
-      .then((res) => {
-        if (res?.ok && res.adviser) {
-          setAdviserAccount(res.adviser);
-        }
-      })
-      .catch(() => {
-        /* Not yet registered */
-      })
-      .finally(() => {
-        setLoadingAdviser(false);
-      });
-  }, [user]);
+    const ref = searchParams.get('ref') || searchParams.get('sponsor');
+    if (ref) {
+      setReferralNo(ref.toUpperCase());
+    }
 
-  const copyRefLink = () => {
-    if (!adviserAccount?.referral_code) return;
-    navigator.clipboard.writeText(`${window.location.origin}/advisers-program?ref=${adviserAccount.referral_code}`);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+    // Check if user already has an active session
+    const currentSession = getStoredAdviserAuth();
+    if (currentSession && currentSession.status === 'active') {
+      setTargetAdviser(currentSession);
+    }
+  }, [searchParams]);
+
+  const handleRegenerateRegNo = () => {
+    setRegistrationNo(adviserService.generateRegistrationNo());
   };
 
-  const isApprovedAdviser = adviserAccount?.status === 'active';
-  const isVerificationPending = adviserAccount?.payment_status === 'pending_verification' && adviserAccount?.status === 'pending';
+  const copyRegistrationNo = (no?: string) => {
+    const val = no || registrationNo;
+    navigator.clipboard.writeText(val);
+    setCopiedRegNo(true);
+    setTimeout(() => setCopiedRegNo(false), 2000);
+  };
+
+  // Handle Adviser Registration Submit
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError('');
+
+    if (!fullName.trim() || fullName.trim().length < 2) {
+      return setRegError('Please enter your full name as per Aadhaar card.');
+    }
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      return setRegError('Please enter a valid 10-digit mobile number.');
+    }
+    if (!password || password.length < 4) {
+      return setRegError('Password must be at least 4 characters long.');
+    }
+    if (password !== rePassword) {
+      return setRegError('Password and Re-Password do not match.');
+    }
+
+    setSubmittingReg(true);
+    try {
+      const res = await adviserService.customRegister({
+        full_name: fullName.trim(),
+        phone: cleanPhone,
+        registration_no: registrationNo,
+        referral_no: referralNo.trim() || undefined,
+        password,
+      });
+
+      if (res?.ok && res.adviser) {
+        setTargetAdviser(res.adviser);
+        setView('locked_red');
+      } else {
+        setRegError(res?.error || 'Registration failed. Please try again.');
+      }
+    } catch (err: any) {
+      setRegError(err?.message || 'Error creating adviser registration.');
+    } finally {
+      setSubmittingReg(false);
+    }
+  };
+
+  // Handle Adviser Login Submit
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+
+    if (!loginIdentifier.trim()) {
+      return setLoginError('Please enter your Registration Number or Mobile number.');
+    }
+    if (!loginTokenOrPassword.trim()) {
+      return setLoginError('Please enter your Token Number or Password.');
+    }
+
+    setSubmittingLogin(true);
+    try {
+      const res = await adviserService.adviserLogin({
+        identifier: loginIdentifier.trim(),
+        tokenOrPassword: loginTokenOrPassword.trim(),
+      });
+
+      if (res?.status === 'pending' && res.adviser) {
+        // Pending approval -> Show RED SCREEN
+        setTargetAdviser(res.adviser);
+        setView('locked_red');
+      } else if (res?.ok && res.adviser) {
+        // Approved -> Show GREEN SCREEN
+        setTargetAdviser(res.adviser);
+        setView('approved_green');
+      } else {
+        setLoginError(res?.error || 'Invalid credentials or registration not found.');
+      }
+    } catch (err: any) {
+      setLoginError(err?.message || 'Error during adviser login.');
+    } finally {
+      setSubmittingLogin(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900 font-sans selection:bg-orange-500 selection:text-white">
-      {/* MINIMAL TOP BAR */}
+      {/* TOP BRAND BAR */}
       <nav className="border-b border-neutral-200 bg-white sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-6">
             <Link to="/" className="flex items-center gap-2 text-neutral-900 font-bold tracking-tight">
               <img
                 src="/images/logo.jpg"
-                alt="Iston Builder Group"
-                width={32}
-                height={32}
-                className="h-8 w-8 rounded-lg object-cover ring-1 ring-neutral-200"
+                alt="Iston Builder Group logo"
+                width={34}
+                height={34}
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg object-cover ring-1 ring-neutral-200 shadow-2xs"
               />
-              <span className="text-sm font-semibold tracking-wide uppercase text-neutral-800">
-                Iston <span className="text-orange-600 font-bold">Advisers</span>
+              <span className="leading-tight">
+                <span className="block text-sm font-semibold tracking-wide uppercase text-neutral-900">
+                  Iston <span className="text-orange-600 font-bold">Advisers</span>
+                </span>
+                <span className="block text-[8px] font-bold tracking-[0.2em] text-neutral-400 uppercase">
+                  Adviser Login &amp; Portal
+                </span>
               </span>
             </Link>
             <Link
@@ -90,458 +190,511 @@ export default function AdvisersPortal() {
             </Link>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* HINDI / ENGLISH TRANSLATE BUTTON */}
+          <div className="flex items-center gap-3">
             <LanguageToggle solid={true} />
-
-            {user ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-neutral-600 hidden md:inline truncate max-w-[140px]">{user.email}</span>
-                {isApprovedAdviser ? (
-                  <Link
-                    to="/advisers/dashboard"
-                    className="px-3.5 py-1.5 rounded-full bg-orange-600 text-white text-xs font-semibold hover:bg-orange-700 shadow-xs"
-                  >
-                    Dashboard
-                  </Link>
-                ) : isVerificationPending ? (
-                  <Link
-                    to="/advisers/apply"
-                    className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold"
-                  >
-                    Under Verification
-                  </Link>
-                ) : (
-                  <Link
-                    to="/advisers/apply"
-                    className="px-3.5 py-1.5 rounded-full bg-orange-600 text-white text-xs font-semibold hover:bg-orange-700 shadow-xs"
-                  >
-                    Apply Now
-                  </Link>
-                )}
-              </div>
-            ) : (
-              <button
-                onClick={() => signInWithGoogle()}
-                className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5"
+            {targetAdviser?.status === 'active' && (
+              <Link
+                to="/advisers/dashboard"
+                className="px-3.5 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-xs flex items-center gap-1.5"
               >
-                Sign in with Google
-              </button>
+                <UserCheck className="w-3.5 h-3.5" /> Dashboard
+              </Link>
             )}
           </div>
         </div>
       </nav>
 
-      {/* ACTIVE ADVISER BANNER (IF APPROVED) */}
-      {isApprovedAdviser && (
-        <div className="bg-emerald-600 text-white px-4 py-3">
-          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-200" />
-              <span>
-                You are an accredited active adviser: <b className="font-mono text-white">{adviserAccount?.adviser_id}</b>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={copyRefLink}
-                className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-medium flex items-center gap-1"
-              >
-                {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                {copiedLink ? 'Link Copied!' : 'Copy Referral Link'}
-              </button>
-              <Link
-                to="/advisers/dashboard"
-                className="px-3 py-1 rounded-lg bg-white text-emerald-800 font-bold hover:bg-emerald-50"
-              >
-                Open Dashboard →
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+      <main className="py-8 md:py-14 px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* ============================================================== */}
+          {/* VIEW: RED SCREEN — ACCOUNT LOCKED / PENDING CASH VERIFICATION   */}
+          {/* ============================================================== */}
+          {view === 'locked_red' && targetAdviser && (
+            <div className="space-y-8 animate-in fade-in duration-300">
+              <div className="rounded-3xl border-2 border-rose-500 bg-linear-to-b from-rose-500/10 via-rose-500/5 to-white p-6 md:p-10 shadow-xl text-center relative overflow-hidden">
+                <div className="w-16 h-16 rounded-full bg-rose-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-rose-600/30">
+                  <Lock className="w-8 h-8" />
+                </div>
 
-      {/* HERO SECTION WITH AUTHENTIC PROPERTY BACKDROP */}
-      <header className="relative bg-white border-b border-neutral-200 overflow-hidden">
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <img src="/images/umroli-hero.jpg" alt="" className="w-full h-full object-cover" />
-        </div>
-        <div className="max-w-5xl mx-auto px-4 py-12 md:py-20 relative text-center">
-          <span className="inline-block px-3 py-1 rounded-full bg-orange-50 text-orange-600 text-xs font-bold tracking-wider uppercase border border-orange-200">
-            Accredited Real Estate Advisers Network
-          </span>
-          <h1 className="mt-5 text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-neutral-900 leading-tight">
-            Earn with <span className="text-orange-600">Iston Builder Group</span>
-          </h1>
-          <p className="mt-4 text-sm sm:text-base md:text-lg text-neutral-600 max-w-2xl mx-auto font-normal leading-relaxed">
-            Partner with an established real estate developer. Earn dual income through structured registration referral rewards and up to 10% property sales commissions.
-          </p>
+                <div className="inline-flex items-center gap-1.5 mt-4 px-3 py-1 rounded-full bg-rose-100 text-rose-800 border border-rose-300 text-xs font-bold uppercase tracking-wider">
+                  <BadgeAlert className="w-3.5 h-3.5 text-rose-600" /> Account Locked · Approval Pending
+                </div>
 
-          {/* DYNAMIC ACTION BUTTONS */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-            {isApprovedAdviser ? (
-              <Link
-                to="/advisers/dashboard"
-                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
-              >
-                Go to Adviser Dashboard <ArrowRight className="w-4 h-4" />
-              </Link>
-            ) : isVerificationPending ? (
-              <Link
-                to="/advisers/apply"
-                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
-              >
-                <Clock className="w-4 h-4" /> View Pending Application
-              </Link>
-            ) : (
-              <Link
-                to="/advisers/apply"
-                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
-              >
-                Become an Adviser <ArrowRight className="w-4 h-4" />
-              </Link>
-            )}
+                <h1 className="text-2xl sm:text-4xl font-extrabold text-neutral-900 mt-3">
+                  Verification Pending
+                </h1>
 
-            <a
-              href="#how-it-works"
-              className="w-full sm:w-auto px-6 py-3.5 rounded-full border border-neutral-300 hover:bg-neutral-50 text-neutral-700 text-sm font-semibold transition text-center"
-            >
-              How the Hierarchy Works
-            </a>
-          </div>
+                <p className="mt-2 text-sm text-neutral-600 max-w-xl mx-auto leading-relaxed">
+                  Your registration has been recorded successfully. Cash payment verification is required before your account is unlocked.
+                </p>
 
-          {/* KEY STATS PILLS */}
-          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto">
-            <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 text-center">
-              <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Registration Fee</span>
-              <p className="mt-1 text-2xl font-black text-orange-600">₹1,100</p>
-              <span className="text-[10px] text-neutral-400">One-time UPI activation</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 text-center">
-              <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Direct Referral</span>
-              <p className="mt-1 text-2xl font-black text-neutral-900">₹300</p>
-              <span className="text-[10px] text-neutral-400">Instant registration reward</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 text-center">
-              <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Tiered Uplines</span>
-              <p className="mt-1 text-2xl font-black text-neutral-900">₹200 / ₹100</p>
-              <span className="text-[10px] text-neutral-400">Levels 2, 3 and higher</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 text-center">
-              <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Property Sales</span>
-              <p className="mt-1 text-2xl font-black text-emerald-600">Up to 10%</p>
-              <span className="text-[10px] text-neutral-400">Commission on company brokerage</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* VISUAL REFERRAL & COMMISSION TREE DIAGRAM */}
-      <section id="how-it-works" className="py-14 md:py-20 px-4 max-w-5xl mx-auto">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">Structured Transparency</span>
-          <h2 className="text-3xl md:text-4xl font-extrabold text-neutral-900 mt-2">
-            Referral & Earnings Tree Structure
-          </h2>
-          <p className="text-xs md:text-sm text-neutral-600 mt-2">
-            See exactly how registration rewards and property commissions flow through your hierarchy. No hidden deductions.
-          </p>
-        </div>
-
-        {/* TREE VISUALIZATION CARD */}
-        <div className="bg-white rounded-3xl border border-neutral-200 p-6 md:p-10 shadow-xs">
-          {/* ROOT NODE (YOU) */}
-          <div className="flex flex-col items-center">
-            <div className="w-full max-w-md p-4 rounded-2xl bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-md text-center relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-neutral-900 text-[10px] font-bold uppercase tracking-wider">
-                Root Account
-              </div>
-              <p className="text-lg font-extrabold mt-1">You (Accredited Adviser)</p>
-              <p className="text-xs text-orange-100">Adviser ID · Referral Code · Direct Dashboard</p>
-            </div>
-
-            {/* VERTICAL CONNECTOR */}
-            <div className="w-0.5 h-8 bg-orange-300" />
-          </div>
-
-          {/* TIER NODES */}
-          <div className="grid gap-4 md:grid-cols-3 pt-2">
-            {/* LEVEL 1 */}
-            <div className="rounded-2xl border-2 border-orange-200 bg-orange-50/50 p-5 relative flex flex-col justify-between">
-              <div className="absolute -top-3 left-4 px-2.5 py-0.5 rounded-full bg-orange-600 text-white text-[10px] font-bold uppercase">
-                Level 1 · Direct
-              </div>
-              <div>
-                <p className="text-sm font-extrabold text-neutral-900 mt-2">Direct Referral</p>
-                <p className="text-xs text-neutral-500 mt-0.5">Advisers who join directly via your referral link</p>
-                <div className="mt-4 pt-3 border-t border-orange-200/70 space-y-2 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-600">Registration Reward:</span>
-                    <span className="font-extrabold text-orange-600 text-sm">₹300</span>
+                {/* REGISTRATION DETAILS CARD */}
+                <div className="mt-6 max-w-md mx-auto p-4 sm:p-5 rounded-2xl bg-white border border-rose-200 shadow-sm text-left">
+                  <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+                    <span className="text-xs text-neutral-500 font-medium">Auto-Generated Registration No:</span>
+                    <button
+                      type="button"
+                      onClick={() => copyRegistrationNo(targetAdviser.registration_no || targetAdviser.adviser_id)}
+                      className="text-xs text-orange-600 font-bold hover:underline flex items-center gap-1"
+                    >
+                      {copiedRegNo ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                      {copiedRegNo ? 'Copied' : 'Copy'}
+                    </button>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-600">Property Brokerage:</span>
-                    <span className="font-bold text-emerald-700">5% Share</span>
+                  <p className="font-mono text-2xl font-black text-rose-700 tracking-wider mt-2 select-all">
+                    {targetAdviser.registration_no || targetAdviser.adviser_id}
+                  </p>
+
+                  <div className="mt-3 pt-3 border-t border-neutral-100 text-xs space-y-1 text-neutral-600">
+                    <p><b className="text-neutral-800">Name:</b> {targetAdviser.full_name}</p>
+                    <p><b className="text-neutral-800">Mobile:</b> {targetAdviser.phone}</p>
+                    {targetAdviser.sponsor_id && (
+                      <p><b className="text-neutral-800">Referral Sponsor:</b> {targetAdviser.sponsor_id}</p>
+                    )}
+                    <p><b className="text-neutral-800">Payment Mode:</b> Cash Payment</p>
+                  </div>
+                </div>
+
+                {/* CASH NOTICE BOX */}
+                <div className="mt-6 max-w-xl mx-auto p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900 text-left leading-relaxed">
+                  <p className="font-bold text-sm mb-1 text-rose-950 flex items-center gap-1.5">
+                    <ShieldAlert className="w-4 h-4 text-rose-600" /> Offline Cash Payment Instructions:
+                  </p>
+                  <p>
+                    1. <b>No Online 1,100 Payment:</b> There is no online payment gateway. Please hand over the registration fee in cash at the Iston Builder Group office or to your authorized executive.
+                  </p>
+                  <p className="mt-1">
+                    2. <b>Admin Approval:</b> Once your cash is received, management will review your details in the Admin Panel and approve your account.
+                  </p>
+                  <p className="mt-1">
+                    3. <b>Token Issuance:</b> Upon approval, you will receive your unique <b>Token Number</b>. You will then be able to log in with your Registration Number and Token Number to enter your full dashboard.
+                  </p>
+                </div>
+
+                <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginIdentifier(targetAdviser.registration_no || targetAdviser.adviser_id);
+                      setView('login');
+                    }}
+                    className="px-6 py-2.5 rounded-full bg-neutral-900 text-white font-bold text-xs hover:bg-neutral-800 transition shadow-sm flex items-center gap-1.5"
+                  >
+                    <KeyRound className="w-4 h-4 text-orange-400" /> Have Your Token? Login Now
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setView('register');
+                      setRegistrationNo(adviserService.generateRegistrationNo());
+                    }}
+                    className="px-5 py-2.5 rounded-full border border-neutral-300 text-neutral-700 font-semibold text-xs hover:bg-neutral-50 transition"
+                  >
+                    Register Another Account
+                  </button>
+                </div>
+              </div>
+
+              {/* ============================================================== */}
+              {/* DETAILS BELOW ABOUT OUR PLANS & EARNING POTENTIAL              */}
+              {/* ============================================================== */}
+              <div className="rounded-3xl border border-neutral-200 bg-white p-6 md:p-10 shadow-sm space-y-8">
+                <div className="text-center max-w-2xl mx-auto">
+                  <span className="text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+                    Comprehensive Plan Overview
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 mt-3">
+                    How the Iston Advisers Program Works
+                  </h2>
+                  <p className="mt-2 text-xs sm:text-sm text-neutral-500">
+                    Our accredited adviser ecosystem offers two powerful ways to generate substantial revenue with clear, RERA-compliant policies.
+                  </p>
+                </div>
+
+                {/* 2 WAYS TO EARN SHOWCASE */}
+                <div className="grid gap-6 md:grid-cols-2">
+                  {/* WAY 1: SELL PROPERTY */}
+                  <div className="p-6 rounded-2xl bg-orange-50/60 border-2 border-orange-200 flex flex-col justify-between">
+                    <div>
+                      <div className="w-10 h-10 rounded-xl bg-orange-600 text-white flex items-center justify-center mb-4 shadow-sm">
+                        <Building className="w-5 h-5" />
+                      </div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-orange-700">Way to Earn #1</span>
+                      <h3 className="text-xl font-bold text-neutral-900 mt-1">Sell Property</h3>
+                      <p className="mt-2 text-xs text-neutral-600 leading-relaxed">
+                        Introduce verified buyers for Iston residential flats, commercial properties, and land parcels. Earn direct sales commission and team overrides from company brokerage.
+                      </p>
+
+                      <div className="mt-4 p-3 rounded-xl bg-white border border-orange-200 text-xs space-y-1.5">
+                        <div className="flex justify-between font-bold text-neutral-800">
+                          <span>Direct Seller Commission:</span>
+                          <span className="text-orange-600 text-sm">10%</span>
+                        </div>
+                        <div className="flex justify-between text-neutral-600 text-[11px]">
+                          <span>Level 1 Upline Override:</span>
+                          <span className="font-semibold">5%</span>
+                        </div>
+                        <div className="flex justify-between text-neutral-600 text-[11px]">
+                          <span>Level 2 Upline Override:</span>
+                          <span className="font-semibold">4%</span>
+                        </div>
+                        <div className="flex justify-between text-neutral-600 text-[11px]">
+                          <span>Level 3 Upline Override:</span>
+                          <span className="font-semibold">3%</span>
+                        </div>
+                        <div className="flex justify-between text-neutral-600 text-[11px]">
+                          <span>Level 4 Upline Override:</span>
+                          <span className="font-semibold">2%</span>
+                        </div>
+                        <div className="flex justify-between text-neutral-600 text-[11px]">
+                          <span>Level 5+ Uplines:</span>
+                          <span className="font-semibold">1% each</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* WAY 2: MAKE A TEAM */}
+                  <div className="p-6 rounded-2xl bg-emerald-50/60 border-2 border-emerald-200 flex flex-col justify-between">
+                    <div>
+                      <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-4 shadow-sm">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Way to Earn #2</span>
+                      <h3 className="text-xl font-bold text-neutral-900 mt-1">Make a Team</h3>
+                      <p className="mt-2 text-xs text-neutral-600 leading-relaxed">
+                        Build your team by sharing your unique Registration Number as a referral code. Expand an unlimited-depth network and earn instant joining bonuses.
+                      </p>
+
+                      <div className="mt-4 p-3 rounded-xl bg-white border border-emerald-200 text-xs space-y-2">
+                        <div className="flex justify-between items-center font-bold text-neutral-800">
+                          <span>Direct Sponsor Joining Reward:</span>
+                          <span className="text-emerald-700 text-sm font-black">₹300 / Member</span>
+                        </div>
+                        <p className="text-[11px] text-neutral-500">
+                          Every time a user joins with your referral code and their cash registration is approved, ₹300 is directly credited to your earnings wallet.
+                        </p>
+                        <div className="pt-2 border-t border-neutral-100 flex justify-between text-[11px] text-neutral-600 font-medium">
+                          <span>Tiered Uplines:</span>
+                          <span>Level 2: ₹200 · Level 3+: ₹100</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="mt-4 p-2 rounded-xl bg-white border border-orange-100 text-[11px] text-neutral-600">
-                💡 10 direct advisers = <b>₹3,000</b> direct reward
+            </div>
+          )}
+
+          {/* ============================================================== */}
+          {/* VIEW: GREEN SCREEN — ACCOUNT APPROVED & TOKEN VERIFIED          */}
+          {/* ============================================================== */}
+          {view === 'approved_green' && targetAdviser && (
+            <div className="rounded-3xl border-2 border-emerald-500 bg-linear-to-b from-emerald-500/10 via-emerald-500/5 to-white p-8 md:p-12 shadow-xl text-center max-w-xl mx-auto animate-in zoom-in-95 duration-300">
+              <div className="w-20 h-20 rounded-full bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-xl shadow-emerald-600/30">
+                <CheckCircle2 className="w-10 h-10" />
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 mt-4 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold uppercase tracking-wider">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Account Approved &amp; Verified
+              </div>
+
+              <h1 className="text-2xl sm:text-4xl font-extrabold text-neutral-900 mt-3">
+                Welcome, {targetAdviser.full_name}!
+              </h1>
+
+              <p className="mt-2 text-sm text-neutral-600 leading-relaxed">
+                Your cash registration has been verified by admin and your Login Token has been authenticated.
+              </p>
+
+              <div className="mt-6 p-4 rounded-2xl bg-white border border-emerald-200 text-left text-xs space-y-1.5 shadow-xs">
+                <p><b className="text-neutral-800">Registration No:</b> <span className="font-mono text-emerald-800 font-bold">{targetAdviser.registration_no || targetAdviser.adviser_id}</span></p>
+                <p><b className="text-neutral-800">Mobile Number:</b> {targetAdviser.phone}</p>
+                {targetAdviser.token_number && (
+                  <p><b className="text-neutral-800">Verified Token:</b> <span className="font-mono text-neutral-900">{targetAdviser.token_number}</span></p>
+                )}
+                <p><b className="text-neutral-800">Status:</b> <span className="font-bold text-emerald-700 uppercase">Active Adviser</span></p>
+              </div>
+
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate('/advisers/dashboard')}
+                  className="w-full sm:w-auto px-8 py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2"
+                >
+                  Enter Adviser Dashboard <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
+          )}
 
-            {/* LEVEL 2 */}
-            <div className="rounded-2xl border-2 border-neutral-200 bg-neutral-50 p-5 relative flex flex-col justify-between">
-              <div className="absolute -top-3 left-4 px-2.5 py-0.5 rounded-full bg-neutral-800 text-white text-[10px] font-bold uppercase">
-                Level 2 · 2nd Upline
+          {/* ============================================================== */}
+          {/* VIEW: MAIN TABS (REGISTRATION & SINGLE NUMBER LOGIN)           */}
+          {/* ============================================================== */}
+          {(view === 'register' || view === 'login') && (
+            <div className="max-w-xl mx-auto space-y-6">
+              {/* TAB SELECTOR */}
+              <div className="p-1 rounded-2xl bg-neutral-200/80 flex items-center text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setView('register');
+                    setRegError('');
+                  }}
+                  className={`flex-1 py-2.5 rounded-xl transition text-center ${
+                    view === 'register' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-600 hover:text-neutral-900'
+                  }`}
+                >
+                  Register as Adviser
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setView('login');
+                    setLoginError('');
+                  }}
+                  className={`flex-1 py-2.5 rounded-xl transition text-center ${
+                    view === 'login' ? 'bg-orange-600 text-white shadow-sm' : 'text-neutral-600 hover:text-neutral-900'
+                  }`}
+                >
+                  Adviser Login (-- single number login --)
+                </button>
               </div>
-              <div>
-                <p className="text-sm font-extrabold text-neutral-900 mt-2">Second Tier</p>
-                <p className="text-xs text-neutral-500 mt-0.5">Advisers referred by your direct network</p>
-                <div className="mt-4 pt-3 border-t border-neutral-200 space-y-2 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-600">Registration Reward:</span>
-                    <span className="font-extrabold text-neutral-900 text-sm">₹200</span>
+
+              {/* ---------------- REGISTER FORM ---------------- */}
+              {view === 'register' && (
+                <div className="rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8 shadow-sm">
+                  <div className="mb-6">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
+                      Step 1 of 2 · Application
+                    </span>
+                    <h1 className="text-2xl font-black text-neutral-900 mt-2">
+                      Adviser Registration
+                    </h1>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      Fill out your details to generate your registration number. No online payment required.
+                    </p>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-600">Property Brokerage:</span>
-                    <span className="font-bold text-emerald-700">4% Share</span>
-                  </div>
+
+                  {regError && (
+                    <div className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
+                      {regError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleRegisterSubmit} className="space-y-4 text-xs">
+                    {/* Name: (as per aadhar card) */}
+                    <div>
+                      <label className="block font-bold text-neutral-800 mb-1">
+                        Name: <span className="font-normal text-neutral-500">(as per aadhar card)</span> <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Enter full name matching your Aadhaar card"
+                        className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                      />
+                    </div>
+
+                    {/* Mobile no: */}
+                    <div>
+                      <label className="block font-bold text-neutral-800 mb-1">
+                        Mobile no: <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-neutral-300 bg-neutral-100 text-neutral-600 text-xs font-medium">
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          required
+                          maxLength={10}
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                          placeholder="10-digit mobile number"
+                          className="w-full h-11 px-3.5 rounded-r-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Registration no: auto generate i.e ( IB273872 ) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block font-bold text-neutral-800">
+                          Registration no: <span className="font-normal text-neutral-500">(auto generated)</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleRegenerateRegNo}
+                          className="text-[11px] text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
+                          title="Generate a different registration number"
+                        >
+                          <RotateCcw className="w-3 h-3" /> Regenerate
+                        </button>
+                      </div>
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          readOnly
+                          value={registrationNo}
+                          className="w-full h-11 px-3.5 pr-20 rounded-xl border border-neutral-300 bg-neutral-100/80 font-mono font-bold text-neutral-900 text-sm focus:outline-hidden select-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => copyRegistrationNo()}
+                          className="absolute right-2 px-2.5 py-1 rounded-lg bg-white border border-neutral-300 hover:bg-neutral-50 text-[10px] font-bold text-neutral-700 flex items-center gap-1"
+                        >
+                          {copiedRegNo ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                          {copiedRegNo ? 'Copied' : 'Copy'}
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-neutral-400 mt-1">
+                        This is your permanent Adviser ID. Keep this number safe.
+                      </p>
+                    </div>
+
+                    {/* Referal No: */}
+                    <div>
+                      <label className="block font-bold text-neutral-800 mb-1">
+                        Referral No: <span className="font-normal text-neutral-400">(optional sponsor registration code)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={referralNo}
+                        onChange={(e) => setReferralNo(e.target.value.toUpperCase())}
+                        placeholder="e.g. IB123456 or sponsor code"
+                        className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-xs font-mono text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100 uppercase"
+                      />
+                    </div>
+
+                    {/* Password & Re-Password */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <label className="block font-bold text-neutral-800 mb-1">
+                          Password: <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="password"
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Create password"
+                          className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-neutral-800 mb-1">
+                          Re-Password: <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="password"
+                          required
+                          value={rePassword}
+                          onChange={(e) => setRePassword(e.target.value)}
+                          placeholder="Re-enter password"
+                          className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-3">
+                      <button
+                        type="submit"
+                        disabled={submittingReg}
+                        className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {submittingReg ? 'Registering...' : 'Register & Lock My Adviser ID'}
+                      </button>
+                    </div>
+
+                    <p className="text-center text-[11px] text-neutral-400 pt-2">
+                      After registration, your account will be locked pending offline cash verification. Management will approve and issue your login token.
+                    </p>
+                  </form>
                 </div>
-              </div>
-              <div className="mt-4 p-2 rounded-xl bg-white border border-neutral-200 text-[11px] text-neutral-600">
-                💡 25 team advisers = <b>₹5,000</b> passive reward
-              </div>
-            </div>
+              )}
 
-            {/* LEVEL 3 & HIGHER */}
-            <div className="rounded-2xl border-2 border-neutral-200 bg-neutral-50 p-5 relative flex flex-col justify-between">
-              <div className="absolute -top-3 left-4 px-2.5 py-0.5 rounded-full bg-neutral-700 text-white text-[10px] font-bold uppercase">
-                Level 3 to 10+
-              </div>
-              <div>
-                <p className="text-sm font-extrabold text-neutral-900 mt-2">Extended Network</p>
-                <p className="text-xs text-neutral-500 mt-0.5">Deep upline network up to eligible caps</p>
-                <div className="mt-4 pt-3 border-t border-neutral-200 space-y-2 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-600">Level 3 Reward:</span>
-                    <span className="font-extrabold text-neutral-900 text-sm">₹100</span>
+              {/* ---------------- LOGIN FORM (-- single number login --) ---------------- */}
+              {view === 'login' && (
+                <div className="rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8 shadow-sm">
+                  <div className="mb-6">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
+                      Adviser Login
+                    </span>
+                    <h1 className="text-2xl font-black text-neutral-900 mt-2">
+                      Single Number Login
+                    </h1>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      Enter your Registration Number (or Mobile) and the Token Number provided after cash approval.
+                    </p>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-600">Level 4+ Reward:</span>
-                    <span className="font-extrabold text-neutral-900 text-sm">₹100 / level</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-600">Property Brokerage:</span>
-                    <span className="font-bold text-emerald-700">3%, 2%, 1%</span>
-                  </div>
+
+                  {loginError && (
+                    <div className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
+                      {loginError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleLoginSubmit} className="space-y-4 text-xs">
+                    <div>
+                      <label className="block font-bold text-neutral-800 mb-1">
+                        Registration Number or Mobile: <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={loginIdentifier}
+                        onChange={(e) => setLoginIdentifier(e.target.value.toUpperCase())}
+                        placeholder="e.g. IB273872 or 10-digit mobile"
+                        className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 font-mono text-sm text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100 uppercase"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-neutral-800 mb-1">
+                        Token Number or Password: <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        value={loginTokenOrPassword}
+                        onChange={(e) => setLoginTokenOrPassword(e.target.value)}
+                        placeholder="Enter token number (issued after cash approval)"
+                        className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 focus:outline-hidden focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                      />
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={submittingLogin}
+                        className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {submittingLogin ? 'Verifying...' : 'Login with Token Number'}
+                      </button>
+                    </div>
+
+                    <div className="pt-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setView('register');
+                          setRegError('');
+                        }}
+                        className="text-xs text-neutral-600 hover:text-orange-600 font-semibold transition"
+                      >
+                        Don’t have a Registration Number yet? <span className="underline text-orange-600">Register Here</span>
+                      </button>
+                    </div>
+                  </form>
                 </div>
-              </div>
-              <div className="mt-4 p-2 rounded-xl bg-white border border-neutral-200 text-[11px] text-neutral-600">
-                💡 Unlimited depth referral hierarchy tracking
-              </div>
+              )}
             </div>
-          </div>
-
-          {/* PROPERTY SELLER COMMISSION HIGHLIGHT */}
-          <div className="mt-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
-                10%
-              </div>
-              <div>
-                <p className="text-xs font-bold text-emerald-950">Direct Property Seller Commission</p>
-                <p className="text-[11px] text-emerald-800">
-                  When you close a sale on any Iston property, you receive 10% of company brokerage in addition to referral points.
-                </p>
-              </div>
-            </div>
-            <Link
-              to="/advisers/apply"
-              className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shrink-0 text-center"
-            >
-              Get Started →
-            </Link>
-          </div>
+          )}
         </div>
-      </section>
-
-      {/* GENUINE PROPERTY ASSETS PORTFOLIO */}
-      <section className="py-14 bg-white border-y border-neutral-200">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">Real Estate Portfolio</span>
-            <h2 className="text-3xl font-extrabold text-neutral-900 mt-1">Properties You Advise & Represent</h2>
-            <p className="text-xs md:text-sm text-neutral-600 mt-2">
-              Accredited advisers have exclusive access to refer verified residential flats, commercial plots, and society houses.
-            </p>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {/* ITEM 1: UMROLI */}
-            <div className="rounded-2xl border border-neutral-200 overflow-hidden bg-neutral-50 group hover:shadow-md transition">
-              <div className="h-44 overflow-hidden relative">
-                <img
-                  src="/images/umroli-hero.jpg"
-                  alt="Umroli Project"
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                />
-                <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-neutral-900/80 text-white text-[10px] font-bold uppercase">
-                  Flagship
-                </span>
-              </div>
-              <div className="p-4">
-                <p className="font-extrabold text-neutral-900 text-sm">Umroli Project</p>
-                <p className="text-xs text-neutral-500 flex items-center gap-1 mt-0.5">
-                  <MapPin className="w-3 h-3 text-orange-600" /> Umroli Station West
-                </p>
-                <p className="text-[11px] text-neutral-600 mt-2 font-medium">1 BHK & 2 BHK Modern Flats</p>
-              </div>
-            </div>
-
-            {/* ITEM 2: RESIDENTIAL FLATS */}
-            <div className="rounded-2xl border border-neutral-200 overflow-hidden bg-neutral-50 group hover:shadow-md transition">
-              <div className="h-44 overflow-hidden relative">
-                <img
-                  src="/images/building.jpg"
-                  alt="Residential Buildings"
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                />
-                <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-orange-600 text-white text-[10px] font-bold uppercase">
-                  Flats
-                </span>
-              </div>
-              <div className="p-4">
-                <p className="font-extrabold text-neutral-900 text-sm">Modern Towers</p>
-                <p className="text-xs text-neutral-500 flex items-center gap-1 mt-0.5">
-                  <Building className="w-3 h-3 text-orange-600" /> Multi-Storey Living
-                </p>
-                <p className="text-[11px] text-neutral-600 mt-2 font-medium">Verified RERA Approved</p>
-              </div>
-            </div>
-
-            {/* ITEM 3: PLOTS */}
-            <div className="rounded-2xl border border-neutral-200 overflow-hidden bg-neutral-50 group hover:shadow-md transition">
-              <div className="h-44 overflow-hidden relative">
-                <img
-                  src="/images/plot.jpg"
-                  alt="Land & Plots"
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                />
-                <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-neutral-900/80 text-white text-[10px] font-bold uppercase">
-                  Land
-                </span>
-              </div>
-              <div className="p-4">
-                <p className="font-extrabold text-neutral-900 text-sm">Clear Title Plots</p>
-                <p className="text-xs text-neutral-500 flex items-center gap-1 mt-0.5">
-                  <Layers className="w-3 h-3 text-orange-600" /> Commercial & Residential
-                </p>
-                <p className="text-[11px] text-neutral-600 mt-2 font-medium">Demarcated NA plots</p>
-              </div>
-            </div>
-
-            {/* ITEM 4: SOCIETY HOUSES */}
-            <div className="rounded-2xl border border-neutral-200 overflow-hidden bg-neutral-50 group hover:shadow-md transition">
-              <div className="h-44 overflow-hidden relative">
-                <img
-                  src="/images/house.jpg"
-                  alt="Society Houses"
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                />
-                <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold uppercase">
-                  Independent
-                </span>
-              </div>
-              <div className="p-4">
-                <p className="font-extrabold text-neutral-900 text-sm">Society Houses</p>
-                <p className="text-xs text-neutral-500 flex items-center gap-1 mt-0.5">
-                  <Home className="w-3 h-3 text-orange-600" /> Gated Communities
-                </p>
-                <p className="text-[11px] text-neutral-600 mt-2 font-medium">Ready & Under Construction</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4-STEP PROFESSIONAL REGISTRATION PROCESS */}
-      <section className="py-14 md:py-20 px-4 max-w-5xl mx-auto">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">Simple Activation</span>
-          <h2 className="text-3xl md:text-4xl font-extrabold text-neutral-900 mt-1">How to Become an Adviser</h2>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="p-5 rounded-2xl bg-white border border-neutral-200 relative">
-            <span className="text-3xl font-black text-orange-600/30">01</span>
-            <h3 className="text-sm font-extrabold text-neutral-900 mt-2">Sign In with Google</h3>
-            <p className="text-xs text-neutral-500 mt-1">
-              Securely authenticate with your verified Google account. No manual password needed.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-white border border-neutral-200 relative">
-            <span className="text-3xl font-black text-orange-600/30">02</span>
-            <h3 className="text-sm font-extrabold text-neutral-900 mt-2">Submit Details</h3>
-            <p className="text-xs text-neutral-500 mt-1">
-              Provide your phone, legal name, payout details, and optional sponsor referral code.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-white border border-neutral-200 relative">
-            <span className="text-3xl font-black text-orange-600/30">03</span>
-            <h3 className="text-sm font-extrabold text-neutral-900 mt-2">UPI QR Payment (₹1,100)</h3>
-            <p className="text-xs text-neutral-500 mt-1">
-              Pay via any UPI app and enter the 12-digit transaction UTR for administrator matching.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-white border border-neutral-200 relative">
-            <span className="text-3xl font-black text-orange-600/30">04</span>
-            <h3 className="text-sm font-extrabold text-neutral-900 mt-2">Active & Earn</h3>
-            <p className="text-xs text-neutral-500 mt-1">
-              Once approved, your unique Adviser ID and referral links go live immediately.
-            </p>
-          </div>
-        </div>
-
-        {/* BOTTOM CTA BANNER */}
-        <div className="mt-12 rounded-3xl bg-neutral-900 text-white p-8 md:p-12 text-center relative overflow-hidden">
-          <div className="relative z-10 max-w-xl mx-auto">
-            <h3 className="text-2xl sm:text-3xl font-extrabold">Ready to Join the Network?</h3>
-            <p className="text-xs sm:text-sm text-neutral-400 mt-2">
-              Start building your real estate adviser business today. Fast approval with dedicated admin support.
-            </p>
-            <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
-              <Link
-                to="/advisers/apply"
-                className="px-8 py-3.5 rounded-full bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-md transition"
-              >
-                Become an Adviser (₹1,100)
-              </Link>
-              <Link
-                to="/"
-                className="px-6 py-3.5 rounded-full border border-neutral-700 text-neutral-300 hover:bg-neutral-800 font-semibold text-xs transition"
-              >
-                Explore Properties First
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* MINIMAL FOOTER */}
-      <footer className="border-t border-neutral-200 bg-white py-6 text-center text-xs text-neutral-500">
-        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>© {new Date().getFullYear()} Iston Builder Group. All rights reserved.</span>
-          <div className="flex gap-4 font-medium">
-            <Link to="/" className="hover:text-orange-600">Home</Link>
-            <Link to="/advisers-program" className="hover:text-orange-600">Advisers</Link>
-            <Link to="/contact" className="hover:text-orange-600">Contact</Link>
-          </div>
-        </div>
-      </footer>
+      </main>
     </div>
   );
 }

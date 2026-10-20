@@ -358,6 +358,145 @@ export default async function handler(req, res) {
       });
     }
 
+    // 2.0 PUBLIC: Custom Adviser Registration (No Google Login Required)
+    if (action === 'custom_register') {
+      const body = req.body || {};
+      const fullName = String(body.full_name || '').trim();
+      const phone = String(body.phone || '').trim().replace(/\D/g, '');
+      const regNo = String(body.registration_no || '').trim().toUpperCase() || `IB${Math.floor(100000 + Math.random() * 900000)}`;
+      const referralNo = String(body.referral_no || body.sponsor_code || '').trim().toUpperCase() || null;
+      const password = String(body.password || '');
+
+      if (!fullName || fullName.length < 2) return res.status(400).json({ error: 'Please enter your full name as per Aadhaar card.' });
+      if (phone.length < 10) return res.status(400).json({ error: 'Please enter a valid 10-digit mobile number.' });
+      if (!password || password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters long.' });
+
+      // Find sponsor if provided
+      let sponsor = null;
+      if (referralNo) {
+        sponsor = state.advisers.find(
+          (a) => (a.registration_no && a.registration_no.toUpperCase() === referralNo) ||
+                 (a.referral_code && a.referral_code.toUpperCase() === referralNo) ||
+                 (a.adviser_id && a.adviser_id.toUpperCase() === referralNo)
+        );
+      }
+
+      const depthLevel = sponsor ? (sponsor.depth_level || 1) + 1 : 1;
+      const sponsorChain = sponsor ? [sponsor.adviser_id, ...(sponsor.sponsor_chain || [])] : [];
+
+      const newAdviser = {
+        id: Date.now(),
+        adviser_id: regNo,
+        registration_no: regNo,
+        referral_code: regNo,
+        full_name: fullName,
+        phone,
+        email: `${phone}@adviser.iston.in`,
+        password,
+        token_number: null,
+        sponsor_id: sponsor ? sponsor.adviser_id : referralNo,
+        sponsor_code: sponsor ? (sponsor.registration_no || sponsor.referral_code) : referralNo,
+        sponsor_chain: sponsorChain,
+        depth_level: depthLevel,
+        status: 'pending',
+        payment_method: 'cash',
+        payment_status: 'pending_cash',
+        documents: { aadhar_front: '', aadhar_back: '', pan_card: '', photo: '', bank_passbook: '' },
+        bank_details: { account_holder_name: fullName, bank_name: '', account_number: '', ifsc: '', upi_id: '' },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      try {
+        await supabase.from('advisers').upsert(newAdviser, { onConflict: 'adviser_id' });
+      } catch {}
+
+      state.advisers.push(newAdviser);
+      await saveAppState(state);
+      await logAudit('ADVISER_CUSTOM_REGISTERED', 'advisers', regNo, phone, { referral_no: referralNo });
+
+      return res.status(201).json({
+        ok: true,
+        message: 'Registration successful. Account locked pending cash verification.',
+        adviser: newAdviser,
+      });
+    }
+
+    // 2.01 PUBLIC: Single Number / Registration No Adviser Login
+    if (action === 'adviser_login') {
+      const body = req.body || {};
+      const ident = String(body.identifier || '').trim().toUpperCase();
+      const identDigits = String(body.identifier || '').replace(/\D/g, '');
+      const secret = String(body.token_or_password || '').trim();
+
+      if (!ident || !secret) {
+        return res.status(400).json({ error: 'Registration Number and Token Number (or Password) are required.' });
+      }
+
+      const adviser = state.advisers.find((a) => {
+        const aReg = (a.registration_no || a.adviser_id || '').toUpperCase();
+        const aPhone = (a.phone || '').replace(/\D/g, '');
+        return aReg === ident || (identDigits && aPhone === identDigits);
+      });
+
+      if (!adviser) {
+        return res.status(404).json({ error: 'No adviser found with this Registration Number or Mobile.' });
+      }
+
+      if (adviser.status === 'pending') {
+        return res.status(200).json({
+          ok: false,
+          status: 'pending',
+          adviser,
+          message: 'Account locked pending cash verification.',
+        });
+      }
+
+      const secretUpper = secret.toUpperCase();
+      const tokenUpper = (adviser.token_number || '').toUpperCase();
+      const pwd = adviser.password || '';
+
+      const tokenMatches = tokenUpper && (secretUpper === tokenUpper || secretUpper.replace(/\D/g, '') === tokenUpper.replace(/\D/g, ''));
+      const passwordMatches = pwd && pwd === secret;
+
+      if (!tokenMatches && !passwordMatches) {
+        return res.status(401).json({ error: 'Incorrect Token Number or Password.' });
+      }
+
+      return res.status(200).json({
+        ok: true,
+        status: 'active',
+        adviser,
+        token: adviser.token_number,
+        message: 'Account approved. Welcome!',
+      });
+    }
+
+    // 2.02 Update Documents & Bank Details
+    if (action === 'update_documents') {
+      const body = req.body || {};
+      const adviserId = String(body.adviser_id || '').trim().toUpperCase();
+      const adviser = state.advisers.find((a) => (a.adviser_id && a.adviser_id.toUpperCase() === adviserId) || (a.registration_no && a.registration_no.toUpperCase() === adviserId));
+      if (!adviser) {
+        return res.status(404).json({ error: 'Adviser not found.' });
+      }
+
+      adviser.documents = { ...(adviser.documents || {}), ...(body.documents || {}) };
+      adviser.bank_details = { ...(adviser.bank_details || {}), ...(body.bank_details || {}) };
+      adviser.updated_at = new Date().toISOString();
+
+      try {
+        await supabase.from('advisers').update({
+          documents: adviser.documents,
+          bank_details: adviser.bank_details,
+          updated_at: adviser.updated_at,
+        }).eq('adviser_id', adviser.adviser_id);
+      } catch {}
+
+      await saveAppState(state);
+      return res.status(200).json({ ok: true, adviser });
+    }
+
     // 2. AUTHENTICATED: Register as an Adviser
     if (action === 'register') {
       const userRes = await getUser(req);
@@ -797,6 +936,57 @@ export default async function handler(req, res) {
       return res.status(200).json({
         ok: true,
         message: `Adviser ${adviser_id} verified. Distributed ${newEntries.length} upline rewards.`,
+        rewards: newEntries,
+      });
+    }
+
+    // A6.1 Admin: Confirm Cash Payment & Issue Token Number
+    if (action === 'admin_approve_cash') {
+      const { adviser_id, token_number } = req.body || {};
+      const adv = state.advisers.find((a) => a.adviser_id === adviser_id || a.registration_no === adviser_id);
+      if (!adv) return res.status(404).json({ error: 'Adviser not found.' });
+
+      const token = token_number || `TK-${Math.floor(100000 + Math.random() * 900000)}`;
+      adv.status = 'active';
+      adv.payment_status = 'verified_cash';
+      adv.payment_method = 'cash';
+      adv.token_number = token;
+      adv.activated_at = new Date().toISOString();
+      adv.updated_at = new Date().toISOString();
+
+      // Distribute rewards to sponsor hierarchy
+      const hierarchy = getUplineHierarchy(adv, state.advisers);
+      const policy = state.policies.registration_reward;
+      const generatedRewards = calculateRegistrationRewards(adv, hierarchy, policy);
+
+      const newEntries = [];
+      for (const reward of generatedRewards) {
+        const exists = state.registration_rewards.some((r) => r.idempotency_key === reward.idempotency_key);
+        if (!exists) {
+          state.registration_rewards.push(reward);
+          newEntries.push(reward);
+        }
+      }
+
+      try {
+        await supabase.from('advisers').update({
+          status: 'active',
+          payment_status: 'verified_cash',
+          payment_method: 'cash',
+          token_number: token,
+          activated_at: adv.activated_at,
+          updated_at: adv.updated_at,
+        }).eq('adviser_id', adv.adviser_id);
+      } catch {}
+
+      await saveAppState(state);
+      await logAudit('CASH_PAYMENT_APPROVED_TOKEN_ISSUED', 'advisers', adv.adviser_id, admin.email, { token });
+
+      return res.status(200).json({
+        ok: true,
+        message: `Adviser ${adv.adviser_id} approved with Token ${token}`,
+        token_number: token,
+        adviser: adv,
         rewards: newEntries,
       });
     }

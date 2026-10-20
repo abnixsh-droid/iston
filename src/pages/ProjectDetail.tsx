@@ -145,7 +145,6 @@ export default function ProjectDetail() {
         {block('Buildings', buildings.data, (b) => <BuildingCard key={b.id} b={b} />)}
         {block('Flats & residences', props.data, (r) => <ListingCard key={r.id} kind="properties" r={r} />)}
         {block('Plots', plots.data, (r) => <ListingCard key={r.id} kind="plots" r={r} />)}
-        {block('Society houses', houses.data, (r) => <ListingCard key={r.id} kind="society_houses" r={r} />)}
 
         {(updates.data || []).length > 0 && (
           <section className="border-t border-line py-14">

@@ -24,7 +24,6 @@ const TILES: [string, string, string, string][] = [
   ['/buildings', 'Buildings', 'Towers & wings', '/images/building.jpg'],
   ['/properties', 'Flats', 'Apartments & residences', '/images/interior.jpg'],
   ['/plots', 'Plots', 'Land parcels', '/images/plot.jpg'],
-  ['/society-houses', 'Society Houses', 'Community living', '/images/house.jpg'],
   ['/under-development', 'Under Development', 'Construction progress', '/images/construction.jpg'],
 ];
 
@@ -73,7 +72,7 @@ export default function Home() {
             </motion.em>
           </h1>
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.75, duration: 0.8 }} className="mt-6 max-w-xl text-[15px] leading-relaxed text-white/75 md:text-base">
-            {has(s.hero_subtitle) ? s.hero_subtitle : `${s.company_name} — builder & developer. Discover ${heroName}, our current project, along with flats, plots and society houses.`}
+            {has(s.hero_subtitle) ? s.hero_subtitle : `${s.company_name} — builder & developer. Discover ${heroName}, our current project, along with flats and residential plots.`}
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9, duration: 0.8 }} className="mt-8 flex flex-wrap gap-3">
             <Link to={heroLink} className="btn btn-light">

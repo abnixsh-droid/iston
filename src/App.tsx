@@ -79,8 +79,8 @@ export default function App() {
                   <Route path="/properties/:slug" element={<ItemDetail key="p" kind="properties" />} />
                   <Route path="/plots" element={<Listings key="plots" kind="plots" />} />
                   <Route path="/plots/:slug" element={<ItemDetail key="pl" kind="plots" />} />
-                  <Route path="/society-houses" element={<Listings key="houses" kind="society_houses" />} />
-                  <Route path="/society-houses/:slug" element={<ItemDetail key="h" kind="society_houses" />} />
+                  <Route path="/society-houses" element={<Navigate to="/properties" replace />} />
+                  <Route path="/society-houses/:slug" element={<Navigate to="/properties" replace />} />
                   <Route path="/under-development" element={<Progress />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/contact" element={<Contact />} />
@@ -92,6 +92,7 @@ export default function App() {
                 </Route>
                 {/* Dedicated Minimal White & Orange Advisers Environment */}
                 <Route path="/advisers-program" element={<AdvisersPortal />} />
+                <Route path="/advisers-login" element={<AdvisersPortal />} />
                 <Route path="/advisers" element={<Navigate to="/advisers-program" replace />} />
                 <Route path="/advisers/apply" element={<AdviserRegistration />} />
                 <Route path="/advisers/register" element={<AdviserRegistration />} />

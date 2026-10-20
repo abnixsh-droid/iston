@@ -71,7 +71,6 @@ export default function Footer() {
               ['/buildings', 'Buildings'],
               ['/properties', 'Flats'],
               ['/plots', 'Plots'],
-              ['/society-houses', 'Society Houses'],
             ])}
           </div>
           <div className="lg:col-span-2">
@@ -79,7 +78,7 @@ export default function Footer() {
               ['/about', 'About Us'],
               ['/under-development', 'Construction Progress'],
               ['/brochure', 'Download Brochure'],
-              ['/advisers-program', 'Advisers Program'],
+              ['/advisers-program', 'Adviser Login'],
               ['/terms', 'Terms & Conditions'],
               ['/contact', 'Contact'],
             ])}

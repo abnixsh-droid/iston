@@ -33,13 +33,12 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const NAV = [
   ['/admin', 'Dashboard', LayoutDashboard],
-  ['/admin/advisers', 'Advisers Program', Users],
+  ['/admin/advisers', 'Advisers Management', Users],
   ['/admin/enquiries', 'Enquiries', Inbox],
   ['/admin/projects', 'Projects', Building2],
   ['/admin/buildings', 'Buildings', Building],
   ['/admin/properties', 'Properties / Flats', Home],
   ['/admin/plots', 'Plots', LandPlot],
-  ['/admin/society_houses', 'Society Houses', Warehouse],
   ['/admin/progress_updates', 'Progress Updates', TrendingUp],
   ['/admin/promotions', 'Promotions', Megaphone],
   ['/admin/brochure', 'Brochure', FileDown],

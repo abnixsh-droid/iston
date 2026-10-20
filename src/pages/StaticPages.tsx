@@ -63,7 +63,7 @@ export function About() {
             {[
               ['/properties', 'Flats & Apartments'],
               ['/plots', 'Residential Plots'],
-              ['/society-houses', 'Society Houses'],
+              ['/projects', 'Integrated Projects'],
             ].map(([to, l]) => (
               <Link key={to} to={to} className="rounded-2xl border border-line p-5 transition hover:border-navy hover:shadow-xs bg-white">
                 <p className="text-[10px] font-bold tracking-[0.18em] text-brass uppercase">We offer</p>

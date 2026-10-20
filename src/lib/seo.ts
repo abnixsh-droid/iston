@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 
 const BRAND = 'Iston Builder Group';
 const DEFAULT_DESC =
-  'Iston Builder Group — builder & developer. Explore our current project Umroli, flats, plots, society houses and upcoming developments.';
+  'Iston Builder Group — builder & developer. Explore our current project Umroli, flats, residential plots and upcoming developments.';
 
 function setMeta(attr: 'name' | 'property', key: string, content: string) {
   let el = document.head.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement | null;

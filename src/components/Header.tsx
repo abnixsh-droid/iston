@@ -15,9 +15,8 @@ export const NAV: [string, string][] = [
   ['/buildings', 'Buildings'],
   ['/properties', 'Flats'],
   ['/plots', 'Plots'],
-  ['/society-houses', 'Society Houses'],
   ['/under-development', 'Progress'],
-  ['/advisers-program', 'Advisers'],
+  ['/advisers-program', 'Adviser Login'],
   ['/about', 'About'],
   ['/contact', 'Contact'],
 ];
@@ -77,7 +76,7 @@ export default function Header() {
               to="/advisers-program"
               className="bg-orange-600 hover:bg-orange-700 text-white font-bold border-0 shadow-xs flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] sm:text-xs sm:px-3.5 sm:py-1.5 transition shrink-0"
             >
-              Advisers
+              Adviser Login
             </Link>
             <div className="hidden sm:block">
               <LanguageToggle solid={solid} />
@@ -187,7 +186,7 @@ export default function Header() {
                 ['/', 'Home'] as [string, string],
                 ...NAV,
                 ['/brochure', 'Download Brochure'] as [string, string],
-                ['/advisers-program', 'Advisers Program'] as [string, string],
+                ['/advisers-program', 'Adviser Login'] as [string, string],
                 ...(isAdmin ? ([['/admin', 'Admin Panel'] as [string, string]]) : []),
                 ...(isAdviser ? ([['/advisers/dashboard', 'Adviser Dashboard'] as [string, string]]) : []),
                 ...(!user ? ([['/admin/login', 'Admin Login'] as [string, string]]) : []),

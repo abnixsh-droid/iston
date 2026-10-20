@@ -17,6 +17,14 @@ import {
   ChevronRight,
   PlusCircle,
   ExternalLink,
+  Copy,
+  Check,
+  Eye,
+  FileText,
+  CreditCard,
+  Lock,
+  Phone,
+  UserCheck,
 } from 'lucide-react';
 import { api, useApi } from '../lib/api';
 import supabase from '../lib/supabase';
@@ -46,6 +54,19 @@ export default function AdvisersAdmin() {
   // Financials / Ledgers
   const [financials, setFinancials] = useState<any>(null);
   const [financialsLoading, setFinancialsLoading] = useState(false);
+
+  // KYC Document Preview Modal
+  const [selectedKycAdviser, setSelectedKycAdviser] = useState<any | null>(null);
+
+  // Cash Approval Success Token Modal
+  const [approvedTokenModal, setApprovedTokenModal] = useState<{
+    adviserId: string;
+    name: string;
+    token: string;
+    regNo: string;
+  } | null>(null);
+  const [copiedToken, setCopiedToken] = useState(false);
+  const [approvingCashId, setApprovingCashId] = useState<string | null>(null);
 
   // Sale Verification Modal
   const [saleModal, setSaleModal] = useState(false);
@@ -104,8 +125,11 @@ export default function AdvisersAdmin() {
           (a) =>
             (a.full_name && a.full_name.toLowerCase().includes(ql)) ||
             (a.email && a.email.toLowerCase().includes(ql)) ||
+            (a.phone && a.phone.includes(ql)) ||
+            (a.registration_no && a.registration_no.toLowerCase().includes(ql)) ||
             (a.adviser_id && a.adviser_id.toLowerCase().includes(ql)) ||
             (a.referral_code && a.referral_code.toLowerCase().includes(ql)) ||
+            (a.token_number && a.token_number.toLowerCase().includes(ql)) ||
             (a.payment_reference && a.payment_reference.toLowerCase().includes(ql))
         );
       }
@@ -228,6 +252,50 @@ export default function AdvisersAdmin() {
       loadTree(treeRootId);
     }
   }, [tab, treeRootId]);
+
+  // Helper to count uploaded KYC documents
+  const getKycCount = (a: any) => {
+    let count = 0;
+    const docs = a.documents || {};
+    const bank = a.bank_details || {};
+    if (docs.aadhar_front || docs.aadhar_file) count++;
+    if (docs.pan_card || docs.pan_file) count++;
+    if (docs.photo || docs.photo_file) count++;
+    if (docs.bank_passbook || bank.account_number) count++;
+    return count;
+  };
+
+  // Confirm cash payment and generate login token
+  const handleApproveCash = async (adviser: any) => {
+    const regNo = adviser.registration_no || adviser.adviser_id;
+    if (
+      !confirm(
+        `Confirm cash payment received for adviser:\n\nName: ${adviser.full_name}\nRegistration No: ${regNo}\nMobile: ${adviser.phone}\n\nClick OK to verify cash (₹1,100), activate this account, and generate their login token.`
+      )
+    ) {
+      return;
+    }
+    try {
+      setApprovingCashId(adviser.adviser_id);
+      const res = await adviserService.adminApproveCash(adviser.adviser_id);
+      if (res?.ok) {
+        setApprovedTokenModal({
+          adviserId: adviser.adviser_id,
+          name: adviser.full_name,
+          token: res.token_number,
+          regNo: adviser.registration_no || adviser.adviser_id,
+        });
+        loadAdvisers();
+        loadFinancials();
+      } else {
+        alert(res?.error || 'Failed to approve cash payment.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error approving cash payment');
+    } finally {
+      setApprovingCashId(null);
+    }
+  };
 
   // Update adviser status
   const updateAdviserStatus = async (adviserId: string, status: string) => {
@@ -439,57 +507,91 @@ export default function AdvisersAdmin() {
       {tab === 'advisers' && (
         <section className="space-y-6">
           {/* PENDING APPROVALS ALERT CARD */}
-          {advisers.filter((a) => a.status === 'pending' || a.payment_status === 'pending_verification').length > 0 && (
+          {advisers.filter((a) => a.status === 'pending' || a.payment_status === 'pending_cash' || a.payment_status === 'pending_verification').length > 0 && (
             <div className="p-5 rounded-3xl bg-orange-50 border-2 border-orange-300 shadow-xs">
               <div className="flex items-center gap-2.5">
                 <span className="w-8 h-8 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold text-sm">
-                  {advisers.filter((a) => a.status === 'pending' || a.payment_status === 'pending_verification').length}
+                  {advisers.filter((a) => a.status === 'pending' || a.payment_status === 'pending_cash' || a.payment_status === 'pending_verification').length}
                 </span>
                 <div>
-                  <h3 className="font-bold text-orange-950 text-sm">Adviser Applications Awaiting Payment Approval</h3>
+                  <h3 className="font-bold text-orange-950 text-sm">Adviser Registrations Awaiting Cash Approval</h3>
                   <p className="text-xs text-orange-800">
-                    Match the submitted UPI Transaction ID (UTR) with your bank/UPI account, then click "Match & Approve".
+                    Registration fee is ₹1,100 (cash). Verify the cash payment received, then click <b>"Confirm Cash & Approve"</b> to generate their login token.
                   </p>
                 </div>
               </div>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {advisers
-                  .filter((a) => a.status === 'pending' || a.payment_status === 'pending_verification')
-                  .map((a) => (
-                    <div key={a.adviser_id} className="p-4 rounded-2xl bg-white border border-orange-200 flex flex-col justify-between gap-3">
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-navy text-sm">{a.full_name}</span>
-                          <span className="font-mono text-[10px] text-muted">{a.adviser_id}</span>
-                        </div>
-                        <p className="text-xs text-muted">{a.email} · {a.phone}</p>
-                        <p className="text-xs text-muted mt-0.5">Sponsor: {a.sponsor_id || 'Root'}</p>
+                  .filter((a) => a.status === 'pending' || a.payment_status === 'pending_cash' || a.payment_status === 'pending_verification')
+                  .map((a) => {
+                    const regNo = a.registration_no || a.adviser_id;
+                    const kycCount = getKycCount(a);
+                    return (
+                      <div key={a.adviser_id} className="p-4 rounded-2xl bg-white border border-orange-200 flex flex-col justify-between gap-3 shadow-xs">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-navy text-sm">{a.full_name}</span>
+                            <span className="font-mono text-xs font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
+                              {regNo}
+                            </span>
+                          </div>
+                          <div className="mt-2 space-y-1 text-xs">
+                            <p className="text-muted">
+                              <span className="font-semibold text-navy">Mobile:</span> {a.phone}
+                            </p>
+                            <p className="text-muted">
+                              <span className="font-semibold text-navy">Sponsor / Referral No:</span> {a.sponsor_code || a.sponsor_id || 'Direct'}
+                            </p>
+                            {a.password && (
+                              <p className="text-muted">
+                                <span className="font-semibold text-navy">Password:</span> <span className="font-mono bg-mist px-1.5 py-0.5 rounded font-semibold text-navy">{a.password}</span>
+                              </p>
+                            )}
+                            {a.payment_reference && (
+                              <p className="text-muted">
+                                <span className="font-semibold text-navy">Note / Ref:</span> {a.payment_reference}
+                              </p>
+                            )}
+                          </div>
 
-                        <div className="mt-2.5 p-2 rounded-xl bg-orange-50 border border-orange-200">
-                          <span className="text-[10px] font-bold text-orange-900 uppercase">Submitted UTR / Transaction ID:</span>
-                          <p className="font-mono font-bold text-orange-900 text-sm select-all">
-                            {a.payment_reference || '(No UTR entered yet)'}
-                          </p>
+                          <div className="mt-3 flex items-center justify-between text-xs pt-2 border-t border-line">
+                            <span className="text-[11px] font-semibold text-muted">
+                              KYC Docs: <b className={kycCount > 0 ? 'text-emerald-700' : 'text-amber-700'}>{kycCount}/4 Uploaded</b>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedKycAdviser(a)}
+                              className="text-[11px] font-bold text-navy hover:text-orange-600 underline flex items-center gap-1"
+                            >
+                              <FileText className="w-3 h-3" /> View KYC Docs
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-2 border-t border-line">
+                          <button
+                            onClick={() => handleApproveCash(a)}
+                            disabled={approvingCashId === a.adviser_id}
+                            className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition"
+                          >
+                            {approvingCashId === a.adviser_id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <CheckCircle className="w-3.5 h-3.5" />
+                            )}
+                            Confirm Cash & Approve
+                          </button>
+                          <button
+                            onClick={() => updateAdviserStatus(a.adviser_id, 'rejected')}
+                            className="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold hover:bg-rose-100"
+                          >
+                            Reject
+                          </button>
                         </div>
                       </div>
-
-                      <div className="flex gap-2 pt-1 border-t border-line">
-                        <button
-                          onClick={() => verifyRegistration(a.adviser_id)}
-                          className="flex-1 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
-                        >
-                          Match & Approve
-                        </button>
-                        <button
-                          onClick={() => updateAdviserStatus(a.adviser_id, 'rejected')}
-                          className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold hover:bg-rose-100"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
             </div>
           )}
@@ -500,7 +602,7 @@ export default function AdvisersAdmin() {
                 <Search className="w-4 h-4 absolute left-3 top-3 text-muted" />
                 <input
                   type="text"
-                  placeholder="Search by name, email, adviser ID or code..."
+                  placeholder="Search by name, phone, registration no, token..."
                   className="input pl-9 text-xs"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -531,81 +633,94 @@ export default function AdvisersAdmin() {
                 <table className="w-full text-left text-xs">
                   <thead className="border-b border-line bg-mist/60 text-muted uppercase font-bold tracking-wider">
                     <tr>
-                      <th className="py-3 px-4">Adviser ID</th>
-                      <th className="py-3 px-4">Name & Email</th>
-                      <th className="py-3 px-4">Sponsor ID</th>
-                      <th className="py-3 px-4">Referral Code</th>
+                      <th className="py-3 px-4">Reg No</th>
+                      <th className="py-3 px-4">Name (as per Aadhaar) & Phone</th>
+                      <th className="py-3 px-4">Sponsor / Ref</th>
+                      <th className="py-3 px-4">Password</th>
+                      <th className="py-3 px-4">Token Number</th>
                       <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4">Payment & UTR</th>
+                      <th className="py-3 px-4">KYC Docs</th>
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
-                    {advisers.map((a) => (
-                      <tr key={a.adviser_id} className="hover:bg-mist/30 transition">
-                        <td className="py-3 px-4 font-mono font-bold text-navy">{a.adviser_id}</td>
-                        <td className="py-3 px-4">
-                          <p className="font-semibold text-navy">{a.full_name}</p>
-                          <p className="text-[11px] text-muted">{a.email} · {a.phone}</p>
-                        </td>
-                        <td className="py-3 px-4 font-mono text-muted">{a.sponsor_id || 'Root'}</td>
-                        <td className="py-3 px-4 font-mono">{a.referral_code}</td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[9px] ${
-                            a.status === 'active' ? 'bg-emerald-100 text-emerald-800' :
-                            a.status === 'suspended' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {a.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[9px] ${
-                            a.payment_status === 'verified_paid' ? 'bg-emerald-100 text-emerald-800' :
-                            a.payment_reference ? 'bg-orange-100 text-orange-900 font-bold' : 'bg-mist text-muted'
-                          }`}>
-                            {a.payment_status}
-                          </span>
-                          {a.payment_reference && (
-                            <p className="font-mono font-bold text-orange-900 mt-1 select-all">
-                              UTR: {a.payment_reference}
-                            </p>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {a.status !== 'active' && (
-                              <button
-                                onClick={() => verifyRegistration(a.adviser_id)}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[10px] hover:bg-emerald-700 shadow-xs"
-                              >
-                                Match & Approve
-                              </button>
-                            )}
-                            {a.status === 'active' ? (
-                              <button
-                                onClick={() => updateAdviserStatus(a.adviser_id, 'suspended')}
-                                className="px-2 py-1 rounded bg-rose-50 text-rose-700 font-semibold text-[10px] hover:bg-rose-100 border border-rose-200"
-                              >
-                                Suspend
-                              </button>
+                    {advisers.map((a) => {
+                      const regNo = a.registration_no || a.adviser_id;
+                      const kycCount = getKycCount(a);
+                      return (
+                        <tr key={a.adviser_id} className="hover:bg-mist/30 transition">
+                          <td className="py-3 px-4 font-mono font-bold text-navy">{regNo}</td>
+                          <td className="py-3 px-4">
+                            <p className="font-semibold text-navy">{a.full_name}</p>
+                            <p className="text-[11px] text-muted">{a.phone}</p>
+                          </td>
+                          <td className="py-3 px-4 font-mono text-muted">{a.sponsor_code || a.sponsor_id || 'Direct'}</td>
+                          <td className="py-3 px-4 font-mono text-muted">{a.password || '—'}</td>
+                          <td className="py-3 px-4">
+                            {a.token_number ? (
+                              <span className="font-mono font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded text-[11px]">
+                                {a.token_number}
+                              </span>
                             ) : (
-                              <button
-                                onClick={() => updateAdviserStatus(a.adviser_id, 'active')}
-                                className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 font-semibold text-[10px] hover:bg-emerald-100 border border-emerald-200"
-                              >
-                                Set Active
-                              </button>
+                              <span className="text-muted text-[11px]">Not issued</span>
                             )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[9px] ${
+                              a.status === 'active' ? 'bg-emerald-100 text-emerald-800' :
+                              a.status === 'suspended' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {a.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
                             <button
-                              onClick={() => { setTreeRootId(a.adviser_id); setTab('tree'); }}
-                              className="px-2 py-1 rounded bg-mist text-navy font-semibold text-[10px] hover:bg-line"
+                              onClick={() => setSelectedKycAdviser(a)}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-bold border flex items-center gap-1 ${
+                                kycCount > 0 ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100' : 'bg-mist text-muted border-line hover:text-navy'
+                              }`}
                             >
-                              Tree
+                              <FileText className="w-3 h-3" /> {kycCount}/4 Docs
                             </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {a.status !== 'active' && (
+                                <button
+                                  onClick={() => handleApproveCash(a)}
+                                  disabled={approvingCashId === a.adviser_id}
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[10px] hover:bg-emerald-700 shadow-xs flex items-center gap-1"
+                                >
+                                  {approvingCashId === a.adviser_id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                                  Approve Cash
+                                </button>
+                              )}
+                              {a.status === 'active' ? (
+                                <button
+                                  onClick={() => updateAdviserStatus(a.adviser_id, 'suspended')}
+                                  className="px-2 py-1 rounded bg-rose-50 text-rose-700 font-semibold text-[10px] hover:bg-rose-100 border border-rose-200"
+                                >
+                                  Suspend
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => updateAdviserStatus(a.adviser_id, 'active')}
+                                  className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 font-semibold text-[10px] hover:bg-emerald-100 border border-emerald-200"
+                                >
+                                  Set Active
+                                </button>
+                              )}
+                              <button
+                                onClick={() => { setTreeRootId(a.adviser_id); setTab('tree'); }}
+                                className="px-2 py-1 rounded bg-mist text-navy font-semibold text-[10px] hover:bg-line"
+                              >
+                                Tree
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1103,6 +1218,278 @@ export default function AdvisersAdmin() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* KYC DOCUMENTS & BANK DETAILS MODAL */}
+      {selectedKycAdviser && (
+        <div className="fixed inset-0 z-50 bg-navy/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl border border-line my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between border-b border-line pb-4">
+              <div>
+                <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">KYC Verification & Profile</span>
+                <h3 className="font-display text-2xl text-navy">{selectedKycAdviser.full_name}</h3>
+                <p className="text-xs text-muted mt-0.5">
+                  Reg No: <b className="font-mono text-navy">{selectedKycAdviser.registration_no || selectedKycAdviser.adviser_id}</b> · Phone: <b className="text-navy">{selectedKycAdviser.phone}</b>
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedKycAdviser(null)}
+                className="w-8 h-8 rounded-full bg-mist hover:bg-line grid place-items-center text-muted hover:text-navy text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Profile Summary */}
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs p-3 rounded-2xl bg-mist border border-line">
+              <div>
+                <span className="text-muted text-[10px] uppercase font-bold">Status</span>
+                <p className="font-bold text-navy capitalize">{selectedKycAdviser.status}</p>
+              </div>
+              <div>
+                <span className="text-muted text-[10px] uppercase font-bold">Password</span>
+                <p className="font-mono font-bold text-navy">{selectedKycAdviser.password || '—'}</p>
+              </div>
+              <div>
+                <span className="text-muted text-[10px] uppercase font-bold">Login Token</span>
+                <p className="font-mono font-bold text-orange-700">{selectedKycAdviser.token_number || 'Not issued'}</p>
+              </div>
+              <div>
+                <span className="text-muted text-[10px] uppercase font-bold">Sponsor No</span>
+                <p className="font-mono font-bold text-navy">{selectedKycAdviser.sponsor_code || selectedKycAdviser.sponsor_id || 'Direct'}</p>
+              </div>
+            </div>
+
+            {/* Document Uploads Grid */}
+            <div className="mt-5 space-y-4">
+              <h4 className="font-bold text-navy text-sm flex items-center gap-2">
+                <FileText className="w-4 h-4 text-orange-600" /> Uploaded KYC Documents
+              </h4>
+
+              <div className="grid sm:grid-cols-2 gap-3 text-xs">
+                {/* 1. Aadhaar Card Front */}
+                <div className="p-3.5 rounded-2xl border border-line bg-mist/30">
+                  <p className="font-bold text-navy text-xs mb-2">1. Aadhaar Card (Front)</p>
+                  {selectedKycAdviser.documents?.aadhar_front || selectedKycAdviser.documents?.aadhar_file ? (
+                    <div className="space-y-2">
+                      <img
+                        src={selectedKycAdviser.documents?.aadhar_front || selectedKycAdviser.documents?.aadhar_file}
+                        alt="Aadhaar Front"
+                        className="w-full h-36 object-contain rounded-xl bg-white border border-line"
+                      />
+                      <a
+                        href={selectedKycAdviser.documents?.aadhar_front || selectedKycAdviser.documents?.aadhar_file}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] font-bold text-navy hover:text-orange-600 underline flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3 h-3" /> Open Full Image
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="h-28 rounded-xl bg-white border border-dashed border-line flex items-center justify-center text-muted text-xs italic">
+                      Not uploaded yet
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Aadhaar Card Back */}
+                <div className="p-3.5 rounded-2xl border border-line bg-mist/30">
+                  <p className="font-bold text-navy text-xs mb-2">2. Aadhaar Card (Back)</p>
+                  {selectedKycAdviser.documents?.aadhar_back ? (
+                    <div className="space-y-2">
+                      <img
+                        src={selectedKycAdviser.documents?.aadhar_back}
+                        alt="Aadhaar Back"
+                        className="w-full h-36 object-contain rounded-xl bg-white border border-line"
+                      />
+                      <a
+                        href={selectedKycAdviser.documents?.aadhar_back}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] font-bold text-navy hover:text-orange-600 underline flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3 h-3" /> Open Full Image
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="h-28 rounded-xl bg-white border border-dashed border-line flex items-center justify-center text-muted text-xs italic">
+                      Not uploaded yet
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. PAN Card */}
+                <div className="p-3.5 rounded-2xl border border-line bg-mist/30">
+                  <p className="font-bold text-navy text-xs mb-2">3. PAN Card</p>
+                  {selectedKycAdviser.documents?.pan_card || selectedKycAdviser.documents?.pan_file ? (
+                    <div className="space-y-2">
+                      <img
+                        src={selectedKycAdviser.documents?.pan_card || selectedKycAdviser.documents?.pan_file}
+                        alt="PAN Card"
+                        className="w-full h-36 object-contain rounded-xl bg-white border border-line"
+                      />
+                      <a
+                        href={selectedKycAdviser.documents?.pan_card || selectedKycAdviser.documents?.pan_file}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] font-bold text-navy hover:text-orange-600 underline flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3 h-3" /> Open Full Image
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="h-28 rounded-xl bg-white border border-dashed border-line flex items-center justify-center text-muted text-xs italic">
+                      Not uploaded yet
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Passport Photo */}
+                <div className="p-3.5 rounded-2xl border border-line bg-mist/30">
+                  <p className="font-bold text-navy text-xs mb-2">4. Profile Photo</p>
+                  {selectedKycAdviser.documents?.photo || selectedKycAdviser.documents?.photo_file ? (
+                    <div className="space-y-2">
+                      <img
+                        src={selectedKycAdviser.documents?.photo || selectedKycAdviser.documents?.photo_file}
+                        alt="Profile Photo"
+                        className="w-full h-36 object-contain rounded-xl bg-white border border-line"
+                      />
+                      <a
+                        href={selectedKycAdviser.documents?.photo || selectedKycAdviser.documents?.photo_file}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] font-bold text-navy hover:text-orange-600 underline flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3 h-3" /> Open Full Image
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="h-28 rounded-xl bg-white border border-dashed border-line flex items-center justify-center text-muted text-xs italic">
+                      Not uploaded yet
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 5. Bank Account Details & Passbook */}
+              <div className="p-4 rounded-2xl border border-line bg-mist/30 space-y-3">
+                <p className="font-bold text-navy text-xs flex items-center gap-1.5">
+                  <CreditCard className="w-4 h-4 text-emerald-700" /> 5. Bank Details & Passbook / Cheque
+                </p>
+                <div className="grid sm:grid-cols-2 gap-3 text-xs">
+                  <div className="space-y-1.5 p-3 rounded-xl bg-white border border-line">
+                    <p><span className="text-muted">Account Holder:</span> <b>{selectedKycAdviser.bank_details?.account_holder_name || selectedKycAdviser.full_name}</b></p>
+                    <p><span className="text-muted">Account Number:</span> <b className="font-mono">{selectedKycAdviser.bank_details?.account_number || 'Not provided'}</b></p>
+                    <p><span className="text-muted">Bank Name:</span> <b>{selectedKycAdviser.bank_details?.bank_name || 'Not provided'}</b></p>
+                    <p><span className="text-muted">IFSC Code:</span> <b className="font-mono">{selectedKycAdviser.bank_details?.ifsc || 'Not provided'}</b></p>
+                    <p><span className="text-muted">UPI ID:</span> <b className="font-mono">{selectedKycAdviser.bank_details?.upi_id || 'Not provided'}</b></p>
+                  </div>
+                  <div>
+                    {selectedKycAdviser.documents?.bank_passbook || selectedKycAdviser.documents?.bank_proof_file ? (
+                      <div className="space-y-2">
+                        <img
+                          src={selectedKycAdviser.documents?.bank_passbook || selectedKycAdviser.documents?.bank_proof_file}
+                          alt="Bank Passbook / Cheque"
+                          className="w-full h-32 object-contain rounded-xl bg-white border border-line"
+                        />
+                        <a
+                          href={selectedKycAdviser.documents?.bank_passbook || selectedKycAdviser.documents?.bank_proof_file}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[10px] font-bold text-navy hover:text-orange-600 underline flex items-center gap-1"
+                        >
+                          <ExternalLink className="w-3 h-3" /> View Full Passbook
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="h-32 rounded-xl bg-white border border-dashed border-line flex items-center justify-center text-muted text-xs italic">
+                        Passbook / Cheque not uploaded
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="mt-6 flex gap-3 pt-3 border-t border-line">
+              <button
+                type="button"
+                onClick={() => setSelectedKycAdviser(null)}
+                className="btn btn-outline flex-1 text-xs"
+              >
+                Close
+              </button>
+              {selectedKycAdviser.status !== 'active' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const adv = selectedKycAdviser;
+                    setSelectedKycAdviser(null);
+                    handleApproveCash(adv);
+                  }}
+                  className="btn btn-primary flex-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center justify-center gap-1.5"
+                >
+                  <CheckCircle className="w-4 h-4" /> Confirm Cash & Approve
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CASH APPROVAL SUCCESS & TOKEN MODAL */}
+      {approvedTokenModal && (
+        <div className="fixed inset-0 z-50 bg-navy/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-line text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-3xl">
+              ✓
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                Payment Confirmed & Account Activated
+              </span>
+              <h3 className="font-display text-2xl text-navy mt-2">{approvedTokenModal.name}</h3>
+              <p className="text-xs text-muted">
+                Registration No: <b className="font-mono text-navy">{approvedTokenModal.regNo}</b>
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-orange-50 border-2 border-orange-300 space-y-2">
+              <p className="text-xs font-bold text-orange-950 uppercase tracking-wider">
+                Issued Login Token Number
+              </p>
+              <p className="font-mono text-3xl font-black text-orange-700 tracking-wider select-all">
+                {approvedTokenModal.token}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(approvedTokenModal.token);
+                  setCopiedToken(true);
+                  setTimeout(() => setCopiedToken(false), 2000);
+                }}
+                className="btn btn-sm btn-outline text-xs inline-flex items-center gap-1.5 mt-1"
+              >
+                {copiedToken ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedToken ? 'Copied to Clipboard!' : 'Copy Token Number'}
+              </button>
+            </div>
+
+            <p className="text-xs text-muted leading-relaxed">
+              Give this <b>Token Number</b> to the adviser. They can now open <b>Adviser Login</b>, enter their Registration No and Token, and access their full earnings dashboard.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setApprovedTokenModal(null)}
+              className="btn btn-primary w-full text-xs font-bold py-2.5"
+            >
+              Done / Close
+            </button>
           </div>
         </div>
       )}
