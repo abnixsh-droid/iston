@@ -27,13 +27,13 @@ export default function AdviserSpinner({ activeTab, onSelectTab }: AdviserSpinne
       if (location.pathname === '/advisers/dashboard' && onSelectTab) {
         onSelectTab('overview');
       } else {
-        navigate('/advisers/dashboard');
+        window.open('/advisers/dashboard', '_blank');
       }
     } else if (type === 'profile') {
       if (location.pathname === '/advisers/dashboard' && onSelectTab) {
         onSelectTab('profile');
       } else {
-        navigate('/advisers/dashboard?tab=profile');
+        window.open('/advisers/dashboard?tab=profile', '_blank');
       }
     } else if (type === 'contact') {
       navigate('/contact');

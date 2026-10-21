@@ -55,7 +55,7 @@ export default function Header() {
           solid ? 'border-b border-line/80 bg-white/92 shadow-[0_8px_30px_-20px_rgba(11,29,63,0.35)] backdrop-blur-xl' : 'bg-transparent'
         }`}
       >
-        <div className="container-x flex h-16 items-center justify-between gap-4 lg:h-20">
+        <div className="container-x flex h-16 items-center justify-between gap-2 sm:gap-4 lg:h-20">
           <Logo light={!solid} />
           <nav className="hidden items-center gap-1 xl:flex" aria-label="Main">
             {NAV.map(([to, label]) => (
@@ -75,13 +75,15 @@ export default function Header() {
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Link
               to={isAdviserLoggedIn ? '/advisers/dashboard' : '/advisers-program'}
+              target="_blank"
+              rel="noopener noreferrer"
               className={
                 isAdviserLoggedIn
-                  ? 'bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-300 hover:to-emerald-400 text-[#022c33] font-black border-0 shadow-md shadow-teal-500/25 flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] sm:text-xs sm:px-4 sm:py-1.5 transition shrink-0 ring-2 ring-teal-300/40'
-                  : 'bg-orange-600 hover:bg-orange-700 text-white font-bold border-0 shadow-xs flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] sm:text-xs sm:px-3.5 sm:py-1.5 transition shrink-0'
+                  ? 'bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-300 hover:to-emerald-400 text-[#022c33] font-black border-0 shadow-md shadow-teal-500/25 flex items-center gap-1 sm:gap-1.5 rounded-full px-2.5 sm:px-4 py-1 sm:py-1.5 text-[10.5px] sm:text-xs transition shrink-0 ring-1.5 sm:ring-2 ring-teal-300/40'
+                  : 'bg-orange-600 hover:bg-orange-700 text-white font-bold border-0 shadow-xs flex items-center gap-1 rounded-full px-2 sm:px-3.5 py-1 sm:py-1.5 text-[10.5px] sm:text-xs transition shrink-0'
               }
             >
-              {isAdviserLoggedIn && <span className="h-2 w-2 rounded-full bg-[#022c33] animate-pulse" />}
+              {isAdviserLoggedIn && <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-[#022c33] animate-pulse" />}
               {isAdviserLoggedIn ? 'Adviser' : 'Adviser Login'}
             </Link>
             <div className="hidden sm:block">

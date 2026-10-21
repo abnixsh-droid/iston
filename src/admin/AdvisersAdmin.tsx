@@ -58,6 +58,9 @@ export default function AdvisersAdmin() {
   // KYC Document Preview Modal
   const [selectedKycAdviser, setSelectedKycAdviser] = useState<any | null>(null);
 
+  // Full User Inspection Modal
+  const [inspectAdviser, setInspectAdviser] = useState<any | null>(null);
+
   // Cash Approval Success Token Modal
   const [approvedTokenModal, setApprovedTokenModal] = useState<{
     adviserId: string;
@@ -216,7 +219,7 @@ export default function AdvisersAdmin() {
     try {
       setTreeLoading(true);
       const res = await api<any>(`/api/advisers?action=admin_get_tree&adviser_id=${encodeURIComponent(rootId)}`, { auth: true });
-      if (res?.ok && res.tree) {
+      if (res?.ok && (res.tree || res.root)) {
         setTreeData(res);
         return;
       }
@@ -226,23 +229,61 @@ export default function AdvisersAdmin() {
       setTreeLoading(false);
     }
 
-    const root = advisers.find((a) => a.adviser_id === rootId) || advisers[0];
+    const qTerm = (rootId || '').trim().toLowerCase();
+    const root = advisers.find((a) =>
+      (a.adviser_id && a.adviser_id.toLowerCase() === qTerm) ||
+      (a.registration_no && a.registration_no.toLowerCase() === qTerm) ||
+      (a.phone && a.phone.includes(qTerm)) ||
+      (a.referral_code && a.referral_code.toLowerCase() === qTerm) ||
+      (a.full_name && a.full_name.toLowerCase().includes(qTerm))
+    ) || advisers[0];
+
     if (root) {
+      const buildSubTree = (nodeId: string, nodeRef: string, depth = 1): any[] => {
+        if (depth > 6) return [];
+        return advisers
+          .filter(
+            (a) =>
+              (a.sponsor_id && a.sponsor_id === nodeId) ||
+              (a.sponsor_code && nodeRef && a.sponsor_code.toUpperCase() === nodeRef.toUpperCase())
+          )
+          .map((c) => ({
+            adviser_id: c.adviser_id,
+            registration_no: c.registration_no || c.adviser_id,
+            full_name: c.full_name,
+            phone: c.phone,
+            referral_code: c.referral_code,
+            status: c.status,
+            depth_level: depth,
+            children: buildSubTree(c.adviser_id, c.referral_code || c.registration_no, depth + 1),
+          }));
+      };
+
+      const children = buildSubTree(root.adviser_id, root.referral_code || root.registration_no, 1);
+      const countNodes = (nodes: any[]): number => {
+        return nodes.reduce((acc, curr) => acc + 1 + countNodes(curr.children || []), 0);
+      };
+      const directCount = children.length;
+      const totalTeam = countNodes(children);
+
+      const rootNode = {
+        adviser_id: root.adviser_id,
+        registration_no: root.registration_no || root.adviser_id,
+        full_name: root.full_name,
+        phone: root.phone,
+        referral_code: root.referral_code,
+        status: root.status,
+        depth_level: 0,
+        children,
+      };
+
       setTreeData({
-        root: {
-          adviser_id: root.adviser_id,
-          full_name: root.full_name,
-          referral_code: root.referral_code,
-          status: root.status,
-          children: advisers
-            .filter((a) => a.sponsor_code === root.referral_code || a.sponsor_id === root.adviser_id)
-            .map((c) => ({
-              adviser_id: c.adviser_id,
-              full_name: c.full_name,
-              referral_code: c.referral_code,
-              status: c.status,
-              children: [],
-            })),
+        tree: rootNode,
+        root: rootNode,
+        stats: {
+          directCount,
+          totalTeam,
+          levelCounts: { 1: directCount },
         },
       });
     }
@@ -449,16 +490,30 @@ export default function AdvisersAdmin() {
   const renderTreeNode = (node: any) => {
     if (!node) return null;
     return (
-      <div key={node.adviser_id} className="ml-4 pl-4 border-l-2 border-line my-2">
-        <div className="flex items-center gap-2 text-xs py-1">
-          <span className="font-mono font-bold text-navy bg-mist px-2 py-0.5 rounded">
-            L{node.depth_level}: {node.adviser_id}
+      <div key={node.adviser_id || node.registration_no} className="ml-3 sm:ml-5 pl-3 sm:pl-4 border-l-2 border-line my-2">
+        <div className="flex flex-wrap items-center gap-2 text-xs py-1">
+          <span className="font-mono font-bold text-navy bg-mist px-2 py-0.5 rounded text-[11px]">
+            L{node.depth_level ?? 0}: {node.registration_no || node.adviser_id}
           </span>
           <span className="font-semibold text-navy">{node.full_name}</span>
-          <span className="text-muted">({node.email})</span>
-          <span className={`px-2 py-0.2 rounded-full text-[9px] font-bold uppercase ${node.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+          {node.phone && <span className="text-muted text-[11px]">({node.phone})</span>}
+          <span
+            className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+              node.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+            }`}
+          >
             {node.status}
           </span>
+          <button
+            type="button"
+            onClick={() => {
+              const fullAdv = advisers.find((a) => a.adviser_id === node.adviser_id || a.registration_no === (node.registration_no || node.adviser_id));
+              if (fullAdv) setInspectAdviser(fullAdv);
+            }}
+            className="text-[10px] font-bold text-orange-600 hover:underline ml-1 inline-flex items-center gap-0.5"
+          >
+            <Eye className="w-3 h-3" /> Inspect Details
+          </button>
         </div>
         {node.children && node.children.length > 0 && (
           <div className="space-y-1">
@@ -555,13 +610,22 @@ export default function AdvisersAdmin() {
                             <span className="text-[11px] text-muted">
                               KYC: <b className={kycCount > 0 ? 'text-emerald-700' : 'text-amber-700'}>{kycCount}/4 Uploaded</b>
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedKycAdviser(a)}
-                              className="text-[11px] font-bold text-navy hover:text-orange-600 underline flex items-center gap-1"
-                            >
-                              <FileText className="w-3 h-3" /> View KYC Docs
-                            </button>
+                            <div className="flex items-center gap-2.5">
+                              <button
+                                type="button"
+                                onClick={() => setInspectAdviser(a)}
+                                className="text-[11px] font-bold text-orange-600 hover:text-orange-700 underline flex items-center gap-1"
+                              >
+                                <Eye className="w-3 h-3" /> Inspect
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedKycAdviser(a)}
+                                className="text-[11px] font-bold text-navy hover:text-orange-600 underline flex items-center gap-1"
+                              >
+                                <FileText className="w-3 h-3" /> KYC Docs
+                              </button>
+                            </div>
                           </div>
                         </div>
 
@@ -681,6 +745,13 @@ export default function AdvisersAdmin() {
                           </td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => setInspectAdviser(a)}
+                                className="px-2 py-1 rounded bg-navy text-white font-semibold text-[10px] hover:bg-navy/90 flex items-center gap-1 shadow-xs"
+                                title="Inspect Adviser profile, team, and KYC"
+                              >
+                                <Eye className="w-3 h-3" /> Inspect
+                              </button>
                               {a.status !== 'active' && (
                                 <button
                                   onClick={() => handleApproveCash(a)}
@@ -707,7 +778,7 @@ export default function AdvisersAdmin() {
                                 </button>
                               )}
                               <button
-                                onClick={() => { setTreeRootId(a.adviser_id); setTab('tree'); }}
+                                onClick={() => { setTreeRootId(a.registration_no || a.adviser_id); setTab('tree'); }}
                                 className="px-2 py-1 rounded bg-mist text-navy font-semibold text-[10px] hover:bg-line"
                               >
                                 Tree
@@ -771,7 +842,7 @@ export default function AdvisersAdmin() {
               </div>
 
               <div className="rounded-2xl border border-line bg-mist/20 p-5 overflow-x-auto font-sans">
-                {renderTreeNode(treeData.tree)}
+                {renderTreeNode(treeData.tree || treeData.root)}
               </div>
             </div>
           )}
@@ -1436,6 +1507,208 @@ export default function AdvisersAdmin() {
           </div>
         </div>
       )}
+
+      {/* 8. ADVISER FULL INSPECTION MODAL */}
+      {inspectAdviser && (() => {
+        const directDownline = advisers.filter(
+          (a) =>
+            (a.sponsor_id && a.sponsor_id === inspectAdviser.adviser_id) ||
+            (a.sponsor_code && inspectAdviser.referral_code && a.sponsor_code.toUpperCase() === inspectAdviser.referral_code.toUpperCase()) ||
+            (a.sponsor_code && inspectAdviser.registration_no && a.sponsor_code.toUpperCase() === inspectAdviser.registration_no.toUpperCase())
+        );
+        const kycCount = getKycCount(inspectAdviser);
+
+        return (
+          <div className="fixed inset-0 z-50 bg-navy/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl border border-line max-h-[90vh] overflow-y-auto space-y-6">
+              {/* Header */}
+              <div className="flex items-start justify-between border-b border-line pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center font-bold text-lg">
+                    <Eye className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-orange-600 uppercase tracking-widest bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
+                      Adviser Inspection Record
+                    </span>
+                    <h3 className="font-display text-2xl text-navy mt-1">{inspectAdviser.full_name}</h3>
+                    <p className="text-xs text-muted">
+                      Registration No: <b className="font-mono text-orange-700">{inspectAdviser.registration_no || inspectAdviser.adviser_id}</b>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setInspectAdviser(null)}
+                  className="w-8 h-8 rounded-full bg-mist text-muted hover:text-navy grid place-items-center transition"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Status and Key Credentials */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-mist/50 border border-line">
+                  <span className="text-muted text-[10px] uppercase font-bold block">Status</span>
+                  <span className={`inline-block mt-1 px-2 py-0.5 rounded-full font-bold uppercase text-[10px] ${
+                    inspectAdviser.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {inspectAdviser.status}
+                  </span>
+                </div>
+                <div className="p-3 rounded-xl bg-mist/50 border border-line">
+                  <span className="text-muted text-[10px] uppercase font-bold block">Mobile Phone</span>
+                  <p className="font-bold text-navy mt-1">{inspectAdviser.phone}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-mist/50 border border-line">
+                  <span className="text-muted text-[10px] uppercase font-bold block">Login Token</span>
+                  <p className="font-mono font-bold text-orange-700 mt-1">{inspectAdviser.token_number || 'Not issued'}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-mist/50 border border-line">
+                  <span className="text-muted text-[10px] uppercase font-bold block">Password</span>
+                  <p className="font-mono font-bold text-navy mt-1">{inspectAdviser.password || '—'}</p>
+                </div>
+              </div>
+
+              {/* Sponsor & Registration Details */}
+              <div className="p-4 rounded-2xl bg-mist/30 border border-line text-xs space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-muted">Sponsor ID / Referral Code:</span>
+                  <span className="font-mono font-bold text-navy">{inspectAdviser.sponsor_code || inspectAdviser.sponsor_id || 'Direct / None'}</span>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-muted">Adviser's Own Referral Code:</span>
+                  <span className="font-mono font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
+                    {inspectAdviser.referral_code || inspectAdviser.registration_no || inspectAdviser.adviser_id}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-muted">Cash Payment Status:</span>
+                  <span className={`font-bold ${inspectAdviser.payment_status === 'verified_paid' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                    {inspectAdviser.payment_status === 'verified_paid' ? '₹1,100 Cash Verified ✓' : 'Awaiting ₹1,100 Cash at Office'}
+                  </span>
+                </div>
+                {inspectAdviser.created_at && (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-muted">Registration Date:</span>
+                    <span className="font-mono text-muted">{fmtDate(inspectAdviser.created_at)}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Team Members Joined Under this Adviser */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-navy text-sm flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-orange-600" /> Direct Downline Members ({directDownline.length})
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTreeRootId(inspectAdviser.registration_no || inspectAdviser.adviser_id);
+                      setInspectAdviser(null);
+                      setTab('tree');
+                    }}
+                    className="text-xs font-bold text-orange-600 hover:underline flex items-center gap-1"
+                  >
+                    View in Full Hierarchy Tree →
+                  </button>
+                </div>
+
+                {directDownline.length === 0 ? (
+                  <div className="p-4 rounded-xl border border-dashed border-line text-center text-xs text-muted">
+                    No members have registered with this adviser's referral code yet.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-line border border-line rounded-xl overflow-hidden text-xs">
+                    {directDownline.map((sub: any) => (
+                      <div key={sub.adviser_id} className="p-3 bg-white flex items-center justify-between gap-2">
+                        <div>
+                          <p className="font-bold text-navy">{sub.full_name}</p>
+                          <p className="text-[11px] text-muted">Reg No: <b className="font-mono text-navy">{sub.registration_no || sub.adviser_id}</b> · Tel: {sub.phone}</p>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                          sub.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {sub.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* KYC Status & Quick Link */}
+              <div className="p-4 rounded-2xl bg-orange-50/50 border border-orange-200 flex items-center justify-between gap-3 text-xs">
+                <div>
+                  <h5 className="font-bold text-navy">KYC Documents Verification</h5>
+                  <p className="text-[11px] text-muted">
+                    {kycCount}/4 Documents Uploaded (Aadhaar, PAN, Photo, Bank details)
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const adv = inspectAdviser;
+                    setInspectAdviser(null);
+                    setSelectedKycAdviser(adv);
+                  }}
+                  className="btn btn-sm btn-outline text-xs font-bold bg-white"
+                >
+                  <FileText className="w-3.5 h-3.5" /> Inspect KYC Docs
+                </button>
+              </div>
+
+              {/* Actions Footer */}
+              <div className="flex flex-wrap gap-2.5 pt-3 border-t border-line">
+                <button
+                  type="button"
+                  onClick={() => setInspectAdviser(null)}
+                  className="btn btn-outline flex-1 text-xs"
+                >
+                  Close
+                </button>
+                {inspectAdviser.status !== 'active' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const adv = inspectAdviser;
+                      setInspectAdviser(null);
+                      handleApproveCash(adv);
+                    }}
+                    className="btn btn-primary flex-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center justify-center gap-1.5"
+                  >
+                    <CheckCircle className="w-4 h-4" /> Confirm Cash & Approve
+                  </button>
+                )}
+                {inspectAdviser.status === 'active' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateAdviserStatus(inspectAdviser.adviser_id, 'suspended');
+                      setInspectAdviser(null);
+                    }}
+                    className="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 font-semibold text-xs border border-rose-200 hover:bg-rose-100"
+                  >
+                    Suspend Account
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateAdviserStatus(inspectAdviser.adviser_id, 'active');
+                      setInspectAdviser(null);
+                    }}
+                    className="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 font-semibold text-xs border border-emerald-200 hover:bg-emerald-100"
+                  >
+                    Set Active
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* CASH APPROVAL SUCCESS & TOKEN MODAL */}
       {approvedTokenModal && (
