@@ -168,29 +168,30 @@ export default function AdvisersPortal() {
 
       {/* Full-Width Main Website Style Header */}
       <header className="sticky top-0 z-40 w-full border-b border-[#ded8cc] bg-white/95 backdrop-blur-xl shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
             <Logo />
-            <span className="hidden sm:inline-block w-px h-6 bg-[#ded8cc]" />
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f5f0e4] text-[#96742e] text-[11px] font-bold border border-[#ded5c0]">
+            <span className="hidden md:inline-block w-px h-6 bg-[#ded8cc]" />
+            <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f5f0e4] text-[#96742e] text-[11px] font-bold border border-[#ded5c0]">
               <Sparkles className="w-3.5 h-3.5" /> Adviser Portal
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <button
               type="button"
               onClick={openPlanNewWindow}
-              className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#96742e] hover:text-[#7d5f22] bg-[#f5f0e4] border border-[#ded5c0] px-3.5 py-2 rounded-full transition shadow-xs"
+              className="inline-flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#96742e] hover:text-[#7d5f22] bg-[#f5f0e4] border border-[#ded5c0] px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full transition shadow-xs whitespace-nowrap"
             >
-              <BookOpen className="w-3.5 h-3.5" /> View Adviser Plan ↗
+              <BookOpen className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden xs:inline">Adviser</span> Plan ↗
             </button>
-            <div className="scale-90 origin-right hidden sm:block">
+            <div className="scale-90 origin-right hidden md:block">
               <LanguageToggle solid={true} />
             </div>
             <Link
               to="/"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[#555] hover:text-[#121212] px-3 py-2 rounded-full border border-[#ded8cc] hover:bg-[#f5f2ea] transition"
+              className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-[#555] hover:text-[#121212] px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full border border-[#ded8cc] hover:bg-[#f5f2ea] transition whitespace-nowrap"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Back to</span> Website
             </Link>
