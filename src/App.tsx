@@ -22,6 +22,7 @@ import CookieConsent from './components/CookieConsent';
 const AdvisersPortal = lazy(() => import('./pages/advisers/AdvisersPortal'));
 const AdviserRegistration = lazy(() => import('./pages/advisers/AdviserRegistration'));
 const AdviserDashboard = lazy(() => import('./pages/advisers/AdviserDashboard'));
+const AdviserPlanPage = lazy(() => import('./pages/advisers/AdviserPlanPage'));
 
 const AdminLayout = lazy(() => import('./admin/AdminLayout'));
 const AdminLogin = lazy(() => import('./admin/AdminLogin'));
@@ -89,11 +90,13 @@ export default function App() {
                   <Route path="/terms-and-conditions" element={<Navigate to="/terms" replace />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
-                {/* Dedicated Dark Teal / Emerald Adviser Portal & Dashboard */}
+                {/* Dedicated Luxury Adviser Portal, Dashboard & Plan Deck */}
                 <Route path="/advisers-program" element={<AdvisersPortal />} />
                 <Route path="/advisers-login" element={<AdvisersPortal />} />
                 <Route path="/advisers" element={<Navigate to="/advisers-program" replace />} />
                 <Route path="/advisers/dashboard" element={<AdviserDashboard />} />
+                <Route path="/advisers/plan" element={<AdviserPlanPage />} />
+                <Route path="/advisers-plan" element={<Navigate to="/advisers/plan" replace />} />
                 <Route path="/advisers/apply" element={<AdviserRegistration />} />
                 <Route path="/advisers/register" element={<AdviserRegistration />} />
                 <Route path="/partner-program" element={<Navigate to="/advisers-program" replace />} />

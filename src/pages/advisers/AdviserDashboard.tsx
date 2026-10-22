@@ -22,13 +22,18 @@ import {
   ShieldCheck,
   ChevronRight,
   Phone,
+  Share2,
+  ExternalLink,
+  Sparkles,
+  ArrowLeft,
 } from 'lucide-react';
+import Logo from '../../components/Logo';
+import LanguageToggle from '../../components/LanguageToggle';
 import { adviserService, type AdviserRecord, getStoredAdviserAuth, setStoredAdviserAuth } from '../../lib/adviserService';
 import { api } from '../../lib/api';
 import { inr } from '../../lib/format';
 import { useSeo } from '../../lib/seo';
 import AdviserSpinner from '../../components/AdviserSpinner';
-import AdviserPlanModal from '../../components/AdviserPlanModal';
 
 export default function AdviserDashboard() {
   const navigate = useNavigate();
@@ -39,12 +44,10 @@ export default function AdviserDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
 
-  // Active tab: 'overview' | 'profile' | 'leads' | 'team' | 'payouts'
-  const [activeTab, setActiveTab] = useState<'overview' | 'profile' | 'leads' | 'team' | 'payouts'>('overview');
-
-  // Plan Deck Modal
-  const [planModalOpen, setPlanModalOpen] = useState(false);
+  // Standalone dedicated window view (e.g. ?view=tree | profile | leads | payouts)
+  const dedicatedView = searchParams.get('view');
 
   // Interactive Tree Expansion State
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
@@ -87,6 +90,11 @@ export default function AdviserDashboard() {
 
   useSeo('Adviser Dashboard — Iston Builder Group', 'Adviser portal for property sales, team referral network, and earnings.');
 
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 2500);
+  };
+
   const fetchDashboard = async (auth: AdviserRecord) => {
     try {
       setLoading(true);
@@ -97,7 +105,7 @@ export default function AdviserDashboard() {
         setDocs(res.adviser?.documents || {});
         setBankDetails(res.adviser?.bank_details || {});
       } else {
-        // Safe fallback from local session auth so user is NEVER logged out
+        // Safe fallback so user is NEVER logged out
         setData({
           ok: true,
           adviser: auth,
@@ -158,11 +166,6 @@ export default function AdviserDashboard() {
   };
 
   useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam === 'profile' || tabParam === 'team' || tabParam === 'leads' || tabParam === 'payouts') {
-      setActiveTab(tabParam as any);
-    }
-
     const currentAuth = getStoredAdviserAuth();
     if (!currentAuth) {
       navigate('/advisers-program', { replace: true });
@@ -170,11 +173,19 @@ export default function AdviserDashboard() {
     }
     setSession(currentAuth);
     fetchDashboard(currentAuth);
-  }, [searchParams]);
+  }, []);
 
   const handleSignOut = () => {
     setStoredAdviserAuth(null);
     navigate('/advisers-program', { replace: true });
+  };
+
+  const openPlanNewWindow = () => {
+    window.open('/advisers/plan', '_blank', 'noopener,noreferrer');
+  };
+
+  const openViewInNewWindow = (viewName: 'tree' | 'leads' | 'profile' | 'payouts') => {
+    window.open(`/advisers/dashboard?view=${viewName}`, '_blank', 'noopener,noreferrer');
   };
 
   const copyReferralLink = () => {
@@ -183,7 +194,30 @@ export default function AdviserDashboard() {
     const url = `${window.location.origin}/advisers-program?ref=${code}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
+    showToast('Referral link copied to clipboard!');
     setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleShareLink = async () => {
+    const code = data?.adviser?.referral_code || data?.adviser?.registration_no || data?.adviser?.adviser_id;
+    const url = `${window.location.origin}/advisers-program?ref=${code}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Iston Builder Group — Adviser Program',
+          text: `Join Iston Builder Group with my referral code ${code}`,
+          url,
+        });
+        setCopied(true);
+        showToast('Referral link shared!');
+        setTimeout(() => setCopied(false), 2500);
+        return;
+      } catch (e) {
+        // Fallback to clipboard copy
+      }
+    }
+    copyReferralLink();
   };
 
   const toggleNode = (id: string) => {
@@ -332,41 +366,32 @@ export default function AdviserDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf8f5] py-6 md:py-10 text-[#121212] relative overflow-hidden font-sans select-none">
+    <div className="min-h-screen bg-[#faf8f5] text-[#121212] relative overflow-hidden font-sans select-none pb-16">
       {/* Subtle architectural background grid */}
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#e5dfd3_1px,transparent_1px),linear-gradient(to_bottom,#e5dfd3_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-25" />
 
-      <div className="container-x max-w-6xl relative z-10 px-4 sm:px-6 mx-auto">
-        {/* TOP BRAND HEADER */}
-        <header className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-3xl border border-[#ded8cc] shadow-xs">
+      {/* Top Header — Identical to Main Website Header */}
+      <header className="sticky top-0 z-40 w-full border-b border-[#ded8cc] bg-white/95 backdrop-blur-xl shadow-xs mb-6 sm:mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center gap-3">
-              <img
-                src="/favicon.png"
-                alt="Iston Builder Group logo"
-                className="h-10 w-10 rounded-xl object-contain ring-1 ring-[#ded8cc] p-1 bg-[#f5f2ea]"
-              />
-              <div className="leading-tight">
-                <span className="block text-sm font-serif font-black tracking-tight text-[#121212]">ISTON BUILDER GROUP</span>
-                <span className="block text-[9px] font-bold tracking-[0.2em] uppercase text-[#96742e]">Private Adviser Portal</span>
-              </div>
-            </Link>
-
-            <span className="hidden sm:inline-block w-px h-6 bg-[#ded8cc] mx-2" />
-
+            <Logo />
+            <span className="hidden sm:inline-block w-px h-6 bg-[#ded8cc]" />
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f4fbf7] text-emerald-800 text-[11px] font-bold border border-emerald-200">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Active Adviser
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <button
               type="button"
-              onClick={() => setPlanModalOpen(true)}
+              onClick={openPlanNewWindow}
               className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#96742e] hover:text-[#7d5f22] bg-[#f5f0e4] border border-[#ded5c0] px-3.5 py-2 rounded-full transition shadow-xs"
             >
-              <BookOpen className="w-3.5 h-3.5" /> View Adviser Plan
+              <BookOpen className="w-3.5 h-3.5" /> View Adviser Plan ↗
             </button>
+            <div className="scale-90 origin-right hidden sm:block">
+              <LanguageToggle solid={true} />
+            </div>
             <Link
               to="/"
               className="text-xs font-semibold text-[#555] hover:text-[#121212] px-3 py-2 rounded-full border border-[#ded8cc] hover:bg-[#f5f2ea] transition"
@@ -374,673 +399,673 @@ export default function AdviserDashboard() {
               Back to Site
             </Link>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* HERO ADVISER PROFILE BANNER */}
-        <section className="rounded-3xl bg-white border border-[#ded8cc] p-6 sm:p-8 text-[#121212] shadow-xs relative overflow-hidden">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs font-black tracking-wider px-3 py-1 rounded-full bg-[#f5f2ea] text-[#121212] border border-[#ded8cc]">
-                  Reg No: {adviser.registration_no || adviser.adviser_id}
-                </span>
-                {adviser.token_number && (
-                  <span className="font-mono text-xs font-bold px-3 py-1 rounded-full bg-[#faf8f5] text-[#555] border border-[#ded8cc]">
-                    Token: {adviser.token_number}
-                  </span>
-                )}
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase tracking-wider">
-                  Verified Adviser
-                </span>
-              </div>
-
-              <h1 className="font-serif text-2xl sm:text-4xl font-bold mt-3 tracking-tight text-[#121212]">
-                {adviser.full_name}
-              </h1>
-              <p className="mt-1 text-xs text-[#666]">
-                Mobile: <span className="text-[#121212] font-semibold">{adviser.phone}</span> · Sponsor:{' '}
-                <span className="text-[#96742e] font-semibold">{adviser.sponsor_id || 'Direct'}</span>
-              </p>
-            </div>
-
-            {/* Quick Share Referral Box */}
-            <div className="rounded-2xl border border-[#ded8cc] bg-[#faf8f5] p-4 max-w-sm w-full">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[#666] font-medium">Your Referral Code:</span>
-                <span className="font-mono font-black text-[#121212] text-sm bg-white px-2.5 py-0.5 rounded border border-[#ded8cc]">
-                  {referralCode}
-                </span>
-              </div>
-              <div className="mt-2.5 flex items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={referralLink}
-                  className="w-full bg-white text-[#121212] text-xs px-3 py-2 rounded-xl font-mono truncate border border-[#ded8cc] focus:outline-hidden select-all"
-                />
-                <button
-                  onClick={copyReferralLink}
-                  className="px-3.5 py-2 rounded-xl bg-[#121212] hover:bg-black text-[#faf8f5] font-bold text-xs flex items-center gap-1.5 shrink-0 shadow-xs transition"
-                >
-                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copied ? 'Copied' : 'Copy'}
-                </button>
-              </div>
-              <p className="mt-2 text-[11px] text-[#777]">
-                Earn ₹200 direct referral rewards for every active adviser who joins under your code.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* 4 KPI METRICS ROW */}
-        <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-          <div className="p-5 rounded-2xl bg-white border border-[#ded8cc] shadow-xs">
-            <span className="text-[11px] font-bold text-[#777] uppercase tracking-wider flex items-center gap-1.5">
-              <Wallet className="w-3.5 h-3.5 text-[#96742e]" /> Available Balance
-            </span>
-            <p className="text-2xl sm:text-3xl font-black text-[#121212] mt-2">{inr(availableBalance)}</p>
+      {/* ============================================================== */}
+      {/* DEDICATED FULL-WINDOW STANDALONE VIEWS                         */}
+      {/* ============================================================== */}
+      {dedicatedView === 'tree' && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6 animate-in fade-in">
+          <div className="flex items-center justify-between pb-4 border-b border-[#ded8cc]">
             <button
-              onClick={() => setActiveTab('payouts')}
-              className="text-xs text-[#96742e] hover:text-[#7d5f22] font-bold hover:underline mt-2 inline-flex items-center gap-1"
+              onClick={() => window.close()}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-white border border-[#ded8cc] hover:bg-[#f5f2ea]"
             >
-              Withdraw Funds <ArrowRight className="w-3 h-3" />
+              <ArrowLeft className="w-3.5 h-3.5" /> Close Tab / Return
+            </button>
+            <span className="text-xs text-[#777] font-semibold">Referral Network Tree</span>
+          </div>
+          <ReferralTreeCanvas
+            root={teamTree}
+            referralCode={referralCode}
+            copyReferralLink={copyReferralLink}
+            copied={copied}
+            expandedNodes={expandedNodes}
+            toggleNode={toggleNode}
+          />
+        </div>
+      )}
+
+      {dedicatedView === 'leads' && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6 animate-in fade-in">
+          <div className="flex items-center justify-between pb-4 border-b border-[#ded8cc]">
+            <button
+              onClick={() => window.close()}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-white border border-[#ded8cc] hover:bg-[#f5f2ea]"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Close Tab / Return
+            </button>
+            <button
+              onClick={() => setLeadModal(true)}
+              className="px-4 py-2 rounded-xl bg-[#121212] text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5"
+            >
+              <PlusCircle className="w-3.5 h-3.5" /> Submit New Lead
             </button>
           </div>
 
-          <div className="p-5 rounded-2xl bg-white border border-[#ded8cc] shadow-xs">
-            <span className="text-[11px] font-bold text-[#777] uppercase tracking-wider flex items-center gap-1.5">
-              <Building className="w-3.5 h-3.5 text-[#96742e]" /> Properties Sold
-            </span>
-            <p className="text-2xl sm:text-3xl font-black text-[#121212] mt-2">{data.propertyCommissions?.length || 0}</p>
-            <span className="text-xs text-[#666] block mt-1">
-              Earned: <b className="text-[#121212]">{inr(commissionsSummary.approved + commissionsSummary.paid)}</b>
-            </span>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-white border border-[#ded8cc] shadow-xs">
-            <span className="text-[11px] font-bold text-[#777] uppercase tracking-wider flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-[#96742e]" /> Direct Members
-            </span>
-            <p className="text-2xl sm:text-3xl font-black text-[#121212] mt-2">{stats.directCount}</p>
-            <span className="text-xs text-[#666] block mt-1">Total Network: <b className="text-[#121212]">{stats.totalTeam}</b></span>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-white border border-[#ded8cc] shadow-xs">
-            <span className="text-[11px] font-bold text-[#777] uppercase tracking-wider flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-600" /> Joining Rewards
-            </span>
-            <p className="text-2xl sm:text-3xl font-black text-emerald-700 mt-2">
-              {inr(regRewardsSummary.approved + regRewardsSummary.paid)}
+          <div className="p-6 sm:p-8 rounded-3xl bg-white border border-[#ded8cc] shadow-xs">
+            <h3 className="font-serif text-2xl font-bold text-[#121212]">Registered Property Leads</h3>
+            <p className="text-xs text-[#666] mt-1">
+              Every client registered here guarantees your 10% direct sales brokerage upon closure.
             </p>
-            <span className="text-xs text-[#666] block mt-1">₹300 self + ₹200/referral</span>
-          </div>
-        </div>
 
-        {/* TAB NAVIGATION PILLS */}
-        <div className="mt-8 border-b border-[#ded8cc] flex gap-2 overflow-x-auto pb-3">
-          {[
-            ['overview', 'Overview & Ways to Earn'],
-            ['team', `Referral Tree (${stats.totalTeam})`],
-            ['leads', `Property Leads (${data.leads?.length || 0})`],
-            ['profile', 'Profile & KYC Upload'],
-            ['payouts', 'Wallet & Payouts'],
-          ].map(([t, label]) => (
-            <button
-              key={t}
-              onClick={() => setActiveTab(t as any)}
-              className={`px-4 py-2 text-xs font-bold whitespace-nowrap transition rounded-xl ${
-                activeTab === t
-                  ? 'bg-[#121212] text-[#faf8f5] shadow-xs'
-                  : 'bg-white hover:bg-[#f5f2ea] text-[#666] hover:text-[#121212] border border-[#ded8cc]'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* ============================================================== */}
-        {/* TAB 1: OVERVIEW — 2 PRIMARY WAYS TO EARN & VISUAL TREE         */}
-        {/* ============================================================== */}
-        {activeTab === 'overview' && (
-          <div className="mt-6 space-y-8 animate-in fade-in duration-200">
-            {/* 2 MAIN CARDS: SELL PROPERTY & MAKE A TEAM */}
-            <div className="grid md:grid-cols-2 gap-5">
-              {/* WAY 1: SELL PROPERTY */}
-              <div className="rounded-3xl border border-[#ded8cc] bg-white p-6 sm:p-7 shadow-xs flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="px-3 py-1 rounded-full bg-[#f5f2ea] text-[#96742e] border border-[#ded5c0] text-[10px] font-bold uppercase tracking-wider">
-                      Way to Earn #1
-                    </span>
-                    <span className="text-xs font-black text-[#96742e]">10% Direct Sales Brokerage</span>
-                  </div>
-
-                  <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#121212] mt-3">Sell Property</h3>
-                  <p className="text-xs text-[#666] mt-1 leading-relaxed">
-                    Refer buyers for premium flats and plots. When a deal is closed, 10% direct brokerage commission is credited to your wallet, with multi-level overrides up to Level 6.
-                  </p>
-
-                  <div className="mt-4 p-4 rounded-2xl bg-[#faf8f5] border border-[#ded8cc] grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <span className="text-[10px] text-[#777] uppercase font-semibold">Properties Closed</span>
-                      <p className="text-xl font-black text-[#121212] mt-0.5">{data.propertyCommissions?.length || 0}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-[#777] uppercase font-semibold">Commissions</span>
-                      <p className="text-xl font-black text-[#96742e] mt-0.5">
-                        {inr(commissionsSummary.approved + commissionsSummary.paid)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-[#f0ece1] flex gap-2">
+            <div className="mt-6">
+              {(!data.leads || data.leads.length === 0) ? (
+                <div className="py-12 text-center text-xs text-[#777] space-y-3">
+                  <Building className="w-10 h-10 text-[#ded8cc] mx-auto" />
+                  <p className="font-semibold text-[#121212]">No property leads registered yet.</p>
                   <button
                     onClick={() => setLeadModal(true)}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-[#121212] hover:bg-black text-[#faf8f5] font-bold text-xs uppercase tracking-wider shadow-xs transition flex items-center justify-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-[#121212] text-[#faf8f5] font-bold text-xs inline-block"
                   >
-                    <PlusCircle className="w-3.5 h-3.5" /> Submit Buyer Lead
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('leads')}
-                    className="py-2.5 px-4 rounded-xl border border-[#ded8cc] hover:bg-[#f5f2ea] text-[#121212] font-semibold text-xs transition"
-                  >
-                    View Leads
+                    Submit First Lead
                   </button>
                 </div>
-              </div>
-
-              {/* WAY 2: MAKE A TEAM */}
-              <div className="rounded-3xl border border-[#ded8cc] bg-white p-6 sm:p-7 shadow-xs flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="px-3 py-1 rounded-full bg-[#f4fbf7] text-emerald-800 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider">
-                      Way to Earn #2
-                    </span>
-                    <span className="text-xs font-black text-emerald-700">₹200 Referral + Tier Overrides</span>
-                  </div>
-
-                  <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#121212] mt-3">Make a Team</h3>
-                  <p className="text-xs text-[#666] mt-1 leading-relaxed">
-                    Build your partnership network. Direct recruits earn you ₹200, Level 2 recruits earn you ₹100, and Level 3+ earn you ₹50 automatically.
-                  </p>
-
-                  <div className="mt-4 p-4 rounded-2xl bg-[#faf8f5] border border-[#ded8cc] grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <span className="text-[10px] text-[#777] uppercase font-semibold">Direct Recruits</span>
-                      <p className="text-xl font-black text-[#121212] mt-0.5">{stats.directCount}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-[#777] uppercase font-semibold">Rewards Earned</span>
-                      <p className="text-xl font-black text-emerald-700 mt-0.5">
-                        {inr(regRewardsSummary.approved + regRewardsSummary.paid)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-[#f0ece1] flex gap-2">
-                  <button
-                    onClick={copyReferralLink}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-[#121212] hover:bg-black text-[#faf8f5] font-bold text-xs uppercase tracking-wider shadow-xs transition flex items-center justify-center gap-1.5"
-                  >
-                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copied ? 'Copied Link' : 'Share Referral Link'}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('team')}
-                    className="py-2.5 px-4 rounded-xl border border-[#ded8cc] hover:bg-[#f5f2ea] text-[#121212] font-semibold text-xs transition"
-                  >
-                    Inspect Tree
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* VISUAL HIERARCHY TREE COMPONENT */}
-            <div className="rounded-3xl border border-[#ded8cc] bg-white p-6 sm:p-8 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-                <div>
-                  <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#121212]">Your Direct Referral Network</h3>
-                  <p className="text-xs text-[#666] mt-1">Partners joined under your code and downline branches.</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setPlanModalOpen(true)}
-                    className="text-xs font-bold text-[#96742e] hover:text-[#7d5f22] bg-[#f5f0e4] border border-[#ded5c0] px-3 py-1.5 rounded-full transition flex items-center gap-1"
-                  >
-                    <BookOpen className="w-3.5 h-3.5" /> Commission Rules
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('team')}
-                    className="text-xs font-bold text-[#121212] hover:underline flex items-center gap-1"
-                  >
-                    Full View →
-                  </button>
-                </div>
-              </div>
-
-              {/* Tree Render */}
-              <div className="pt-2">
-                <ReferralTreeCanvas
-                  root={teamTree}
-                  referralCode={referralCode}
-                  copyReferralLink={copyReferralLink}
-                  copied={copied}
-                  expandedNodes={expandedNodes}
-                  toggleNode={toggleNode}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================== */}
-        {/* TAB 2: TEAM / NETWORK (TREE FULL VIEW)                         */}
-        {/* ============================================================== */}
-        {activeTab === 'team' && (
-          <div className="mt-6 space-y-6 animate-in fade-in duration-200">
-            <div className="p-6 rounded-3xl bg-white border border-[#ded8cc] shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#f0ece1]">
-                <div>
-                  <h3 className="font-serif text-2xl font-bold text-[#121212]">Complete Network Tree</h3>
-                  <p className="text-xs text-[#666] mt-1">
-                    Multi-level transparency down your entire team. Expand any partner to inspect their direct recruits.
-                  </p>
-                </div>
-                <button
-                  onClick={copyReferralLink}
-                  className="px-4 py-2 rounded-xl bg-[#121212] hover:bg-black text-[#faf8f5] font-bold text-xs flex items-center gap-2 self-start"
-                >
-                  <Copy className="w-3.5 h-3.5" /> {copied ? 'Copied' : 'Share Referral Link'}
-                </button>
-              </div>
-
-              <div className="pt-6">
-                <ReferralTreeCanvas
-                  root={teamTree}
-                  referralCode={referralCode}
-                  copyReferralLink={copyReferralLink}
-                  copied={copied}
-                  expandedNodes={expandedNodes}
-                  toggleNode={toggleNode}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================== */}
-        {/* TAB 3: LEADS (SUBMIT BUYER LEAD & VIEW STATUS)                 */}
-        {/* ============================================================== */}
-        {activeTab === 'leads' && (
-          <div className="mt-6 space-y-6 animate-in fade-in duration-200">
-            <div className="p-6 rounded-3xl bg-white border border-[#ded8cc] shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#f0ece1]">
-                <div>
-                  <h3 className="font-serif text-2xl font-bold text-[#121212]">Registered Property Leads</h3>
-                  <p className="text-xs text-[#666] mt-1">
-                    Register prospective property buyers. Once the deal concludes, your 10% brokerage is credited automatically.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setLeadModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-[#121212] hover:bg-black text-[#faf8f5] font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-xs"
-                >
-                  <PlusCircle className="w-4 h-4" /> Submit Buyer Lead
-                </button>
-              </div>
-
-              <div className="mt-6">
-                {(!data.leads || data.leads.length === 0) ? (
-                  <div className="py-12 text-center text-xs text-[#777] space-y-3">
-                    <Building className="w-10 h-10 text-[#ded8cc] mx-auto" />
-                    <p className="font-semibold text-[#121212]">No property leads registered yet.</p>
-                    <p>Submit client details to ensure you receive your sales brokerage upon closure.</p>
-                    <button
-                      onClick={() => setLeadModal(true)}
-                      className="px-4 py-2 rounded-xl bg-[#121212] text-[#faf8f5] font-bold text-xs inline-block"
-                    >
-                      Register First Lead
-                    </button>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="border-b border-[#ded8cc] text-[#777] uppercase text-[10px] tracking-wider">
-                          <th className="py-3 px-3">Client Name</th>
-                          <th className="py-3 px-3">Contact</th>
-                          <th className="py-3 px-3">Property Interest</th>
-                          <th className="py-3 px-3">Status</th>
-                          <th className="py-3 px-3">Date</th>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-[#ded8cc] text-[#777] uppercase text-[10px] tracking-wider">
+                        <th className="py-3 px-3">Client Name</th>
+                        <th className="py-3 px-3">Contact</th>
+                        <th className="py-3 px-3">Property Interest</th>
+                        <th className="py-3 px-3">Status</th>
+                        <th className="py-3 px-3">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#f0ece1]">
+                      {data.leads.map((l: any) => (
+                        <tr key={l.lead_id} className="hover:bg-[#faf8f5]">
+                          <td className="py-3 px-3 font-bold text-[#121212]">{l.lead_name}</td>
+                          <td className="py-3 px-3 text-[#555]">{l.lead_phone}</td>
+                          <td className="py-3 px-3 text-[#121212]">{l.property_title || 'General Enquiry'}</td>
+                          <td className="py-3 px-3">
+                            <span className="px-2.5 py-0.5 rounded-full bg-[#f5f2ea] text-[#96742e] border border-[#ded5c0] font-bold text-[10px] uppercase">
+                              {l.status || 'Received'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-[#777]">{l.created_at?.split('T')[0] || 'Recent'}</td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#f0ece1]">
-                        {data.leads.map((l: any) => (
-                          <tr key={l.lead_id} className="hover:bg-[#faf8f5]">
-                            <td className="py-3 px-3 font-bold text-[#121212]">{l.lead_name}</td>
-                            <td className="py-3 px-3 text-[#555]">{l.lead_phone}</td>
-                            <td className="py-3 px-3 text-[#121212]">{l.property_title || 'General Enquiry'}</td>
-                            <td className="py-3 px-3">
-                              <span className="px-2.5 py-0.5 rounded-full bg-[#f5f2ea] text-[#96742e] border border-[#ded5c0] font-bold text-[10px] uppercase">
-                                {l.status || 'Received'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-3 text-[#777]">{l.created_at?.split('T')[0] || 'Recent'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================== */}
-        {/* TAB 4: PROFILE & KYC UPLOAD                                    */}
-        {/* ============================================================== */}
-        {activeTab === 'profile' && (
-          <div className="mt-6 space-y-6 animate-in fade-in duration-200">
-            <div className="p-6 sm:p-8 rounded-3xl bg-white border border-[#ded8cc] shadow-xs">
-              <div className="pb-6 border-b border-[#f0ece1] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h3 className="font-serif text-2xl font-bold text-[#121212]">Profile &amp; KYC Verification</h3>
-                  <p className="text-xs text-[#666] mt-1">
-                    Upload official government identity and bank details for smooth direct payouts.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  className="px-4 py-2 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold flex items-center gap-1.5 self-start transition"
-                >
-                  <LogOut className="w-3.5 h-3.5" /> Sign Out
-                </button>
-              </div>
-
-              {docsSuccess && (
-                <div className="mt-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold animate-in fade-in">
-                  {docsSuccess}
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
-
-              <form onSubmit={handleSaveDocuments} className="mt-6 space-y-6">
-                {/* 1. Basic Info Readonly */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-[#faf8f5] border border-[#ded8cc] text-xs">
-                  <div>
-                    <span className="text-[#888] uppercase text-[10px] font-semibold block">Full Name</span>
-                    <span className="font-bold text-[#121212] text-sm">{adviser.full_name}</span>
-                  </div>
-                  <div>
-                    <span className="text-[#888] uppercase text-[10px] font-semibold block">Registration No.</span>
-                    <span className="font-mono font-bold text-[#121212] text-sm">{adviser.registration_no || adviser.adviser_id}</span>
-                  </div>
-                  <div>
-                    <span className="text-[#888] uppercase text-[10px] font-semibold block">Mobile Number</span>
-                    <span className="font-bold text-[#121212] text-sm">{adviser.phone}</span>
-                  </div>
-                </div>
-
-                {/* 2. Document Uploads */}
-                <h4 className="font-serif text-lg font-bold text-[#121212] pt-2">KYC Documents</h4>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Aadhaar Front */}
-                  <div className="p-4 rounded-2xl border border-[#ded8cc] bg-white flex flex-col justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-[#121212] block">Aadhaar Card (Front)</span>
-                      <p className="text-[11px] text-[#777] mt-0.5">Clear photo or scan</p>
-                      {docs.aadhar_front ? (
-                        <div className="mt-3 relative h-28 rounded-xl overflow-hidden border border-[#ded8cc]">
-                          <img src={docs.aadhar_front} alt="Aadhaar Front" className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="mt-3 h-28 rounded-xl border border-dashed border-[#ded8cc] flex items-center justify-center text-[#999] text-xs">
-                          No file selected
-                        </div>
-                      )}
-                    </div>
-                    <label className="mt-3 block text-center py-2 px-3 rounded-xl bg-[#faf8f5] hover:bg-[#f5f2ea] border border-[#ded8cc] text-xs font-semibold text-[#121212] cursor-pointer transition">
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'aadhar_front')} />
-                      Upload Aadhaar Front
-                    </label>
-                  </div>
-
-                  {/* Aadhaar Back */}
-                  <div className="p-4 rounded-2xl border border-[#ded8cc] bg-white flex flex-col justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-[#121212] block">Aadhaar Card (Back)</span>
-                      <p className="text-[11px] text-[#777] mt-0.5">Address side scan</p>
-                      {docs.aadhar_back ? (
-                        <div className="mt-3 relative h-28 rounded-xl overflow-hidden border border-[#ded8cc]">
-                          <img src={docs.aadhar_back} alt="Aadhaar Back" className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="mt-3 h-28 rounded-xl border border-dashed border-[#ded8cc] flex items-center justify-center text-[#999] text-xs">
-                          No file selected
-                        </div>
-                      )}
-                    </div>
-                    <label className="mt-3 block text-center py-2 px-3 rounded-xl bg-[#faf8f5] hover:bg-[#f5f2ea] border border-[#ded8cc] text-xs font-semibold text-[#121212] cursor-pointer transition">
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'aadhar_back')} />
-                      Upload Aadhaar Back
-                    </label>
-                  </div>
-
-                  {/* PAN Card */}
-                  <div className="p-4 rounded-2xl border border-[#ded8cc] bg-white flex flex-col justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-[#121212] block">PAN Card</span>
-                      <p className="text-[11px] text-[#777] mt-0.5">For tax and TDS clearance</p>
-                      {docs.pan_card ? (
-                        <div className="mt-3 relative h-28 rounded-xl overflow-hidden border border-[#ded8cc]">
-                          <img src={docs.pan_card} alt="PAN Card" className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="mt-3 h-28 rounded-xl border border-dashed border-[#ded8cc] flex items-center justify-center text-[#999] text-xs">
-                          No file selected
-                        </div>
-                      )}
-                    </div>
-                    <label className="mt-3 block text-center py-2 px-3 rounded-xl bg-[#faf8f5] hover:bg-[#f5f2ea] border border-[#ded8cc] text-xs font-semibold text-[#121212] cursor-pointer transition">
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'pan_card')} />
-                      Upload PAN Card
-                    </label>
-                  </div>
-
-                  {/* Passport Photo */}
-                  <div className="p-4 rounded-2xl border border-[#ded8cc] bg-white flex flex-col justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-[#121212] block">Passport Photo</span>
-                      <p className="text-[11px] text-[#777] mt-0.5">Recent portrait image</p>
-                      {docs.photo ? (
-                        <div className="mt-3 relative h-28 rounded-xl overflow-hidden border border-[#ded8cc]">
-                          <img src={docs.photo} alt="Photo" className="w-full h-full object-contain" />
-                        </div>
-                      ) : (
-                        <div className="mt-3 h-28 rounded-xl border border-dashed border-[#ded8cc] flex items-center justify-center text-[#999] text-xs">
-                          No file selected
-                        </div>
-                      )}
-                    </div>
-                    <label className="mt-3 block text-center py-2 px-3 rounded-xl bg-[#faf8f5] hover:bg-[#f5f2ea] border border-[#ded8cc] text-xs font-semibold text-[#121212] cursor-pointer transition">
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'photo')} />
-                      Upload Photo
-                    </label>
-                  </div>
-
-                  {/* Bank Passbook / Cheque */}
-                  <div className="p-4 rounded-2xl border border-[#ded8cc] bg-white flex flex-col justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-[#121212] block">Bank Passbook / Cheque</span>
-                      <p className="text-[11px] text-[#777] mt-0.5">Proof of account number</p>
-                      {docs.bank_passbook ? (
-                        <div className="mt-3 relative h-28 rounded-xl overflow-hidden border border-[#ded8cc]">
-                          <img src={docs.bank_passbook} alt="Passbook" className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="mt-3 h-28 rounded-xl border border-dashed border-[#ded8cc] flex items-center justify-center text-[#999] text-xs">
-                          No file selected
-                        </div>
-                      )}
-                    </div>
-                    <label className="mt-3 block text-center py-2 px-3 rounded-xl bg-[#faf8f5] hover:bg-[#f5f2ea] border border-[#ded8cc] text-xs font-semibold text-[#121212] cursor-pointer transition">
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'bank_passbook')} />
-                      Upload Passbook
-                    </label>
-                  </div>
-                </div>
-
-                {/* 3. Bank Account Details */}
-                <h4 className="font-serif text-lg font-bold text-[#121212] pt-2">Bank Payout Information</h4>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                  <div>
-                    <label className="block text-[#666] font-semibold mb-1">Account Holder Name</label>
-                    <input
-                      type="text"
-                      value={bankDetails.account_holder_name || ''}
-                      onChange={(e) => setBankDetails({ ...bankDetails, account_holder_name: e.target.value })}
-                      placeholder="As per bank passbook"
-                      className="w-full px-3 py-2.5 rounded-xl border border-[#ded8cc] bg-[#faf8f5] focus:bg-white text-[#121212]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[#666] font-semibold mb-1">Account Number</label>
-                    <input
-                      type="text"
-                      value={bankDetails.account_number || ''}
-                      onChange={(e) => setBankDetails({ ...bankDetails, account_number: e.target.value })}
-                      placeholder="Bank account number"
-                      className="w-full px-3 py-2.5 rounded-xl border border-[#ded8cc] bg-[#faf8f5] focus:bg-white text-[#121212]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[#666] font-semibold mb-1">IFSC Code</label>
-                    <input
-                      type="text"
-                      value={bankDetails.ifsc || ''}
-                      onChange={(e) => setBankDetails({ ...bankDetails, ifsc: e.target.value.toUpperCase() })}
-                      placeholder="e.g. SBIN0001234"
-                      className="w-full px-3 py-2.5 rounded-xl border border-[#ded8cc] bg-[#faf8f5] focus:bg-white text-[#121212] uppercase"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[#666] font-semibold mb-1">UPI ID (Optional)</label>
-                    <input
-                      type="text"
-                      value={bankDetails.upi_id || ''}
-                      onChange={(e) => setBankDetails({ ...bankDetails, upi_id: e.target.value })}
-                      placeholder="e.g. mobile@upi"
-                      className="w-full px-3 py-2.5 rounded-xl border border-[#ded8cc] bg-[#faf8f5] focus:bg-white text-[#121212]"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-[#f0ece1] flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={savingDocs}
-                    className="px-6 py-3 rounded-xl bg-[#121212] hover:bg-black text-[#faf8f5] font-bold text-xs uppercase tracking-wider shadow-xs transition disabled:opacity-50"
-                  >
-                    {savingDocs ? 'Saving Details...' : 'Save Profile & KYC Details'}
-                  </button>
-                </div>
-              </form>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ============================================================== */}
-        {/* TAB 5: WALLET & PAYOUTS                                        */}
-        {/* ============================================================== */}
-        {activeTab === 'payouts' && (
-          <div className="mt-6 space-y-6 animate-in fade-in duration-200">
-            <div className="p-6 sm:p-8 rounded-3xl bg-white border border-[#ded8cc] shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#f0ece1]">
+      {dedicatedView === 'profile' && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6 animate-in fade-in">
+          <div className="flex items-center justify-between pb-4 border-b border-[#ded8cc]">
+            <button
+              onClick={() => window.close()}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-white border border-[#ded8cc] hover:bg-[#f5f2ea]"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Close Tab / Return
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="px-4 py-2 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold flex items-center gap-1.5"
+            >
+              <LogOut className="w-3.5 h-3.5" /> Sign Out
+            </button>
+          </div>
+
+          <div className="p-6 sm:p-8 rounded-3xl bg-white border border-[#ded8cc] shadow-xs">
+            <h3 className="font-serif text-2xl font-bold text-[#121212]">Profile &amp; KYC Verification</h3>
+            <p className="text-xs text-[#666] mt-1">
+              Upload official government identity and bank details for smooth direct payouts.
+            </p>
+
+            {docsSuccess && (
+              <div className="mt-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold animate-in fade-in">
+                {docsSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveDocuments} className="mt-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-[#faf8f5] border border-[#ded8cc] text-xs">
                 <div>
-                  <span className="text-xs uppercase tracking-wider text-[#777] font-semibold">Available for Withdrawal</span>
-                  <h3 className="font-serif text-3xl sm:text-4xl font-black text-[#121212] mt-1">{inr(availableBalance)}</h3>
+                  <span className="text-[#888] uppercase text-[10px] font-semibold block">Full Name</span>
+                  <span className="font-bold text-[#121212] text-sm">{adviser.full_name}</span>
                 </div>
-                <button
-                  onClick={() => setPayoutModal(true)}
-                  disabled={availableBalance <= 0}
-                  className="px-5 py-3 rounded-xl bg-[#121212] hover:bg-black text-[#faf8f5] font-bold text-xs uppercase tracking-wider shadow-xs transition disabled:opacity-40 self-start"
-                >
-                  Request Bank Payout
-                </button>
+                <div>
+                  <span className="text-[#888] uppercase text-[10px] font-semibold block">Registration No.</span>
+                  <span className="font-mono font-bold text-[#121212] text-sm">{adviser.registration_no || adviser.adviser_id}</span>
+                </div>
+                <div>
+                  <span className="text-[#888] uppercase text-[10px] font-semibold block">Mobile Number</span>
+                  <span className="font-bold text-[#121212] text-sm">{adviser.phone}</span>
+                </div>
               </div>
 
-              {/* Joining Bonus Breakdown Banner */}
-              <div className="mt-6 p-4 rounded-2xl bg-[#faf8f5] border border-[#ded8cc] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#f5f2ea] border border-[#ded8cc] text-[#96742e] grid place-items-center shrink-0">
-                    <TrendingUp className="w-5 h-5" />
-                  </div>
+              {/* KYC Document Uploads */}
+              <h4 className="font-serif text-lg font-bold text-[#121212] pt-2">KYC Documents</h4>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Aadhaar Front */}
+                <div className="p-4 rounded-2xl border border-[#ded8cc] bg-white flex flex-col justify-between">
                   <div>
-                    <h5 className="font-bold text-[#121212]">Instant Multi-Tier Joining Payouts</h5>
-                    <p className="text-[#666] text-[11px]">Direct L1: ₹200 · Level 2: ₹100 · Level 3+: ₹50</p>
+                    <span className="text-xs font-bold text-[#121212] block">Aadhaar Card (Front)</span>
+                    {docs.aadhar_front ? (
+                      <div className="mt-3 relative h-28 rounded-xl overflow-hidden border border-[#ded8cc]">
+                        <img src={docs.aadhar_front} alt="Aadhaar Front" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="mt-3 h-28 rounded-xl border border-dashed border-[#ded8cc] flex items-center justify-center text-[#999] text-xs">
+                        No file uploaded
+                      </div>
+                    )}
+                  </div>
+                  <label className="mt-3 block text-center py-2 px-3 rounded-xl bg-[#faf8f5] hover:bg-[#f5f2ea] border border-[#ded8cc] text-xs font-semibold text-[#121212] cursor-pointer transition">
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'aadhar_front')} />
+                    Upload Aadhaar Front
+                  </label>
+                </div>
+
+                {/* Aadhaar Back */}
+                <div className="p-4 rounded-2xl border border-[#ded8cc] bg-white flex flex-col justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-[#121212] block">Aadhaar Card (Back)</span>
+                    {docs.aadhar_back ? (
+                      <div className="mt-3 relative h-28 rounded-xl overflow-hidden border border-[#ded8cc]">
+                        <img src={docs.aadhar_back} alt="Aadhaar Back" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="mt-3 h-28 rounded-xl border border-dashed border-[#ded8cc] flex items-center justify-center text-[#999] text-xs">
+                        No file uploaded
+                      </div>
+                    )}
+                  </div>
+                  <label className="mt-3 block text-center py-2 px-3 rounded-xl bg-[#faf8f5] hover:bg-[#f5f2ea] border border-[#ded8cc] text-xs font-semibold text-[#121212] cursor-pointer transition">
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'aadhar_back')} />
+                    Upload Aadhaar Back
+                  </label>
+                </div>
+
+                {/* PAN Card */}
+                <div className="p-4 rounded-2xl border border-[#ded8cc] bg-white flex flex-col justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-[#121212] block">PAN Card</span>
+                    {docs.pan_card ? (
+                      <div className="mt-3 relative h-28 rounded-xl overflow-hidden border border-[#ded8cc]">
+                        <img src={docs.pan_card} alt="PAN Card" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="mt-3 h-28 rounded-xl border border-dashed border-[#ded8cc] flex items-center justify-center text-[#999] text-xs">
+                        No file uploaded
+                      </div>
+                    )}
+                  </div>
+                  <label className="mt-3 block text-center py-2 px-3 rounded-xl bg-[#faf8f5] hover:bg-[#f5f2ea] border border-[#ded8cc] text-xs font-semibold text-[#121212] cursor-pointer transition">
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'pan_card')} />
+                    Upload PAN Card
+                  </label>
+                </div>
+
+                {/* Photo */}
+                <div className="p-4 rounded-2xl border border-[#ded8cc] bg-white flex flex-col justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-[#121212] block">Passport Photo</span>
+                    {docs.photo ? (
+                      <div className="mt-3 relative h-28 rounded-xl overflow-hidden border border-[#ded8cc]">
+                        <img src={docs.photo} alt="Photo" className="w-full h-full object-contain" />
+                      </div>
+                    ) : (
+                      <div className="mt-3 h-28 rounded-xl border border-dashed border-[#ded8cc] flex items-center justify-center text-[#999] text-xs">
+                        No file uploaded
+                      </div>
+                    )}
+                  </div>
+                  <label className="mt-3 block text-center py-2 px-3 rounded-xl bg-[#faf8f5] hover:bg-[#f5f2ea] border border-[#ded8cc] text-xs font-semibold text-[#121212] cursor-pointer transition">
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'photo')} />
+                    Upload Photo
+                  </label>
+                </div>
+
+                {/* Passbook */}
+                <div className="p-4 rounded-2xl border border-[#ded8cc] bg-white flex flex-col justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-[#121212] block">Bank Passbook / Cheque</span>
+                    {docs.bank_passbook ? (
+                      <div className="mt-3 relative h-28 rounded-xl overflow-hidden border border-[#ded8cc]">
+                        <img src={docs.bank_passbook} alt="Passbook" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="mt-3 h-28 rounded-xl border border-dashed border-[#ded8cc] flex items-center justify-center text-[#999] text-xs">
+                        No file uploaded
+                      </div>
+                    )}
+                  </div>
+                  <label className="mt-3 block text-center py-2 px-3 rounded-xl bg-[#faf8f5] hover:bg-[#f5f2ea] border border-[#ded8cc] text-xs font-semibold text-[#121212] cursor-pointer transition">
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'bank_passbook')} />
+                    Upload Passbook
+                  </label>
+                </div>
+              </div>
+
+              {/* Bank Payout Info */}
+              <h4 className="font-serif text-lg font-bold text-[#121212] pt-2">Bank Payout Information</h4>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <label className="block text-[#666] font-semibold mb-1">Account Holder Name</label>
+                  <input
+                    type="text"
+                    value={bankDetails.account_holder_name || ''}
+                    onChange={(e) => setBankDetails({ ...bankDetails, account_holder_name: e.target.value })}
+                    placeholder="As per bank passbook"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#ded8cc] bg-[#faf8f5] focus:bg-white text-[#121212]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#666] font-semibold mb-1">Account Number</label>
+                  <input
+                    type="text"
+                    value={bankDetails.account_number || ''}
+                    onChange={(e) => setBankDetails({ ...bankDetails, account_number: e.target.value })}
+                    placeholder="Bank account number"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#ded8cc] bg-[#faf8f5] focus:bg-white text-[#121212]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#666] font-semibold mb-1">IFSC Code</label>
+                  <input
+                    type="text"
+                    value={bankDetails.ifsc || ''}
+                    onChange={(e) => setBankDetails({ ...bankDetails, ifsc: e.target.value.toUpperCase() })}
+                    placeholder="e.g. SBIN0001234"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#ded8cc] bg-[#faf8f5] focus:bg-white text-[#121212] uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#666] font-semibold mb-1">UPI ID (Optional)</label>
+                  <input
+                    type="text"
+                    value={bankDetails.upi_id || ''}
+                    onChange={(e) => setBankDetails({ ...bankDetails, upi_id: e.target.value })}
+                    placeholder="e.g. mobile@upi"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#ded8cc] bg-[#faf8f5] focus:bg-white text-[#121212]"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-[#f0ece1] flex justify-end">
+                <button
+                  type="submit"
+                  disabled={savingDocs}
+                  className="px-6 py-3 rounded-xl bg-[#121212] hover:bg-black text-[#faf8f5] font-bold text-xs uppercase tracking-wider shadow-xs transition disabled:opacity-50"
+                >
+                  {savingDocs ? 'Saving Details...' : 'Save Profile & KYC Details'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {dedicatedView === 'payouts' && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6 animate-in fade-in">
+          <div className="flex items-center justify-between pb-4 border-b border-[#ded8cc]">
+            <button
+              onClick={() => window.close()}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-white border border-[#ded8cc] hover:bg-[#f5f2ea]"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Close Tab / Return
+            </button>
+            <button
+              onClick={() => setPayoutModal(true)}
+              disabled={availableBalance <= 0}
+              className="px-5 py-2.5 rounded-xl bg-[#121212] hover:bg-black text-[#faf8f5] font-bold text-xs uppercase tracking-wider shadow-xs transition disabled:opacity-40"
+            >
+              Request Bank Payout
+            </button>
+          </div>
+
+          <div className="p-6 sm:p-8 rounded-3xl bg-white border border-[#ded8cc] shadow-xs">
+            <span className="text-xs uppercase tracking-wider text-[#777] font-semibold">Available Balance</span>
+            <h3 className="font-serif text-3xl sm:text-4xl font-black text-[#121212] mt-1">{inr(availableBalance)}</h3>
+
+            <div className="mt-8">
+              <h4 className="font-serif text-lg font-bold text-[#121212] mb-3">Withdrawal Requests</h4>
+              {(!data.payouts || data.payouts.length === 0) ? (
+                <p className="text-xs text-[#777] py-4">No payout requests submitted yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-[#ded8cc] text-[#777] uppercase text-[10px] tracking-wider">
+                        <th className="py-2.5 px-3">Amount</th>
+                        <th className="py-2.5 px-3">Method</th>
+                        <th className="py-2.5 px-3">Status</th>
+                        <th className="py-2.5 px-3">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#f0ece1]">
+                      {data.payouts.map((p: any) => (
+                        <tr key={p.payout_id} className="hover:bg-[#faf8f5]">
+                          <td className="py-2.5 px-3 font-bold text-[#121212]">{inr(p.amount)}</td>
+                          <td className="py-2.5 px-3 text-[#555] uppercase">{p.payment_method?.replace('_', ' ')}</td>
+                          <td className="py-2.5 px-3">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              p.status === 'paid' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-[#f5f2ea] text-[#96742e] border border-[#ded5c0]'
+                            }`}>
+                              {p.status}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-[#777]">{p.created_at?.split('T')[0] || 'Recent'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MAIN DASHBOARD (WHEN NO DEDICATED ?view= IS ACTIVE)             */}
+      {/* ============================================================== */}
+      {!dedicatedView && (
+        <div className="container-x max-w-6xl relative z-10 px-4 sm:px-6 mx-auto space-y-8 animate-in fade-in">
+          
+          {/* ============================================================== */}
+          {/* USER INFO CARD: COLORFUL, MINIMAL, NO USELESS TEXT             */}
+          {/* Shows: Name, Reg.No, Token, Mobile, and Share Link Button      */}
+          {/* ============================================================== */}
+          <section className="rounded-3xl bg-gradient-to-br from-[#0c1a2e] via-[#0a2331] to-[#0a333a] border border-teal-500/30 p-5 sm:p-7 text-white shadow-2xl relative overflow-hidden">
+            {/* Ambient decorative glowing spots */}
+            <div className="pointer-events-none absolute -top-24 -right-24 w-64 h-64 rounded-full bg-emerald-500/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 -left-24 w-64 h-64 rounded-full bg-amber-500/15 blur-3xl" />
+
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+              
+              {/* User Identity Details & Colorful Badges */}
+              <div className="flex items-center gap-4">
+                {/* Colorful Initial Avatar */}
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-amber-400 via-teal-300 to-emerald-400 p-0.5 shadow-lg shrink-0">
+                  <div className="w-full h-full rounded-[14px] bg-[#021f24] flex items-center justify-center text-amber-300 font-serif text-2xl sm:text-3xl font-black">
+                    {adviser.full_name?.charAt(0) || 'A'}
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <h1 className="font-serif text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
+                    {adviser.full_name}
+                  </h1>
+
+                  {/* 3 Colorful Clean Badges: Reg.No, Token, Mobile */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Reg. No (Emerald) */}
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-xs font-mono font-bold shadow-xs">
+                      Reg: {adviser.registration_no || adviser.adviser_id}
+                    </span>
+
+                    {/* Token (Amber/Gold) */}
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40 text-xs font-mono font-bold shadow-xs">
+                      Token: {adviser.token_number || 'IB-APPROVED'}
+                    </span>
+
+                    {/* Mobile Number (Sky Blue) */}
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/20 text-sky-200 border border-sky-400/40 text-xs font-medium shadow-xs">
+                      <Phone className="w-3.5 h-3.5 text-sky-300" />
+                      {adviser.phone}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Share Referral Link Button (Vibrant & Colorful) */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setPlanModalOpen(true)}
-                  className="px-3.5 py-1.5 rounded-full bg-white border border-[#ded8cc] text-xs font-semibold text-[#96742e] hover:text-[#7d5f22] transition"
+                  onClick={handleShareLink}
+                  className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-[#022c33] font-black px-6 py-3.5 rounded-2xl shadow-xl shadow-teal-500/25 flex items-center justify-center gap-2 text-xs uppercase tracking-wider transition hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  Inspect Plan Deck →
+                  <Share2 className="w-4 h-4" />
+                  {copied ? 'Link Copied!' : 'Share Referral Link'}
                 </button>
               </div>
 
-              {/* Payout History */}
-              <div className="mt-6">
-                <h4 className="font-serif text-lg font-bold text-[#121212] mb-3">Withdrawal Requests</h4>
-                {(!data.payouts || data.payouts.length === 0) ? (
-                  <p className="text-xs text-[#777] py-4">No payout requests submitted yet.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="border-b border-[#ded8cc] text-[#777] uppercase text-[10px] tracking-wider">
-                          <th className="py-2.5 px-3">Amount</th>
-                          <th className="py-2.5 px-3">Method</th>
-                          <th className="py-2.5 px-3">Status</th>
-                          <th className="py-2.5 px-3">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#f0ece1]">
-                        {data.payouts.map((p: any) => (
-                          <tr key={p.payout_id} className="hover:bg-[#faf8f5]">
-                            <td className="py-2.5 px-3 font-bold text-[#121212]">{inr(p.amount)}</td>
-                            <td className="py-2.5 px-3 text-[#555] uppercase">{p.payment_method?.replace('_', ' ')}</td>
-                            <td className="py-2.5 px-3">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                                p.status === 'paid' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-[#f5f2ea] text-[#96742e] border border-[#ded5c0]'
-                              }`}>
-                                {p.status}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-[#777]">{p.created_at?.split('T')[0] || 'Recent'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+            </div>
+          </section>
+
+          {/* 4 KPI METRICS ROW */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="p-5 rounded-2xl bg-white border border-[#ded8cc] shadow-xs flex flex-col justify-between">
+              <div>
+                <span className="text-[11px] font-bold text-[#777] uppercase tracking-wider flex items-center gap-1.5">
+                  <Wallet className="w-3.5 h-3.5 text-[#96742e]" /> Available Balance
+                </span>
+                <p className="text-2xl sm:text-3xl font-black text-[#121212] mt-2">{inr(availableBalance)}</p>
+              </div>
+              <button
+                onClick={() => openViewInNewWindow('payouts')}
+                className="text-xs text-[#96742e] hover:text-[#7d5f22] font-bold hover:underline mt-3 inline-flex items-center gap-1"
+              >
+                Withdraw Funds ↗
+              </button>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-[#ded8cc] shadow-xs flex flex-col justify-between">
+              <div>
+                <span className="text-[11px] font-bold text-[#777] uppercase tracking-wider flex items-center gap-1.5">
+                  <Building className="w-3.5 h-3.5 text-[#96742e]" /> Properties Sold
+                </span>
+                <p className="text-2xl sm:text-3xl font-black text-[#121212] mt-2">{data.propertyCommissions?.length || 0}</p>
+              </div>
+              <span className="text-xs text-[#666] mt-3 block">
+                Earned: <b className="text-[#121212]">{inr(commissionsSummary.approved + commissionsSummary.paid)}</b>
+              </span>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-[#ded8cc] shadow-xs flex flex-col justify-between">
+              <div>
+                <span className="text-[11px] font-bold text-[#777] uppercase tracking-wider flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-[#96742e]" /> Direct Members
+                </span>
+                <p className="text-2xl sm:text-3xl font-black text-[#121212] mt-2">{stats.directCount}</p>
+              </div>
+              <span className="text-xs text-[#666] mt-3 block">
+                Total Network: <b className="text-[#121212]">{stats.totalTeam}</b>
+              </span>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-[#ded8cc] shadow-xs flex flex-col justify-between">
+              <div>
+                <span className="text-[11px] font-bold text-[#777] uppercase tracking-wider flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600" /> Joining Rewards
+                </span>
+                <p className="text-2xl sm:text-3xl font-black text-emerald-700 mt-2">
+                  {inr(regRewardsSummary.approved + regRewardsSummary.paid)}
+                </p>
+              </div>
+              <span className="text-xs text-[#666] mt-3 block">₹300 self + ₹200/referral</span>
+            </div>
+          </div>
+
+          {/* TWO PRIMARY WAYS TO EARN */}
+          <div className="grid md:grid-cols-2 gap-5">
+            {/* WAY 1: SELL PROPERTY */}
+            <div className="rounded-3xl border border-[#ded8cc] bg-white p-6 sm:p-7 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="px-3 py-1 rounded-full bg-[#f5f2ea] text-[#96742e] border border-[#ded5c0] text-[10px] font-bold uppercase tracking-wider">
+                    Way to Earn #1
+                  </span>
+                  <span className="text-xs font-black text-[#96742e]">10% Direct Sales Brokerage</span>
+                </div>
+
+                <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#121212] mt-3">Sell Property</h3>
+                <p className="text-xs text-[#666] mt-1 leading-relaxed">
+                  Refer buyers for flats and plots. When a deal is closed, 10% direct brokerage commission is credited to your wallet, with multi-level overrides up to Level 6.
+                </p>
+
+                <div className="mt-4 p-4 rounded-2xl bg-[#faf8f5] border border-[#ded8cc] grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[10px] text-[#777] uppercase font-semibold">Properties Closed</span>
+                    <p className="text-xl font-black text-[#121212] mt-0.5">{data.propertyCommissions?.length || 0}</p>
                   </div>
-                )}
+                  <div>
+                    <span className="text-[10px] text-[#777] uppercase font-semibold">Commissions</span>
+                    <p className="text-xl font-black text-[#96742e] mt-0.5">
+                      {inr(commissionsSummary.approved + commissionsSummary.paid)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-[#f0ece1] flex gap-2">
+                <button
+                  onClick={() => setLeadModal(true)}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-[#121212] hover:bg-black text-[#faf8f5] font-bold text-xs uppercase tracking-wider shadow-xs transition flex items-center justify-center gap-1.5"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" /> Submit Buyer Lead
+                </button>
+                <button
+                  onClick={() => openViewInNewWindow('leads')}
+                  className="py-2.5 px-4 rounded-xl border border-[#ded8cc] hover:bg-[#f5f2ea] text-[#121212] font-semibold text-xs transition flex items-center gap-1"
+                >
+                  View Leads ↗
+                </button>
+              </div>
+            </div>
+
+            {/* WAY 2: MAKE A TEAM */}
+            <div className="rounded-3xl border border-[#ded8cc] bg-white p-6 sm:p-7 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="px-3 py-1 rounded-full bg-[#f4fbf7] text-emerald-800 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider">
+                    Way to Earn #2
+                  </span>
+                  <span className="text-xs font-black text-emerald-700">₹200 Referral + Tier Overrides</span>
+                </div>
+
+                <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#121212] mt-3">Make a Team</h3>
+                <p className="text-xs text-[#666] mt-1 leading-relaxed">
+                  Build your partnership network. Direct recruits earn you ₹200, Level 2 recruits earn you ₹100, and Level 3+ earn you ₹50 automatically.
+                </p>
+
+                <div className="mt-4 p-4 rounded-2xl bg-[#faf8f5] border border-[#ded8cc] grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[10px] text-[#777] uppercase font-semibold">Direct Recruits</span>
+                    <p className="text-xl font-black text-[#121212] mt-0.5">{stats.directCount}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[#777] uppercase font-semibold">Rewards Earned</span>
+                    <p className="text-xl font-black text-emerald-700 mt-0.5">
+                      {inr(regRewardsSummary.approved + regRewardsSummary.paid)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-[#f0ece1] flex gap-2">
+                <button
+                  onClick={handleShareLink}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-[#121212] hover:bg-black text-[#faf8f5] font-bold text-xs uppercase tracking-wider shadow-xs transition flex items-center justify-center gap-1.5"
+                >
+                  <Share2 className="w-3.5 h-3.5" /> Share Referral Link
+                </button>
+                <button
+                  onClick={() => openViewInNewWindow('tree')}
+                  className="py-2.5 px-4 rounded-xl border border-[#ded8cc] hover:bg-[#f5f2ea] text-[#121212] font-semibold text-xs transition flex items-center gap-1"
+                >
+                  Inspect Tree ↗
+                </button>
               </div>
             </div>
           </div>
-        )}
 
-      </div>
+          {/* 4 DEDICATED NEW-WINDOW ACTION CARDS */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button
+              type="button"
+              onClick={() => openViewInNewWindow('tree')}
+              className="p-5 rounded-2xl bg-white border border-[#ded8cc] hover:border-[#121212] transition shadow-xs text-left group"
+            >
+              <div className="flex items-center justify-between text-[#777] group-hover:text-[#121212]">
+                <Users className="w-5 h-5 text-[#96742e]" />
+                <ExternalLink className="w-4 h-4" />
+              </div>
+              <h4 className="font-bold text-[#121212] text-sm mt-3">Referral Tree</h4>
+              <p className="text-[11px] text-[#777] mt-0.5">Open network downline in new tab</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openViewInNewWindow('leads')}
+              className="p-5 rounded-2xl bg-white border border-[#ded8cc] hover:border-[#121212] transition shadow-xs text-left group"
+            >
+              <div className="flex items-center justify-between text-[#777] group-hover:text-[#121212]">
+                <Building className="w-5 h-5 text-[#96742e]" />
+                <ExternalLink className="w-4 h-4" />
+              </div>
+              <h4 className="font-bold text-[#121212] text-sm mt-3">Property Leads</h4>
+              <p className="text-[11px] text-[#777] mt-0.5">Manage buyer leads in new tab</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openViewInNewWindow('profile')}
+              className="p-5 rounded-2xl bg-white border border-[#ded8cc] hover:border-[#121212] transition shadow-xs text-left group"
+            >
+              <div className="flex items-center justify-between text-[#777] group-hover:text-[#121212]">
+                <User className="w-5 h-5 text-[#96742e]" />
+                <ExternalLink className="w-4 h-4" />
+              </div>
+              <h4 className="font-bold text-[#121212] text-sm mt-3">Profile &amp; KYC</h4>
+              <p className="text-[11px] text-[#777] mt-0.5">Upload Aadhaar &amp; Bank in new tab</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openViewInNewWindow('payouts')}
+              className="p-5 rounded-2xl bg-white border border-[#ded8cc] hover:border-[#121212] transition shadow-xs text-left group"
+            >
+              <div className="flex items-center justify-between text-[#777] group-hover:text-[#121212]">
+                <Wallet className="w-5 h-5 text-[#96742e]" />
+                <ExternalLink className="w-4 h-4" />
+              </div>
+              <h4 className="font-bold text-[#121212] text-sm mt-3">Wallet &amp; Payouts</h4>
+              <p className="text-[11px] text-[#777] mt-0.5">Withdraw funds in new tab</p>
+            </button>
+          </div>
+
+          {/* Quick Preview of Direct Network Tree on Dashboard */}
+          <div className="rounded-3xl border border-[#ded8cc] bg-white p-6 sm:p-8 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+              <div>
+                <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#121212]">Direct Network Snapshot</h3>
+                <p className="text-xs text-[#666] mt-1">Partners joined under your referral code.</p>
+              </div>
+              <button
+                onClick={() => openViewInNewWindow('tree')}
+                className="text-xs font-bold text-[#96742e] hover:text-[#7d5f22] bg-[#f5f0e4] border border-[#ded5c0] px-3.5 py-1.5 rounded-full transition flex items-center gap-1 self-start"
+              >
+                Open Full Network Tree ↗
+              </button>
+            </div>
+
+            <ReferralTreeCanvas
+              root={teamTree}
+              referralCode={referralCode}
+              copyReferralLink={copyReferralLink}
+              copied={copied}
+              expandedNodes={expandedNodes}
+              toggleNode={toggleNode}
+            />
+          </div>
+
+        </div>
+      )}
 
       {/* Floating Action Spinner */}
-      <AdviserSpinner activeTab={activeTab} onSelectTab={setActiveTab} />
-
-      {/* Full Plan Showcase Modal */}
-      <AdviserPlanModal isOpen={planModalOpen} onClose={() => setPlanModalOpen(false)} />
+      <AdviserSpinner />
 
       {/* Lead Submission Modal */}
       {leadModal && (
@@ -1185,6 +1210,13 @@ export default function AdviserDashboard() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Floating Toast Notification */}
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#121212] text-[#faf8f5] text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg border border-[#333] animate-in fade-in slide-in-from-bottom-2">
+          {toastMsg}
         </div>
       )}
     </div>

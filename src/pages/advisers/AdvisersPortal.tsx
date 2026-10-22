@@ -16,13 +16,12 @@ import {
   Users,
   TrendingUp,
   Sparkles,
-  ChevronRight,
   BookOpen,
 } from 'lucide-react';
+import Logo from '../../components/Logo';
 import { adviserService, type AdviserRecord, getStoredAdviserAuth, setStoredAdviserAuth } from '../../lib/adviserService';
 import { useSeo } from '../../lib/seo';
 import LanguageToggle from '../../components/LanguageToggle';
-import AdviserPlanModal from '../../components/AdviserPlanModal';
 
 export default function AdvisersPortal() {
   const navigate = useNavigate();
@@ -30,9 +29,6 @@ export default function AdvisersPortal() {
 
   // Active view: 'login' | 'register' | 'locked_red' | 'approved_green'
   const [view, setView] = useState<'login' | 'register' | 'locked_red' | 'approved_green'>('login');
-
-  // Plan modal popup
-  const [planModalOpen, setPlanModalOpen] = useState(false);
 
   // Login Form States
   const [loginType, setLoginType] = useState<'reg' | 'mobile'>('reg');
@@ -83,6 +79,10 @@ export default function AdvisersPortal() {
   const copyText = (val: string, label = 'Copied to clipboard!') => {
     navigator.clipboard.writeText(val);
     showToast(label);
+  };
+
+  const openPlanNewWindow = () => {
+    window.open('/advisers/plan', '_blank', 'noopener,noreferrer');
   };
 
   // Handle Login Submit
@@ -162,52 +162,62 @@ export default function AdvisersPortal() {
   };
 
   return (
-    <div className="min-h-screen relative flex flex-col justify-between p-4 sm:p-6 md:p-8 bg-[#faf8f5] text-[#121212] select-none font-sans">
+    <div className="min-h-screen relative flex flex-col justify-between bg-[#faf8f5] text-[#121212] select-none font-sans">
       {/* Background Architectural Grid Accent */}
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#e5dfd3_1px,transparent_1px),linear-gradient(to_bottom,#e5dfd3_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30" />
 
-      {/* Top Header Navigation */}
-      <header className="relative z-20 max-w-5xl w-full mx-auto flex items-center justify-between pb-6 border-b border-[#e5dfd3]">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#121212] hover:text-[#96742e] transition px-3.5 py-1.5 rounded-full bg-white border border-[#ded8cc] shadow-xs"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Website
-        </Link>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setPlanModalOpen(true)}
-            className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#96742e] hover:text-[#7d5f22] bg-[#f5f0e4] border border-[#ded5c0] px-3.5 py-1.5 rounded-full transition"
-          >
-            <BookOpen className="w-3.5 h-3.5" /> View Adviser Plan
-          </button>
-          <div className="scale-90 origin-right">
-            <LanguageToggle variant="default" solid={false} />
+      {/* Full-Width Main Website Style Header */}
+      <header className="sticky top-0 z-40 w-full border-b border-[#ded8cc] bg-white/95 backdrop-blur-xl shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Logo />
+            <span className="hidden sm:inline-block w-px h-6 bg-[#ded8cc]" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f5f0e4] text-[#96742e] text-[11px] font-bold border border-[#ded5c0]">
+              <Sparkles className="w-3.5 h-3.5" /> Adviser Portal
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <button
+              type="button"
+              onClick={openPlanNewWindow}
+              className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#96742e] hover:text-[#7d5f22] bg-[#f5f0e4] border border-[#ded5c0] px-3.5 py-2 rounded-full transition shadow-xs"
+            >
+              <BookOpen className="w-3.5 h-3.5" /> View Adviser Plan ↗
+            </button>
+            <div className="scale-90 origin-right hidden sm:block">
+              <LanguageToggle solid={true} />
+            </div>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#555] hover:text-[#121212] px-3 py-2 rounded-full border border-[#ded8cc] hover:bg-[#f5f2ea] transition"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Back to</span> Website
+            </Link>
           </div>
         </div>
       </header>
 
       {/* Main Form & Content Area */}
-      <main className={`relative z-10 w-full mx-auto my-auto py-8 transition-all duration-300 ${
+      <main className={`relative z-10 w-full mx-auto my-auto px-4 py-8 sm:py-12 transition-all duration-300 ${
         view === 'locked_red' ? 'max-w-3xl' : 'max-w-md sm:max-w-lg'
       }`}>
         <div className="bg-white border border-[#ded8cc] rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.06)] p-6 sm:p-10 select-none">
 
-          {/* Logo & Luxury Header */}
+          {/* Logo & Header Inside Card */}
           <div className="text-center mb-8">
             <div className="w-16 h-16 mx-auto rounded-2xl p-2 bg-[#f5f2ea] border border-[#ded8cc] shadow-xs flex items-center justify-center">
               <img
-                src="/favicon.png"
+                src="/images/logo.jpg"
                 alt="Iston Builder Group"
-                className="w-12 h-12 object-contain rounded-xl"
+                className="w-12 h-12 object-cover rounded-xl"
               />
             </div>
             <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#121212] mt-4 tracking-tight">
-              Adviser Portal
+              Adviser Login
             </h1>
             <p className="text-xs uppercase tracking-[0.2em] text-[#96742e] font-semibold mt-1.5">
-              Iston Builder Group · Private Network
+              Single Number Login · Private Network
             </p>
           </div>
 
@@ -268,10 +278,10 @@ export default function AdvisersPortal() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPlanModalOpen(true)}
+                    onClick={openPlanNewWindow}
                     className="py-3 px-4 rounded-xl border border-[#ded8cc] bg-white hover:bg-[#f5f2ea] text-xs font-semibold text-[#121212] transition flex items-center justify-center gap-1.5"
                   >
-                    <BookOpen className="w-3.5 h-3.5 text-[#96742e]" /> View Plan
+                    <BookOpen className="w-3.5 h-3.5 text-[#96742e]" /> View Plan ↗
                   </button>
                 </div>
               </div>
@@ -329,14 +339,14 @@ export default function AdvisersPortal() {
                     }}
                     className="w-full bg-[#121212] hover:bg-black text-[#faf8f5] font-bold py-3.5 rounded-xl text-xs tracking-wider uppercase transition flex items-center justify-center gap-2 shadow-sm"
                   >
-                    Open Adviser Dashboard <ArrowRight className="w-4 h-4" />
+                    Open Adviser Dashboard ↗
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPlanModalOpen(true)}
+                    onClick={openPlanNewWindow}
                     className="w-full py-3 rounded-xl border border-[#ded8cc] bg-white hover:bg-[#f5f2ea] text-xs font-semibold text-[#121212] transition flex items-center justify-center gap-1.5"
                   >
-                    <BookOpen className="w-3.5 h-3.5 text-[#96742e]" /> View Plan &amp; Commission Deck
+                    <BookOpen className="w-3.5 h-3.5 text-[#96742e]" /> View Plan &amp; Commission Deck ↗
                   </button>
                 </div>
               </div>
@@ -475,10 +485,10 @@ export default function AdvisersPortal() {
                 <div>
                   <button
                     type="button"
-                    onClick={() => setPlanModalOpen(true)}
+                    onClick={openPlanNewWindow}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#96742e] hover:text-[#7d5f22] transition"
                   >
-                    <BookOpen className="w-3.5 h-3.5" /> View Commission &amp; Growth Plan
+                    <BookOpen className="w-3.5 h-3.5" /> View Commission &amp; Growth Plan ↗
                   </button>
                 </div>
               </div>
@@ -645,15 +655,15 @@ export default function AdvisersPortal() {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-20 max-w-5xl w-full mx-auto text-center pt-6 border-t border-[#e5dfd3] flex flex-col sm:flex-row items-center justify-between text-xs text-[#777] gap-3">
+      <footer className="relative z-20 max-w-7xl w-full mx-auto text-center py-6 px-4 border-t border-[#e5dfd3] flex flex-col sm:flex-row items-center justify-between text-xs text-[#777] gap-3">
         <p>© {new Date().getFullYear()} Iston Builder Group. All rights reserved.</p>
         <div className="flex items-center gap-4">
           <button
             type="button"
-            onClick={() => setPlanModalOpen(true)}
+            onClick={openPlanNewWindow}
             className="hover:text-[#121212] transition underline decoration-[#ded8cc]"
           >
-            Adviser Growth Plan
+            Adviser Growth Plan ↗
           </button>
           <span>•</span>
           <Link to="/contact" className="hover:text-[#121212] transition underline decoration-[#ded8cc]">
@@ -668,9 +678,6 @@ export default function AdvisersPortal() {
           {toastMsg}
         </div>
       )}
-
-      {/* Adviser Plan Deck Modal */}
-      <AdviserPlanModal isOpen={planModalOpen} onClose={() => setPlanModalOpen(false)} />
     </div>
   );
 }
