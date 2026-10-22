@@ -609,6 +609,80 @@ export const adviserService = {
     return { ok: true, token_number: token, adviser: adv || undefined };
   },
 
+  /**
+   * Admin permanently deletes an adviser from the database and all caches
+   */
+  async adminDeleteAdviser(adviserId: string): Promise<{ ok: boolean; error?: string }> {
+    // 1. Try API first
+    try {
+      const res = await api<any>('/api/advisers', {
+        method: 'POST',
+        auth: true,
+        body: {
+          action: 'admin_delete_adviser',
+          adviser_id: adviserId,
+        },
+      });
+      if (res?.ok) {
+        this.deleteLocally(adviserId);
+        return { ok: true };
+      }
+    } catch {
+      /* fallback to direct DB and cache removal */
+    }
+
+    // 2. Direct Supabase delete
+    try {
+      await supabase
+        .from('advisers')
+        .delete()
+        .or(`adviser_id.eq.${adviserId},registration_no.eq.${adviserId}`);
+    } catch {
+      /* ignore */
+    }
+
+    // 3. Local and cloud cache deletion
+    this.deleteLocally(adviserId);
+    return { ok: true };
+  },
+
+  deleteLocally(adviserId: string) {
+    try {
+      const cache = getLocalCache();
+      const updated = cache.advisers.filter(
+        (a) => a.adviser_id !== adviserId && a.registration_no !== adviserId
+      );
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ advisers: updated }));
+
+      // Clear cloud settings
+      supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'config_advisers_state.json')
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.value && Array.isArray(data.value.advisers)) {
+            const cloudFiltered = data.value.advisers.filter(
+              (a: any) => a.adviser_id !== adviserId && a.registration_no !== adviserId
+            );
+            supabase.from('settings').upsert({
+              key: 'config_advisers_state.json',
+              value: { ...data.value, advisers: cloudFiltered },
+              updated_at: new Date().toISOString(),
+            });
+          }
+        });
+
+      // Clear session if current
+      const current = getStoredAdviserAuth();
+      if (current && (current.adviser_id === adviserId || current.registration_no === adviserId)) {
+        setStoredAdviserAuth(null);
+      }
+    } catch {
+      /* ignore */
+    }
+  },
+
   activateWithTokenLocally(adviserId: string, token: string): AdviserRecord | null {
     try {
       const cache = getLocalCache();
@@ -721,8 +795,9 @@ export const adviserService = {
     });
     const directCount = directReferrals.length;
 
-    // 2. Compute full downline hierarchy
+    // 2. Compute full downline hierarchy with accurate levels
     const downline: AdviserRecord[] = [];
+    const downlineWithLevels: { adviser: AdviserRecord; level: number }[] = [];
     const visited = new Set<string>([myAdvId, myRefCode]);
     const levelCounts: Record<string, number> = directCount > 0 ? { '1': directCount } : {};
 
@@ -732,6 +807,7 @@ export const adviserService = {
       const nextLevelAdvisers: AdviserRecord[] = [];
       for (const adv of currentLevelAdvisers) {
         downline.push(adv);
+        downlineWithLevels.push({ adviser: adv, level: currentLevel });
         const childRef = (adv.referral_code || adv.registration_no || adv.adviser_id || '').toUpperCase();
         const childId = (adv.adviser_id || '').toUpperCase();
         if (childRef) visited.add(childRef);
@@ -757,33 +833,59 @@ export const adviserService = {
     }
     const totalTeam = downline.length;
 
-    // 3. Registration referral rewards (Direct sponsor gets ₹300 per active member)
+    // 3. Registration referral rewards:
+    // - New Member Welcome Bonus: ₹300
+    // - Direct Referrer (Level 1): ₹200
+    // - Level 2 Upline: ₹100
+    // - Level 3 Upline: ₹50
+    // - Level 4+ Upline: ₹50
     let registrationRewards: any[] = [];
     try {
       const { data } = await supabase
         .from('registration_rewards')
         .select('*')
         .eq('beneficiary_adviser_id', currentRecord.adviser_id);
-      if (data && Array.isArray(data)) {
+      if (data && Array.isArray(data) && data.length > 0) {
         registrationRewards = data;
       }
     } catch {
       /* ignore */
     }
 
-    if (registrationRewards.length === 0 && currentRecord.status === 'active') {
-      registrationRewards = directReferrals
-        .filter((r) => r.status === 'active' || r.payment_status === 'verified_paid' || r.payment_status === 'verified_cash')
-        .map((r, i) => ({
-          id: i + 1,
-          amount: 300,
-          level: 1,
-          status: 'paid',
-          source_adviser_id: r.registration_no || r.adviser_id,
-          source_adviser_name: r.full_name,
-          beneficiary_adviser_id: currentRecord.adviser_id,
-          created_at: r.created_at || new Date().toISOString(),
-        }));
+    if (registrationRewards.length === 0 && (currentRecord.status === 'active' || currentRecord.payment_status === 'verified_paid' || currentRecord.payment_status === 'verified_cash')) {
+      const computedRewards: any[] = [];
+
+      // 1. Self welcome bonus of ₹300 for the active adviser
+      computedRewards.push({
+        id: 'self-welcome-bonus',
+        amount: 300,
+        level: 0,
+        status: 'paid',
+        source_adviser_id: currentRecord.registration_no || currentRecord.adviser_id,
+        source_adviser_name: 'Joining Bonus (Welcome Reward)',
+        beneficiary_adviser_id: currentRecord.adviser_id,
+        created_at: currentRecord.activated_at || currentRecord.created_at || new Date().toISOString(),
+      });
+
+      // 2. Cascading downline rewards for active team members
+      downlineWithLevels.forEach(({ adviser: r, level }, idx) => {
+        const isActive = r.status === 'active' || r.payment_status === 'verified_paid' || r.payment_status === 'verified_cash';
+        if (isActive) {
+          const amt = level === 1 ? 200 : level === 2 ? 100 : 50;
+          computedRewards.push({
+            id: `downline-L${level}-${r.adviser_id}-${idx}`,
+            amount: amt,
+            level,
+            status: 'paid',
+            source_adviser_id: r.registration_no || r.adviser_id,
+            source_adviser_name: `${r.full_name} (Level ${level})`,
+            beneficiary_adviser_id: currentRecord.adviser_id,
+            created_at: r.activated_at || r.created_at || new Date().toISOString(),
+          });
+        }
+      });
+
+      registrationRewards = computedRewards;
     }
 
     // 4. Property commissions

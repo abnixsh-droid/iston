@@ -25,6 +25,7 @@ import {
   Lock,
   Phone,
   UserCheck,
+  Trash2,
 } from 'lucide-react';
 import { api, useApi } from '../lib/api';
 import supabase from '../lib/supabase';
@@ -314,6 +315,41 @@ export default function AdvisersAdmin() {
   };
 
   // Confirm cash payment and generate login token
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteAdviser = async (adviser: any) => {
+    const regNo = adviser.registration_no || adviser.adviser_id;
+    if (
+      !confirm(
+        `PERMANENT DELETION WARNING:\n\nAre you sure you want to permanently delete adviser:\n\nName: ${adviser.full_name}\nRegistration No: ${regNo}\nMobile: ${adviser.phone}\n\nThis will completely remove this adviser's data and downline links from the database. This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setDeletingId(adviser.adviser_id);
+      const res = await adviserService.adminDeleteAdviser(adviser.adviser_id);
+      if (res?.ok) {
+        alert(`Adviser ${adviser.full_name} (${regNo}) deleted successfully.`);
+        if (inspectAdviser && (inspectAdviser.adviser_id === adviser.adviser_id || inspectAdviser.registration_no === adviser.adviser_id)) {
+          setInspectAdviser(null);
+        }
+        if (selectedKycAdviser && (selectedKycAdviser.adviser_id === adviser.adviser_id || selectedKycAdviser.registration_no === adviser.adviser_id)) {
+          setSelectedKycAdviser(null);
+        }
+        loadAdvisers();
+        loadFinancials();
+      } else {
+        alert(res?.error || 'Failed to delete adviser.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error deleting adviser.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const handleApproveCash = async (adviser: any) => {
     const regNo = adviser.registration_no || adviser.adviser_id;
     if (
@@ -601,9 +637,7 @@ export default function AdvisersAdmin() {
                           <div className="mt-2 space-y-1 text-xs">
                             <p className="text-muted"><b className="text-navy">Mobile:</b> {a.phone}</p>
                             <p className="text-muted"><b className="text-navy">Sponsor:</b> {a.sponsor_code || a.sponsor_id || 'Direct'}</p>
-                            {a.password && (
-                              <p className="text-muted"><b className="text-navy">Password:</b> <span className="font-mono bg-mist px-1.5 py-0.5 rounded text-navy">{a.password}</span></p>
-                            )}
+                            <p className="text-muted"><b className="text-navy">Password:</b> <span className="font-mono bg-mist px-1.5 py-0.5 rounded text-muted select-none">••••••••</span></p>
                           </div>
 
                           <div className="mt-2.5 flex items-center justify-between text-xs pt-2 border-t border-line">
@@ -644,9 +678,17 @@ export default function AdvisersAdmin() {
                           </button>
                           <button
                             onClick={() => updateAdviserStatus(a.adviser_id, 'rejected')}
-                            className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold hover:bg-rose-100"
+                            className="px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold hover:bg-amber-100"
                           >
                             Reject
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAdviser(a)}
+                            disabled={deletingId === a.adviser_id}
+                            className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold hover:bg-rose-100 flex items-center gap-1"
+                            title="Delete permanently from database"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>
                         </div>
                       </div>
@@ -696,7 +738,7 @@ export default function AdvisersAdmin() {
                       <th className="py-3 px-4">Reg No</th>
                       <th className="py-3 px-4">Name (as per Aadhaar) & Phone</th>
                       <th className="py-3 px-4">Sponsor / Ref</th>
-                      <th className="py-3 px-4">Password</th>
+                      <th className="py-3 px-4">Security</th>
                       <th className="py-3 px-4">Token Number</th>
                       <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4">KYC Docs</th>
@@ -715,7 +757,7 @@ export default function AdvisersAdmin() {
                             <p className="text-[11px] text-muted">{a.phone}</p>
                           </td>
                           <td className="py-3 px-4 font-mono text-muted">{a.sponsor_code || a.sponsor_id || 'Direct'}</td>
-                          <td className="py-3 px-4 font-mono text-muted">{a.password || '—'}</td>
+                          <td className="py-3 px-4 font-mono text-muted select-none">••••••••</td>
                           <td className="py-3 px-4">
                             {a.token_number ? (
                               <span className="font-mono font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded text-[11px]">
@@ -782,6 +824,14 @@ export default function AdvisersAdmin() {
                                 className="px-2 py-1 rounded bg-mist text-navy font-semibold text-[10px] hover:bg-line"
                               >
                                 Tree
+                              </button>
+                              <button
+                                onClick={() => handleDeleteAdviser(a)}
+                                disabled={deletingId === a.adviser_id}
+                                className="px-2 py-1 rounded bg-rose-50 text-rose-700 font-semibold text-[10px] hover:bg-rose-100 border border-rose-200 flex items-center gap-1"
+                                title="Permanently delete adviser from database"
+                              >
+                                <Trash2 className="w-3 h-3 text-rose-600" /> Delete
                               </button>
                             </div>
                           </td>
@@ -1317,7 +1367,7 @@ export default function AdvisersAdmin() {
               </div>
               <div>
                 <span className="text-muted text-[10px] uppercase font-bold">Password</span>
-                <p className="font-mono font-bold text-navy">{selectedKycAdviser.password || '—'}</p>
+                <p className="font-mono font-bold text-muted select-none">••••••••</p>
               </div>
               <div>
                 <span className="text-muted text-[10px] uppercase font-bold">Login Token</span>
@@ -1566,7 +1616,7 @@ export default function AdvisersAdmin() {
                 </div>
                 <div className="p-3 rounded-xl bg-mist/50 border border-line">
                   <span className="text-muted text-[10px] uppercase font-bold block">Password</span>
-                  <p className="font-mono font-bold text-navy mt-1">{inspectAdviser.password || '—'}</p>
+                  <p className="font-mono font-bold text-muted mt-1 select-none">••••••••</p>
                 </div>
               </div>
 
@@ -1688,7 +1738,7 @@ export default function AdvisersAdmin() {
                       updateAdviserStatus(inspectAdviser.adviser_id, 'suspended');
                       setInspectAdviser(null);
                     }}
-                    className="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 font-semibold text-xs border border-rose-200 hover:bg-rose-100"
+                    className="px-3 py-2 rounded-xl bg-amber-50 text-amber-700 font-semibold text-xs border border-amber-200 hover:bg-amber-100"
                   >
                     Suspend Account
                   </button>
@@ -1704,6 +1754,13 @@ export default function AdvisersAdmin() {
                     Set Active
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => handleDeleteAdviser(inspectAdviser)}
+                  className="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 font-semibold text-xs border border-rose-200 hover:bg-rose-100 flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Delete User
+                </button>
               </div>
             </div>
           </div>

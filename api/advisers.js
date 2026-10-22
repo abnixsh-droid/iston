@@ -12,8 +12,8 @@ async function getAppState() {
         version: 1,
         is_active: true,
         registration_fee: 1100,
-        tiers: { '1': 300, '2': 200, '3': 100 },
-        default_higher_level_reward: 100,
+        tiers: { '1': 200, '2': 100, '3': 50, '4': 50, '5': 50 },
+        default_higher_level_reward: 50,
         max_eligible_levels: 10,
         max_total_reward_cap: 1100,
         require_approval: true,
@@ -1013,6 +1013,49 @@ export default async function handler(req, res) {
         token_number: token,
         adviser: adv,
         rewards: newEntries,
+      });
+    }
+
+    // A6.2 Admin: Delete Adviser Completely from Database
+    if (action === 'admin_delete_adviser') {
+      const { adviser_id } = req.body || {};
+      if (!adviser_id) return res.status(400).json({ error: 'adviser_id is required' });
+
+      const idx = state.advisers.findIndex((a) => a.adviser_id === adviser_id || a.registration_no === adviser_id);
+      if (idx < 0) return res.status(404).json({ error: 'Adviser not found.' });
+
+      const removed = state.advisers.splice(idx, 1)[0];
+
+      // Remove related registration rewards, commissions, leads, and payouts
+      state.registration_rewards = (state.registration_rewards || []).filter(
+        (r) => r.beneficiary_adviser_id !== removed.adviser_id && r.new_adviser_id !== removed.adviser_id
+      );
+      state.property_commissions = (state.property_commissions || []).filter(
+        (c) => c.beneficiary_adviser_id !== removed.adviser_id
+      );
+      state.property_leads = (state.property_leads || []).filter(
+        (l) => l.adviser_id !== removed.adviser_id
+      );
+      state.payout_requests = (state.payout_requests || []).filter(
+        (p) => p.adviser_id !== removed.adviser_id
+      );
+
+      await saveAppState(state);
+
+      try {
+        await supabase.from('advisers').delete().or(`adviser_id.eq.${removed.adviser_id},registration_no.eq.${removed.registration_no || removed.adviser_id}`);
+      } catch {
+        /* ignore */
+      }
+
+      await logAudit('ADVISER_DELETED', 'advisers', removed.adviser_id, admin.email, {
+        name: removed.full_name,
+        registration_no: removed.registration_no,
+      });
+
+      return res.status(200).json({
+        ok: true,
+        message: `Adviser ${removed.full_name} (${removed.registration_no || removed.adviser_id}) deleted completely.`,
       });
     }
 
