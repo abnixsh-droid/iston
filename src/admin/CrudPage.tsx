@@ -19,7 +19,7 @@ function ImageField({ value, onChange, folder }: { value: string; onChange: (v: 
     setBusy(true);
     setErr('');
     try {
-      onChange(await uploadFile(f, folder));
+      onChange(await uploadFile(f, folder, value || undefined));
     } catch (e) {
       setErr((e as Error).message);
     } finally {

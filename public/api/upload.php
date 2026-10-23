@@ -51,6 +51,21 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// Auto-delete old image if replacing
+if (!empty($_POST['old_image'])) {
+    $oldVal = (string)$_POST['old_image'];
+    $uploadRootCheck = realpath(__DIR__ . '/../uploads');
+    if ($uploadRootCheck) {
+        $parsedPath = parse_url($oldVal, PHP_URL_PATH);
+        if ($parsedPath && preg_match('#/uploads/(.+)$#', $parsedPath, $m)) {
+            $candidate = realpath($uploadRootCheck . '/' . $m[1]);
+            if ($candidate && strpos($candidate, $uploadRootCheck) === 0 && file_exists($candidate) && is_file($candidate)) {
+                @unlink($candidate);
+            }
+        }
+    }
+}
+
 
 // ==========================================
 // CHECK FILE

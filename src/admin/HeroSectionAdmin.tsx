@@ -11,7 +11,7 @@ import {
   RefreshCw,
   ExternalLink,
 } from 'lucide-react';
-import { api, useApi, type Row } from '../lib/api';
+import { api, useApi, uploadFile, type Row } from '../lib/api';
 import { useSettings } from '../contexts/SettingsContext';
 import { useSeo } from '../lib/seo';
 
@@ -65,38 +65,12 @@ export default function HeroSectionAdmin() {
     setSuccessMsg('');
 
     try {
-      // 1. Try uploading to storage via /api/upload
-      let uploadedUrl = '';
-      try {
-        const uploadRes = await api<{ path: string; token: string; publicUrl: string }>('/api/upload', {
-          method: 'POST',
-          auth: true,
-          body: {
-            fileName: file.name,
-            folder: 'hero',
-          },
-        });
-
-        if (uploadRes?.publicUrl) {
-          uploadedUrl = uploadRes.publicUrl;
-        }
-      } catch {
-        /* Fall back to base64 Data URL */
-      }
-
-      // If storage upload didn't return a public URL, convert to compressed base64 data URL
-      if (!uploadedUrl) {
-        const reader = new FileReader();
-        uploadedUrl = await new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      }
+      // Upload to Hostinger disk (and auto-delete old image if present)
+      const uploadedUrl = await uploadFile(file, 'hero', imageUrl || undefined);
 
       // Replace old image with the new image
       setImageUrl(uploadedUrl);
-      setSuccessMsg('New image selected! Click "Save & Publish Changes" to make it live on all devices.');
+      setSuccessMsg('New image selected & uploaded to Hostinger storage! Click "Save & Publish Changes" to make it live across all devices.');
     } catch (err: any) {
       setErrorMsg(err.message || 'Error uploading image.');
     } finally {

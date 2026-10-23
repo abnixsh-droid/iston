@@ -57,9 +57,9 @@ export const DEMO_PENDING_ADVISER = {
 const KEY = 'iston_demo_session';
 const ADVISER_KEY = 'iston_demo_adviser_session';
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || ''
-).replace(/\/$/, '');
+import { sanitizeApiBaseUrl, buildRequestUrl } from './api';
+
+const API_BASE_URL = sanitizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL || '');
 const listeners = new Set<() => void>();
 
 export function getDemoToken(): string | null {
@@ -89,7 +89,8 @@ export function getDemoAdviserSession(): typeof DEMO_ADVISER | typeof DEMO_PENDI
 
 export async function demoLogin(email: string, password: string) {
   try {
-    const r = await fetch(`${API_BASE_URL}/api/demo-login`, {
+    const requestUrl = buildRequestUrl(API_BASE_URL, '/api/demo-login');
+    const r = await fetch(requestUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),

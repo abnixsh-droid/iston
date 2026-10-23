@@ -33,12 +33,26 @@ async function folderBrochureExists() {
   }
 }
 
+function getInitialSettings(): Record<string, string> {
+  const merged: Record<string, string> = { ...DEFAULTS };
+  try {
+    const cached = localStorage.getItem('iston_site_settings_cache');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      for (const [k, v] of Object.entries(parsed || {})) {
+        if (v && String(v).trim()) merged[k] = String(v);
+      }
+    }
+  } catch {}
+  return merged;
+}
+
 type Ctx = { s: Record<string, string>; loading: boolean; reload: () => void };
 const SettingsCtx = createContext<Ctx>({ s: DEFAULTS, loading: true, reload: () => {} });
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [s, setS] = useState<Record<string, string>>(DEFAULTS);
-  const [loading, setLoading] = useState(true);
+  const [s, setS] = useState<Record<string, string>>(getInitialSettings);
+  const [loading, setLoading] = useState(false);
 
   const load = useCallback(() => {
     api<Record<string, string>>('/api/settings')

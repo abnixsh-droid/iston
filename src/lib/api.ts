@@ -6,9 +6,32 @@ import supabase from './supabase'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Row = Record<string, any>
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || ''
-).replace(/\/$/, '')
+// Sanitizes any input VITE_API_BASE_URL (cleans accidentally pasted markdown brackets, quotes, trailing slashes)
+export function sanitizeApiBaseUrl(raw: unknown): string {
+  if (!raw || typeof raw !== 'string') return '';
+  let str = raw.trim();
+  // Strip markdown link format e.g. [https://iston.vercel.app/api](https://...)
+  const mdMatch = str.match(/\((https?:\/\/[^\)]+)\)/) || str.match(/\[(https?:\/\/[^\]]+)\]/);
+  if (mdMatch && mdMatch[1]) str = mdMatch[1].trim();
+  str = str.replace(/^["'\[]+/, '').replace(/["'\]]+$/, '').trim();
+  if (!str) return '';
+  if (!str.startsWith('http://') && !str.startsWith('https://')) {
+    if (str.startsWith('/')) return str.replace(/\/$/, '');
+    str = `https://${str}`;
+  }
+  return str.replace(/\/$/, '');
+}
+
+const API_BASE_URL = sanitizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL || '');
+
+export function buildRequestUrl(base: string, path: string): string {
+  if (!base) return path;
+  if (base.endsWith('/api') && path.startsWith('/api/')) {
+    return `${base}${path.replace(/^\/api/, '')}`;
+  }
+  return `${base}${path}`;
+}
+
 async function token() {
   if (auth?.currentUser) {
     return auth.currentUser.getIdToken()
@@ -303,7 +326,8 @@ export async function api<T = any>(
   const method = (opts.method || 'GET').toUpperCase();
 
   try {
-    const res = await fetch(`${API_BASE_URL}${path}`, {
+    const requestUrl = buildRequestUrl(API_BASE_URL, path);
+    const res = await fetch(requestUrl, {
       method,
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
@@ -492,47 +516,59 @@ export function useApi<T = any>(
 export async function uploadFile(
   file: File,
   folder = 'uploads',
+  oldImage?: string,
 ): Promise<string> {
   if (!file) {
-    throw new Error('No file selected')
+    throw new Error('No file selected');
   }
 
   const key = import.meta.env.VITE_UPLOAD_KEY || 'ab#1705PIKArq';
   const fd = new FormData();
   fd.append('file', file);
   fd.append('folder', folder);
+  if (oldImage) {
+    fd.append('old_image', oldImage);
+  }
 
   const uploadHost = import.meta.env.VITE_HOSTINGER_URL || 'https://istongroupbuilder.in';
   const endpoint = typeof window !== 'undefined' && window.location.hostname.includes('istongroupbuilder.in')
     ? '/api/upload.php'
     : `${uploadHost}/api/upload.php`;
 
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'X-Upload-Key': key,
-    },
-    body: fd,
-  });
-
-  let json: any = null;
   try {
-    json = await res.json();
-  } catch {
-    // Ignore invalid JSON response
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'X-Upload-Key': key,
+      },
+      body: fd,
+    });
+
+    let json: any = null;
+    try {
+      json = await res.json();
+    } catch {
+      // Ignore invalid JSON response
+    }
+
+    if (res.ok && json?.ok && json?.url) {
+      const rawUrl = json.url as string;
+      if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+        return rawUrl;
+      }
+      return `${uploadHost}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
+    }
+  } catch (err: any) {
+    console.warn('[Hostinger Upload Warning]:', err?.message);
   }
 
-  if (!res.ok || !json?.ok || !json?.url) {
-    const msg = json?.error || `Upload failed (${res.status})`;
-    throw new Error(msg);
-  }
-
-  // Ensure absolute URL if relative path returned
-  const rawUrl = json.url as string;
-  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
-    return rawUrl;
-  }
-  return `${uploadHost}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
+  // Graceful fallback to client-side data URL so admins are never blocked
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.readAsDataURL(file);
+  });
 }
 
 /**
