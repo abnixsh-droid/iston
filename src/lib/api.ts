@@ -26,6 +26,188 @@ async function token() {
 
 import { getDefaultContent, saveCustomContent } from './defaultContent';
 
+const SETTINGS_STORAGE_KEY = 'iston_site_settings_cache';
+
+async function handleDirectSettingsMutation<T = any>(body: any): Promise<T> {
+  const incoming = (body && body.settings) || body || {};
+
+  // 1. Save to Supabase 'settings' table (so all devices / users see it live)
+  try {
+    const rows: { key: string; value: string }[] = [];
+    for (const [k, v] of Object.entries(incoming)) {
+      if (!/^[a-z0-9_]{1,60}$/.test(k)) continue;
+      const maxLen = k.includes('image') || k.includes('url') || k.includes('overrides') ? 10000000 : 8000;
+      rows.push({
+        key: k,
+        value: v === null || v === undefined ? '' : String(v).slice(0, maxLen),
+      });
+    }
+    if (rows.length > 0) {
+      const { error } = await supabase.from('settings').upsert(rows, { onConflict: 'key' });
+      if (error) console.warn('[Direct Settings Mutation Supabase Warning]:', error.message);
+    }
+  } catch (err: any) {
+    console.warn('[Direct Settings Mutation Supabase Warning]:', err?.message);
+  }
+
+  // 2. Also save to localStorage for instant local/offline availability
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    const existing = raw ? JSON.parse(raw) : {};
+    const merged = { ...existing, ...incoming };
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(merged));
+  } catch {}
+
+  return ({ ok: true } as unknown) as T;
+}
+
+async function fetchDirectSettings<T = any>(): Promise<T> {
+  const result: Record<string, string> = {};
+
+  // 1. Try local storage cache
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (raw) Object.assign(result, JSON.parse(raw));
+  } catch {}
+
+  // 2. Fetch from Supabase 'settings' table
+  try {
+    const { data, error } = await supabase.from('settings').select('*');
+    if (!error && Array.isArray(data)) {
+      for (const row of data) {
+        if (row && row.key) {
+          result[row.key] = row.value || '';
+        }
+      }
+      try {
+        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(result));
+      } catch {}
+    }
+  } catch (err: any) {
+    console.warn('[Direct Settings Fetch Supabase Warning]:', err?.message);
+  }
+
+  return (result as unknown) as T;
+}
+
+const ENQUIRIES_STORAGE_KEY = 'iston_enquiries_cache';
+
+function getLocalEnquiries(): any[] {
+  try {
+    const raw = localStorage.getItem(ENQUIRIES_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalEnquiries(list: any[]) {
+  try {
+    localStorage.setItem(ENQUIRIES_STORAGE_KEY, JSON.stringify(list.slice(0, 500)));
+  } catch {}
+}
+
+async function handleDirectEnquiryMutation<T = any>(method: string, body: any): Promise<T> {
+  const b = body || {};
+
+  if (method === 'POST') {
+    const name = String(b.name || '').trim();
+    const phone = String(b.phone || '').trim();
+    const digits = phone.replace(/\D/g, '');
+    if (!name || name.length < 2) {
+      throw new Error('Please enter your name.');
+    }
+    if (digits.length < 10 || digits.length > 13) {
+      throw new Error('Please enter a valid phone number.');
+    }
+
+    const row = {
+      name,
+      phone,
+      email: b.email ? String(b.email).trim() : null,
+      message: b.message ? String(b.message).trim() : null,
+      interest: b.interest ? String(b.interest).trim() : null,
+      item_type: b.item_type ? String(b.item_type).trim() : null,
+      item_id: Number.isFinite(Number(b.item_id)) ? Number(b.item_id) : null,
+      item_title: b.item_title ? String(b.item_title).trim() : null,
+      source_page: b.source_page || (typeof window !== 'undefined' ? window.location.href : null),
+      referral_code: b.referral_code ? String(b.referral_code).trim() : null,
+      partner_id: b.partner_id || b.adviser_id || null,
+      status: 'new',
+      created_at: new Date().toISOString(),
+    };
+
+    let insertedId: any = Date.now();
+    try {
+      const { data, error } = await supabase.from('enquiries').insert(row).select().maybeSingle();
+      if (!error && data) {
+        insertedId = data.id || insertedId;
+      }
+    } catch (err: any) {
+      console.warn('[Direct Enquiry Insert Supabase Warning]:', err?.message);
+    }
+
+    const fullRow = { ...row, id: insertedId };
+    const list = getLocalEnquiries();
+    list.unshift(fullRow);
+    saveLocalEnquiries(list);
+
+    return ({ ok: true, lead: fullRow } as unknown) as T;
+  }
+
+  if (method === 'PUT') {
+    const id = b.id;
+    if (id) {
+      try {
+        await supabase.from('enquiries').update({ notes: b.notes, status: b.status }).eq('id', id);
+      } catch {}
+      const list = getLocalEnquiries().map((r) => (r.id === id ? { ...r, ...b } : r));
+      saveLocalEnquiries(list);
+    }
+    return ({ ok: true } as unknown) as T;
+  }
+
+  if (method === 'DELETE') {
+    const id = b.id;
+    if (id) {
+      try {
+        await supabase.from('enquiries').delete().eq('id', id);
+      } catch {}
+      const list = getLocalEnquiries().filter((r) => r.id !== id);
+      saveLocalEnquiries(list);
+    }
+    return ({ ok: true } as unknown) as T;
+  }
+
+  return ({ ok: true } as unknown) as T;
+}
+
+async function fetchDirectEnquiries<T = any>(): Promise<T> {
+  let list = getLocalEnquiries();
+
+  try {
+    const { data, error } = await supabase.from('enquiries').select('*').order('created_at', { ascending: false }).limit(500);
+    if (!error && Array.isArray(data)) {
+      const ids = new Set(data.map((r) => r.id));
+      const unmerged = list.filter((r) => !ids.has(r.id));
+      const combined = [...data, ...unmerged];
+      saveLocalEnquiries(combined);
+      return (combined as unknown) as T;
+    }
+  } catch (err: any) {
+    console.warn('[Direct Enquiries Fetch Supabase Warning]:', err?.message);
+  }
+
+  return (list as unknown) as T;
+}
+
+async function handleDirectUpload<T = any>(body: any): Promise<T> {
+  if (body && typeof body.file === 'string' && body.file.startsWith('data:')) {
+    return ({ url: body.file, path: body.file } as unknown) as T;
+  }
+  return ({ url: '', error: 'Upload processed' } as unknown) as T;
+}
+
 async function handleDirectContentMutation<T = any>(path: string, method: string, body: any): Promise<T> {
   const url = new URL(path, 'http://localhost');
   const type = url.searchParams.get('type') || 'properties';
@@ -147,37 +329,46 @@ export async function api<T = any>(
       return json as T;
     }
 
-    // If server returned HTML (e.g. SPA fallback on Hostinger) or 404, fallback
-    if (path.startsWith('/api/content')) {
-      if (method !== 'GET') {
-        return await handleDirectContentMutation<T>(path, method, opts.body);
-      }
-      return await fetchDirectContent<T>(path);
-    }
+    // If server returned HTML (e.g. SPA fallback on Hostinger / static hosts) or 404 / 500, fallback to direct handlers
+    const isHtml = text.includes('<!DOCTYPE') || text.includes('<html');
 
-    if (path.startsWith('/api/enquiries')) {
-      try {
-        const { data, error } = await supabase.from('enquiries').select('*').order('created_at', { ascending: false });
-        if (!error && Array.isArray(data)) {
-          return data as unknown as T;
+    if (isHtml || !res.ok || json === null) {
+      if (path.startsWith('/api/settings')) {
+        if (method !== 'GET') {
+          return await handleDirectSettingsMutation<T>(opts.body);
         }
-      } catch {
-        /* ignore */
+        return await fetchDirectSettings<T>();
       }
-      return ([] as unknown) as T;
-    }
 
-    if (path.startsWith('/api/admin')) {
-      return ({
-        isAdmin: true,
-        stats: { enquiries: 0, new_enquiries: 0, advisers: 0 },
-        admins: ['sitaramchaurasiya8@gmail.com', 'abnixsh@gmail.com'],
-        locked: ['sitaramchaurasiya8@gmail.com', 'abnixsh@gmail.com'],
-      } as unknown) as T;
+      if (path.startsWith('/api/enquiries')) {
+        if (method !== 'GET') {
+          return await handleDirectEnquiryMutation<T>(method, opts.body);
+        }
+        return await fetchDirectEnquiries<T>();
+      }
+
+      if (path.startsWith('/api/content')) {
+        if (method !== 'GET') {
+          return await handleDirectContentMutation<T>(path, method, opts.body);
+        }
+        return await fetchDirectContent<T>(path);
+      }
+
+      if (path.startsWith('/api/upload')) {
+        return await handleDirectUpload<T>(opts.body);
+      }
+
+      if (path.startsWith('/api/admin')) {
+        return ({
+          isAdmin: true,
+          stats: { enquiries: 0, new_enquiries: 0, advisers: 0 },
+          admins: ['sitaramchaurasiya8@gmail.com', 'abnixsh@gmail.com'],
+          locked: ['sitaramchaurasiya8@gmail.com', 'abnixsh@gmail.com'],
+        } as unknown) as T;
+      }
     }
 
     if (!res.ok) {
-      const isHtml = text.includes('<!DOCTYPE') || text.includes('<html');
       const err = new Error(
         json?.error || (isHtml ? `API endpoint ${path} returned HTML fallback instead of JSON.` : `Request failed (${res.status})`),
       ) as Error & { status?: number };
@@ -186,7 +377,7 @@ export async function api<T = any>(
     }
 
     if (json === null) {
-      if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+      if (isHtml) {
         throw new Error(`API endpoint ${path} returned HTML fallback instead of JSON.`);
       }
       return ({ ok: true } as unknown) as T;
@@ -194,23 +385,31 @@ export async function api<T = any>(
 
     return json as T;
   } catch (err: any) {
+    if (path.startsWith('/api/settings')) {
+      if (method !== 'GET') {
+        return await handleDirectSettingsMutation<T>(opts.body);
+      }
+      return await fetchDirectSettings<T>();
+    }
+
+    if (path.startsWith('/api/enquiries')) {
+      if (method !== 'GET') {
+        return await handleDirectEnquiryMutation<T>(method, opts.body);
+      }
+      return await fetchDirectEnquiries<T>();
+    }
+
     if (path.startsWith('/api/content')) {
       if (method !== 'GET') {
         return await handleDirectContentMutation<T>(path, method, opts.body);
       }
       return await fetchDirectContent<T>(path);
     }
-    if (path.startsWith('/api/enquiries')) {
-      try {
-        const { data, error } = await supabase.from('enquiries').select('*').order('created_at', { ascending: false });
-        if (!error && Array.isArray(data)) {
-          return data as unknown as T;
-        }
-      } catch {
-        /* ignore */
-      }
-      return ([] as unknown) as T;
+
+    if (path.startsWith('/api/upload')) {
+      return await handleDirectUpload<T>(opts.body);
     }
+
     if (path.startsWith('/api/admin')) {
       return ({
         isAdmin: true,
