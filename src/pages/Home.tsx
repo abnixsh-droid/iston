@@ -38,19 +38,24 @@ export default function Home() {
   const plist = projects.data || [];
   const hero = plist.find((p) => p.slug === s.hero_project_slug) || plist.find((p) => p.status === 'current') || null;
   const heroName = hero?.name || 'Umroli';
-  const heroImg = hero?.cover_image || '/images/umroli-hero.jpg';
-  const heroLink = hero ? `/projects/${hero.slug}` : '/projects';
+  const heroImg = (has(s.hero_image_url) ? s.hero_image_url : null) || hero?.cover_image || '/images/umroli-hero.jpg';
+  const heroLink = has(s.hero_cta_link) ? s.hero_cta_link : (hero ? `/projects/${hero.slug}` : '/projects');
+  const heroEyebrow = has(s.hero_eyebrow) ? s.hero_eyebrow : `Current Project · ${heroName}`;
+  const heroTitle1 = has(s.hero_title_1) ? s.hero_title_1 : 'Building Better Spaces.';
+  const heroTitle2 = has(s.hero_title_2) ? s.hero_title_2 : 'Creating Better Futures.';
+  const heroCtaText = has(s.hero_cta_text) ? s.hero_cta_text : `Explore ${heroName}`;
 
   return (
     <>
       {/* HERO */}
       <section className="relative flex min-h-[100svh] flex-col justify-end overflow-hidden bg-navy-deep text-white">
         <motion.img
+          key={heroImg}
           initial={{ scale: 1.1 }}
           animate={{ scale: 1 }}
           transition={{ duration: 2.4, ease: EASE }}
           src={heroImg}
-          alt={`${heroName} — Iston Builder Group current project (representative image)`}
+          alt={`${heroName} — Iston Builder Group project`}
           className="absolute inset-0 h-full w-full object-cover"
           fetchPriority="high"
         />
@@ -59,14 +64,14 @@ export default function Home() {
 
         <div className="container-x relative pt-32 pb-8 md:pb-14">
           <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.8 }} className="eyebrow !text-brass-light">
-            Current Project · {heroName}
+            {heroEyebrow}
           </motion.p>
           <h1 className="font-display mt-5 max-w-4xl text-[2.9rem] leading-[0.95] font-medium sm:text-6xl lg:text-[5.6rem]">
             <motion.span className="block" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.9, ease: EASE }}>
-              Building Better Spaces.
+              {heroTitle1}
             </motion.span>
             <motion.em className="block text-brass-light" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.9, ease: EASE }}>
-              Creating Better Futures.
+              {heroTitle2}
             </motion.em>
           </h1>
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.75, duration: 0.8 }} className="mt-6 max-w-xl text-[15px] leading-relaxed text-white/75 md:text-base">
@@ -74,7 +79,7 @@ export default function Home() {
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9, duration: 0.8 }} className="mt-8 flex flex-wrap gap-3">
             <Link to={heroLink} className="btn btn-light">
-              Explore {heroName} <ArrowRight className="h-4 w-4" />
+              {heroCtaText} <ArrowRight className="h-4 w-4" />
             </Link>
             <button onClick={() => open({ interest: `${heroName} project`, heading: `Enquire about ${heroName}` })} className="btn btn-ghost">
               Enquire Now

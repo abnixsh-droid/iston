@@ -33,6 +33,7 @@ const Enquiries = lazy(() => import('./admin/Enquiries'));
 const AccountPage = lazy(() => import('./admin/SettingsPages').then((m) => ({ default: m.AccountPage })));
 const BrochurePage = lazy(() => import('./admin/SettingsPages').then((m) => ({ default: m.BrochurePage })));
 const SettingsPage = lazy(() => import('./admin/SettingsPages').then((m) => ({ default: m.SettingsPage })));
+const HeroSectionAdmin = lazy(() => import('./admin/HeroSectionAdmin'));
 
 function ScrollTop() {
   const { pathname } = useLocation();
@@ -107,6 +108,7 @@ export default function App() {
                   <Route path="advisers" element={<AdvisersAdmin />} />
                   <Route path="enquiries" element={<Enquiries />} />
                   <Route path="brochure" element={<BrochurePage />} />
+                  <Route path="hero" element={<HeroSectionAdmin />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="account" element={<AccountPage />} />
                   <Route path=":entity" element={<CrudPage key="crud" />} />

@@ -19,6 +19,7 @@ import {
   Warehouse,
   X,
   Users,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { signOut as fbSignOut } from 'firebase/auth';
@@ -42,6 +43,7 @@ const NAV = [
   ['/admin/progress_updates', 'Progress Updates', TrendingUp],
   ['/admin/promotions', 'Promotions', Megaphone],
   ['/admin/brochure', 'Brochure', FileDown],
+  ['/admin/hero', 'Hero Section Editor', Sparkles],
   ['/admin/settings', 'Site Settings', Settings],
   ['/admin/account', 'Account', KeyRound],
 ] as const;

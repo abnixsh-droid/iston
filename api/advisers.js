@@ -700,8 +700,43 @@ export default async function handler(req, res) {
       // Compute team statistics
       const { directCount, totalTeam, levelCounts } = getDownlineStats(adviser.adviser_id, state.advisers);
 
-      // Filter ledgers for this adviser
-      const myRegRewards = state.registration_rewards.filter((r) => r.beneficiary_adviser_id === adviser.adviser_id);
+      // Filter ledgers for this adviser and enrich with contributor user information
+      let myRegRewards = state.registration_rewards
+        .filter((r) => r.beneficiary_adviser_id === adviser.adviser_id)
+        .map((r) => {
+          const sourceAdv = state.advisers.find((a) => a.adviser_id === r.new_adviser_id || a.registration_no === r.new_adviser_id);
+          const lvl = Number(r.level ?? 1);
+          return {
+            ...r,
+            source_adviser_name: r.source_adviser_name || (sourceAdv ? sourceAdv.full_name : (lvl === 0 ? 'Welcome Joining Reward' : `Adviser ${r.new_adviser_id || ''}`)),
+            source_registration_no: r.source_registration_no || (sourceAdv ? (sourceAdv.registration_no || sourceAdv.adviser_id) : r.new_adviser_id),
+            source_phone: r.source_phone || (sourceAdv ? sourceAdv.phone : ''),
+            reward_type: lvl === 0 ? 'Self Welcome Cashback' : lvl === 1 ? 'Direct Referral (Level 1)' : `Level ${lvl} Network Override`,
+            level: lvl,
+          };
+        });
+
+      // Ensure active adviser has their ₹300 welcome bonus reflected in ledger
+      const hasWelcomeBonus = myRegRewards.some((r) => Number(r.level) === 0 || r.idempotency_key?.includes('welcome'));
+      if (!hasWelcomeBonus && (adviser.status === 'active' || adviser.payment_status === 'verified_cash' || adviser.payment_status === 'verified_paid')) {
+        myRegRewards.unshift({
+          id: `welcome-${adviser.adviser_id}`,
+          registration_event_id: `REG-WELCOME-${adviser.adviser_id}`,
+          new_adviser_id: adviser.adviser_id,
+          beneficiary_adviser_id: adviser.adviser_id,
+          beneficiary_name: adviser.full_name,
+          source_adviser_name: 'Joining Bonus (Welcome Reward)',
+          source_registration_no: adviser.registration_no || adviser.adviser_id,
+          source_phone: adviser.phone,
+          reward_type: 'Self Welcome Cashback',
+          level: 0,
+          amount: 300,
+          status: 'paid',
+          idempotency_key: `welcome_${adviser.adviser_id}`,
+          created_at: adviser.activated_at || adviser.created_at || new Date().toISOString(),
+        });
+      }
+
       const myCommissions = state.property_commissions.filter((c) => c.beneficiary_adviser_id === adviser.adviser_id);
       const myLeads = state.property_leads.filter((l) => l.adviser_id === adviser.adviser_id);
       const myPayouts = state.payout_requests.filter((p) => p.adviser_id === adviser.adviser_id);

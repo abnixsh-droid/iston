@@ -18,7 +18,8 @@ export default async function handler(req, res) {
       let changed = 0;
       for (const [k, v] of Object.entries(incoming)) {
         if (!/^[a-z0-9_]{1,60}$/.test(k)) continue;
-        current[k] = v === null || v === undefined ? '' : String(v).slice(0, 8000);
+        const maxLen = k.includes('image') || k.includes('url') || k.includes('overrides') ? 10000000 : 8000;
+        current[k] = v === null || v === undefined ? '' : String(v).slice(0, maxLen);
         changed++;
       }
       if (!changed) return res.status(400).json({ error: 'No settings provided' });

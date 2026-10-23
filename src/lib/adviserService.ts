@@ -846,7 +846,18 @@ export const adviserService = {
         .select('*')
         .eq('beneficiary_adviser_id', currentRecord.adviser_id);
       if (data && Array.isArray(data) && data.length > 0) {
-        registrationRewards = data;
+        registrationRewards = data.map((d: any) => {
+          const sourceAdv = allAdvisers.find((a) => a.adviser_id === d.new_adviser_id || a.registration_no === d.new_adviser_id);
+          const lvl = Number(d.level ?? 1);
+          return {
+            ...d,
+            source_adviser_name: d.source_adviser_name || (sourceAdv ? sourceAdv.full_name : (lvl === 0 ? 'Welcome Joining Reward' : `Adviser ${d.new_adviser_id || ''}`)),
+            source_registration_no: d.source_registration_no || (sourceAdv ? (sourceAdv.registration_no || sourceAdv.adviser_id) : d.new_adviser_id),
+            source_phone: d.source_phone || (sourceAdv ? sourceAdv.phone : ''),
+            reward_type: lvl === 0 ? 'Self Welcome Cashback' : lvl === 1 ? 'Direct Referral (Level 1)' : `Level ${lvl} Network Override`,
+            level: lvl,
+          };
+        });
       }
     } catch {
       /* ignore */
@@ -863,6 +874,9 @@ export const adviserService = {
         status: 'paid',
         source_adviser_id: currentRecord.registration_no || currentRecord.adviser_id,
         source_adviser_name: 'Joining Bonus (Welcome Reward)',
+        source_registration_no: currentRecord.registration_no || currentRecord.adviser_id,
+        source_phone: currentRecord.phone,
+        reward_type: 'Self Welcome Cashback',
         beneficiary_adviser_id: currentRecord.adviser_id,
         created_at: currentRecord.activated_at || currentRecord.created_at || new Date().toISOString(),
       });
@@ -878,7 +892,10 @@ export const adviserService = {
             level,
             status: 'paid',
             source_adviser_id: r.registration_no || r.adviser_id,
-            source_adviser_name: `${r.full_name} (Level ${level})`,
+            source_adviser_name: r.full_name,
+            source_registration_no: r.registration_no || r.adviser_id,
+            source_phone: r.phone,
+            reward_type: level === 1 ? 'Direct Referral (Level 1)' : `Level ${level} Network Override`,
             beneficiary_adviser_id: currentRecord.adviser_id,
             created_at: r.activated_at || r.created_at || new Date().toISOString(),
           });

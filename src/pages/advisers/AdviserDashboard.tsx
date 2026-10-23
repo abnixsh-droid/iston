@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Users,
@@ -26,6 +26,12 @@ import {
   ExternalLink,
   Sparkles,
   ArrowLeft,
+  Coins,
+  ArrowDownLeft,
+  UserCheck,
+  Clock,
+  Layers,
+  Filter,
 } from 'lucide-react';
 import Logo from '../../components/Logo';
 import LanguageToggle from '../../components/LanguageToggle';
@@ -46,11 +52,14 @@ export default function AdviserDashboard() {
   const [copied, setCopied] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
-  // Standalone dedicated window view (e.g. ?view=tree | profile | leads | payouts)
+  // Standalone dedicated window view (e.g. ?view=tree | profile | leads | payouts | earnings)
   const dedicatedView = searchParams.get('view');
 
   // Interactive Tree Expansion State
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+
+  // Ledger Filter State
+  const [ledgerFilter, setLedgerFilter] = useState<'all' | 'welcome' | 'direct' | 'team' | 'property'>('all');
 
   // Submit Lead Modal state
   const [leadModal, setLeadModal] = useState(false);
@@ -184,7 +193,7 @@ export default function AdviserDashboard() {
     window.open('/advisers/plan', '_blank', 'noopener,noreferrer');
   };
 
-  const openViewInNewWindow = (viewName: 'tree' | 'leads' | 'profile' | 'payouts') => {
+  const openViewInNewWindow = (viewName: 'tree' | 'leads' | 'profile' | 'payouts' | 'earnings') => {
     window.open(`/advisers/dashboard?view=${viewName}`, '_blank', 'noopener,noreferrer');
   };
 
@@ -317,6 +326,56 @@ export default function AdviserDashboard() {
       setSubmittingPayout(false);
     }
   };
+
+  // Group earnings by contributor / person
+  const contributorSummary = useMemo(() => {
+    if (!data?.registrationRewards) return [];
+    const map = new Map<string, {
+      name: string;
+      regNo: string;
+      phone: string;
+      level: number;
+      role: string;
+      totalAmount: number;
+      eventsCount: number;
+      lastDate: string;
+    }>();
+
+    for (const r of data.registrationRewards) {
+      const key = r.source_registration_no || r.source_adviser_id || r.source_adviser_name || 'unknown';
+      const existing = map.get(key);
+      const amt = Number(r.amount) || 0;
+      const lvl = Number(r.level ?? 1);
+
+      if (existing) {
+        existing.totalAmount += amt;
+        existing.eventsCount += 1;
+      } else {
+        map.set(key, {
+          name: r.source_adviser_name || (lvl === 0 ? 'Self Welcome Reward' : `Adviser ${key}`),
+          regNo: r.source_registration_no || r.source_adviser_id || key,
+          phone: r.source_phone || '',
+          level: lvl,
+          role: lvl === 0 ? 'Welcome Cashback' : lvl === 1 ? 'Direct Referral (Level 1)' : `Level ${lvl} Network Override`,
+          totalAmount: amt,
+          eventsCount: 1,
+          lastDate: r.created_at || new Date().toISOString(),
+        });
+      }
+    }
+
+    return Array.from(map.values()).sort((a, b) => b.totalAmount - a.totalAmount);
+  }, [data]);
+
+  // Filtered detailed rewards ledger
+  const filteredLedger = useMemo(() => {
+    const list = data?.registrationRewards || [];
+    if (ledgerFilter === 'all') return list;
+    if (ledgerFilter === 'welcome') return list.filter((r: any) => Number(r.level) === 0);
+    if (ledgerFilter === 'direct') return list.filter((r: any) => Number(r.level) === 1);
+    if (ledgerFilter === 'team') return list.filter((r: any) => Number(r.level) > 1);
+    return list;
+  }, [data, ledgerFilter]);
 
   if (loading) {
     return (
@@ -778,7 +837,7 @@ export default function AdviserDashboard() {
           {/* USER INFO CARD: COLORFUL, MINIMAL, NO USELESS TEXT             */}
           {/* Shows: Name, Reg.No, Token, Mobile, and Share Link Button      */}
           {/* ============================================================== */}
-          <section className="rounded-3xl bg-gradient-to-br from-[#0c1a2e] via-[#0a2331] to-[#0a333a] border border-teal-500/30 p-5 sm:p-7 text-white shadow-2xl relative overflow-hidden">
+          <section className="rounded-3xl bg-gradient-to-br from-[#0c1a2e] via-[#09222c] to-[#0d343a] border border-teal-500/30 p-5 sm:p-7 text-white shadow-2xl relative overflow-hidden">
             {/* Ambient decorative glowing spots */}
             <div className="pointer-events-none absolute -top-24 -right-24 w-64 h-64 rounded-full bg-emerald-500/20 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-24 -left-24 w-64 h-64 rounded-full bg-amber-500/15 blur-3xl" />
@@ -835,14 +894,18 @@ export default function AdviserDashboard() {
             </div>
           </section>
 
-          {/* 4 KPI METRICS ROW */}
+          {/* 4 KPI METRICS ROW (VIBRANT & COLORFUL) */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-            <div className="p-5 rounded-2xl bg-white border border-[#ded8cc] shadow-xs flex flex-col justify-between">
+            {/* 1. Available Balance */}
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-white via-white to-amber-50/60 border border-amber-200/80 shadow-md flex flex-col justify-between">
               <div>
-                <span className="text-[11px] font-bold text-[#777] uppercase tracking-wider flex items-center gap-1.5">
-                  <Wallet className="w-3.5 h-3.5 text-[#96742e]" /> Available Balance
+                <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 grid place-items-center">
+                    <Wallet className="w-3.5 h-3.5" />
+                  </span>
+                  Available Balance
                 </span>
-                <p className="text-2xl sm:text-3xl font-black text-[#121212] mt-2">{inr(availableBalance)}</p>
+                <p className="text-2xl sm:text-3xl font-black text-[#121212] mt-2.5 font-mono">{inr(availableBalance)}</p>
               </div>
               <button
                 onClick={() => openViewInNewWindow('payouts')}
@@ -852,42 +915,266 @@ export default function AdviserDashboard() {
               </button>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white border border-[#ded8cc] shadow-xs flex flex-col justify-between">
+            {/* 2. Properties Sold */}
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-white via-white to-cyan-50/60 border border-cyan-200/80 shadow-md flex flex-col justify-between">
               <div>
-                <span className="text-[11px] font-bold text-[#777] uppercase tracking-wider flex items-center gap-1.5">
-                  <Building className="w-3.5 h-3.5 text-[#96742e]" /> Properties Sold
+                <span className="text-[11px] font-bold text-cyan-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-6 h-6 rounded-lg bg-cyan-100 text-cyan-700 grid place-items-center">
+                    <Building className="w-3.5 h-3.5" />
+                  </span>
+                  Properties Sold
                 </span>
-                <p className="text-2xl sm:text-3xl font-black text-[#121212] mt-2">{data.propertyCommissions?.length || 0}</p>
+                <p className="text-2xl sm:text-3xl font-black text-[#121212] mt-2.5 font-mono">{data.propertyCommissions?.length || 0}</p>
               </div>
               <span className="text-xs text-[#666] mt-3 block">
-                Earned: <b className="text-[#121212]">{inr(commissionsSummary.approved + commissionsSummary.paid)}</b>
+                Earned: <b className="text-cyan-800">{inr(commissionsSummary.approved + commissionsSummary.paid)}</b>
               </span>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white border border-[#ded8cc] shadow-xs flex flex-col justify-between">
+            {/* 3. Direct Members */}
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-white via-white to-blue-50/60 border border-blue-200/80 shadow-md flex flex-col justify-between">
               <div>
-                <span className="text-[11px] font-bold text-[#777] uppercase tracking-wider flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-[#96742e]" /> Direct Members
+                <span className="text-[11px] font-bold text-blue-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-700 grid place-items-center">
+                    <Users className="w-3.5 h-3.5" />
+                  </span>
+                  Direct Members
                 </span>
-                <p className="text-2xl sm:text-3xl font-black text-[#121212] mt-2">{stats.directCount}</p>
+                <p className="text-2xl sm:text-3xl font-black text-[#121212] mt-2.5 font-mono">{stats.directCount}</p>
               </div>
               <span className="text-xs text-[#666] mt-3 block">
-                Total Network: <b className="text-[#121212]">{stats.totalTeam}</b>
+                Total Team: <b className="text-blue-800">{stats.totalTeam}</b>
               </span>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white border border-[#ded8cc] shadow-xs flex flex-col justify-between">
+            {/* 4. Joining Rewards */}
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-white via-white to-emerald-50/60 border border-emerald-200/80 shadow-md flex flex-col justify-between">
               <div>
-                <span className="text-[11px] font-bold text-[#777] uppercase tracking-wider flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600" /> Joining Rewards
+                <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 grid place-items-center">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                  </span>
+                  Joining Rewards
                 </span>
-                <p className="text-2xl sm:text-3xl font-black text-emerald-700 mt-2">
+                <p className="text-2xl sm:text-3xl font-black text-emerald-700 mt-2.5 font-mono">
                   {inr(regRewardsSummary.approved + regRewardsSummary.paid)}
                 </p>
               </div>
               <span className="text-xs text-[#666] mt-3 block">₹300 self + ₹200/referral</span>
             </div>
           </div>
+
+          {/* ============================================================== */}
+          {/* TRANSPARENT REWARDS BREAKDOWN: "WHO GAVE HOW MUCH MONEY"        */}
+          {/* User joining bonus, C user bonus, exact amount from whom       */}
+          {/* ============================================================== */}
+          <section className="rounded-3xl bg-white border border-[#ded8cc] p-6 sm:p-8 shadow-md space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#f0ece1]">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-800 bg-[#f4fbf7] px-3 py-1 rounded-full border border-emerald-200">
+                  Wallet Credit Ledger
+                </span>
+                <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#121212] mt-2">
+                  Earnings Breakdown: Who Contributed to Your Wallet
+                </h3>
+                <p className="text-xs text-[#666] mt-1">
+                  Transparent provenance showing every rupee received — your welcome bonus, direct referrals, and multi-tier network overrides.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="text-xs text-[#888] font-medium hidden sm:inline">Filter:</span>
+                <div className="flex gap-1.5 p-1 bg-[#f5f2ea] rounded-xl border border-[#ded8cc] text-[11px] font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setLedgerFilter('all')}
+                    className={`px-3 py-1 rounded-lg transition ${
+                      ledgerFilter === 'all' ? 'bg-[#121212] text-white shadow-xs' : 'text-[#666] hover:text-[#121212]'
+                    }`}
+                  >
+                    All ({data.registrationRewards?.length || 0})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLedgerFilter('welcome')}
+                    className={`px-3 py-1 rounded-lg transition ${
+                      ledgerFilter === 'welcome' ? 'bg-amber-500 text-white shadow-xs' : 'text-[#666] hover:text-[#121212]'
+                    }`}
+                  >
+                    Self ₹300
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLedgerFilter('direct')}
+                    className={`px-3 py-1 rounded-lg transition ${
+                      ledgerFilter === 'direct' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[#666] hover:text-[#121212]'
+                    }`}
+                  >
+                    Direct ₹200
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLedgerFilter('team')}
+                    className={`px-3 py-1 rounded-lg transition ${
+                      ledgerFilter === 'team' ? 'bg-blue-600 text-white shadow-xs' : 'text-[#666] hover:text-[#121212]'
+                    }`}
+                  >
+                    Downlines ₹100/₹50
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* SUMMARY CARDS: MONEY RECEIVED BY CONTRIBUTOR */}
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-wider text-[#777] mb-3 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-[#96742e]" /> Contributors &amp; Direct Sources
+              </h4>
+
+              {contributorSummary.length === 0 ? (
+                <div className="py-8 text-center bg-[#faf8f5] rounded-2xl border border-dashed border-[#ded8cc] p-6 text-xs text-[#777] space-y-2">
+                  <Coins className="w-8 h-8 text-[#ccc] mx-auto" />
+                  <p className="font-semibold text-[#121212]">No wallet credits recorded yet.</p>
+                  <p>When you or your recruits get verified, every contribution will appear here with full details.</p>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {contributorSummary.map((c, i) => {
+                    const isSelf = c.level === 0;
+                    const isDirect = c.level === 1;
+                    return (
+                      <div
+                        key={c.regNo + i}
+                        className={`p-4 rounded-2xl border transition shadow-xs flex items-center justify-between gap-3 ${
+                          isSelf
+                            ? 'bg-gradient-to-br from-amber-50 to-white border-amber-300'
+                            : isDirect
+                            ? 'bg-gradient-to-br from-emerald-50 to-white border-emerald-300'
+                            : 'bg-gradient-to-br from-blue-50 to-white border-blue-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Contributor Avatar */}
+                          <div
+                            className={`w-10 h-10 rounded-xl grid place-items-center text-sm font-black font-serif shrink-0 shadow-xs ${
+                              isSelf
+                                ? 'bg-[#121212] text-amber-300'
+                                : isDirect
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-[#2a5bd7] text-white'
+                            }`}
+                          >
+                            {c.name.charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <h5 className="font-bold text-xs text-[#121212] truncate">{c.name}</h5>
+                            <span className="font-mono text-[10px] text-[#777] block truncate">
+                              ID: {c.regNo}
+                            </span>
+                            <span
+                              className={`inline-block mt-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                isSelf
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : isDirect
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}
+                            >
+                              {c.role}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Amount */}
+                        <div className="text-right shrink-0">
+                          <span
+                            className={`font-mono font-black text-lg block ${
+                              isSelf ? 'text-amber-800' : isDirect ? 'text-emerald-700' : 'text-[#2a5bd7]'
+                            }`}
+                          >
+                            +{inr(c.totalAmount)}
+                          </span>
+                          <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 justify-end">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Credited
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* DETAILED TRANSACTION TABLE */}
+            <div className="pt-2">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-[#777] mb-3 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#96742e]" /> Complete Credit Transaction Timeline
+              </h4>
+
+              {filteredLedger.length === 0 ? (
+                <p className="text-xs text-[#777] py-4 text-center">No transactions match the selected filter.</p>
+              ) : (
+                <div className="overflow-x-auto rounded-2xl border border-[#ded8cc]">
+                  <table className="w-full text-left text-xs bg-white">
+                    <thead>
+                      <tr className="border-b border-[#ded8cc] bg-[#faf8f5] text-[#777] uppercase text-[10px] tracking-wider">
+                        <th className="py-3 px-4">Contributor / Member</th>
+                        <th className="py-3 px-4">Relationship / Tier</th>
+                        <th className="py-3 px-4">Amount</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#f0ece1]">
+                      {filteredLedger.map((r: any, idx: number) => {
+                        const lvl = Number(r.level ?? 1);
+                        const isSelf = lvl === 0;
+                        const isDirect = lvl === 1;
+
+                        return (
+                          <tr key={r.id || idx} className="hover:bg-[#faf8f5] transition">
+                            <td className="py-3 px-4">
+                              <div className="font-bold text-[#121212]">
+                                {r.source_adviser_name || (isSelf ? 'Self Welcome Cashback' : 'Adviser')}
+                              </div>
+                              <span className="font-mono text-[11px] text-[#777]">
+                                ID: {r.source_registration_no || r.source_adviser_id || 'IB-REF'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                  isSelf
+                                    ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                    : isDirect
+                                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                    : 'bg-blue-50 text-blue-800 border border-blue-200'
+                                }`}
+                              >
+                                {r.reward_type || (isSelf ? 'Welcome Cashback' : isDirect ? 'Direct (Level 1)' : `Level ${lvl} Downline`)}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-mono font-black text-sm text-emerald-700">
+                              +{inr(r.amount)}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase border border-emerald-200">
+                                <Check className="w-3 h-3 text-emerald-600" />
+                                {r.status === 'paid' ? 'Paid Instant' : r.status || 'Credited'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-[#777] font-mono text-[11px]">
+                              {r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN') : 'Recent'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </section>
 
           {/* TWO PRIMARY WAYS TO EARN */}
           <div className="grid md:grid-cols-2 gap-5">

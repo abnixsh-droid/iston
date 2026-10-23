@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { CheckCircle2, FileUp, Loader2, RefreshCw, Trash2, UserPlus } from 'lucide-react';
+import { CheckCircle2, FileUp, Loader2, RefreshCw, Trash2, UserPlus, Sparkles } from 'lucide-react';
 import { api, uploadFile, useApi } from '../lib/api';
 import { updatePassword } from 'firebase/auth';
 import { auth } from '../lib/firebase';
@@ -124,9 +124,19 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-4xl pb-24">
-      <p className="text-xs font-semibold text-muted">Configuration</p>
-      <h1 className="font-display text-4xl text-navy">Site settings</h1>
-      <p className="mt-2 text-sm text-muted">Blank fields display “Coming Soon” on the website.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold text-muted">Configuration</p>
+          <h1 className="font-display text-4xl text-navy">Site settings</h1>
+          <p className="mt-1 text-sm text-muted">Blank fields display “Coming Soon” on the website.</p>
+        </div>
+        <a
+          href="/admin/hero"
+          className="btn btn-outline btn-sm self-start sm:self-auto inline-flex items-center gap-1.5 border-brass text-navy hover:bg-brass-light/20"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-brass" /> Hero Section Editor ↗
+        </a>
+      </div>
 
       <div className="mt-8 space-y-6">
         {GROUPS.map((g) => (

@@ -10,6 +10,13 @@ export const DEFAULTS: Record<string, string> = {
   phone: '+91 84848 43391',
   whatsapp: '918484843391',
   hero_project_slug: 'umroli',
+  hero_eyebrow: 'Current Project · Umroli',
+  hero_title_1: 'Building Better Spaces.',
+  hero_title_2: 'Creating Better Futures.',
+  hero_subtitle: '',
+  hero_image_url: '',
+  hero_cta_text: '',
+  hero_cta_link: '',
   notify_email: 'istonbuildergroup@gmail.com',
   notify_whatsapp: '918484843391',
 };
