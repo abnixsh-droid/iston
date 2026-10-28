@@ -59,7 +59,7 @@ export default function AdviserDashboard() {
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
 
   // Ledger Filter State
-  const [ledgerFilter, setLedgerFilter] = useState<'all' | 'welcome' | 'direct' | 'team' | 'property'>('all');
+  const [ledgerFilter, setLedgerFilter] = useState<'all' | 'direct' | 'team' | 'property'>('all');
 
   // Submit Lead Modal state
   const [leadModal, setLeadModal] = useState(false);
@@ -371,7 +371,6 @@ export default function AdviserDashboard() {
   const filteredLedger = useMemo(() => {
     const list = data?.registrationRewards || [];
     if (ledgerFilter === 'all') return list;
-    if (ledgerFilter === 'welcome') return list.filter((r: any) => Number(r.level) === 0);
     if (ledgerFilter === 'direct') return list.filter((r: any) => Number(r.level) === 1);
     if (ledgerFilter === 'team') return list.filter((r: any) => Number(r.level) > 1);
     return list;
@@ -960,13 +959,13 @@ export default function AdviserDashboard() {
                   {inr(regRewardsSummary.approved + regRewardsSummary.paid)}
                 </p>
               </div>
-              <span className="text-xs text-[#666] mt-3 block">₹300 self + ₹200/referral</span>
+              <span className="text-xs text-[#666] mt-3 block">₹300/direct referral + team overrides</span>
             </div>
           </div>
 
           {/* ============================================================== */}
           {/* TRANSPARENT REWARDS BREAKDOWN: "WHO GAVE HOW MUCH MONEY"        */}
-          {/* User joining bonus, C user bonus, exact amount from whom       */}
+          {/* Direct referrals ₹300, team downlines ₹100/₹50                  */}
           {/* ============================================================== */}
           <section className="rounded-3xl bg-white border border-[#ded8cc] p-6 sm:p-8 shadow-md space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#f0ece1]">
@@ -978,7 +977,7 @@ export default function AdviserDashboard() {
                   Earnings Breakdown: Who Contributed to Your Wallet
                 </h3>
                 <p className="text-xs text-[#666] mt-1">
-                  Transparent provenance showing every rupee received — your welcome bonus, direct referrals, and multi-tier network overrides.
+                  Transparent provenance showing every rupee received — direct referrals (₹300) and multi-tier network overrides (₹100 / ₹50).
                 </p>
               </div>
 
@@ -996,21 +995,12 @@ export default function AdviserDashboard() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setLedgerFilter('welcome')}
-                    className={`px-3 py-1 rounded-lg transition ${
-                      ledgerFilter === 'welcome' ? 'bg-amber-500 text-white shadow-xs' : 'text-[#666] hover:text-[#121212]'
-                    }`}
-                  >
-                    Self ₹300
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setLedgerFilter('direct')}
                     className={`px-3 py-1 rounded-lg transition ${
                       ledgerFilter === 'direct' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[#666] hover:text-[#121212]'
                     }`}
                   >
-                    Direct ₹200
+                    Direct ₹300
                   </button>
                   <button
                     type="button"

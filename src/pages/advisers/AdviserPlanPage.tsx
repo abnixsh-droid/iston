@@ -94,7 +94,7 @@ export default function AdviserPlanPage() {
           <div className="grid lg:grid-cols-[1.25fr_0.75fr] gap-6 items-stretch">
             {/* Left: Colorful Progress Bars */}
             <div className="space-y-4 bg-[#faf8f5] p-5 sm:p-7 rounded-2xl border border-[#e8e3d8]">
-              {/* New Member */}
+              {/* Direct Referrer */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2.5">
@@ -102,36 +102,15 @@ export default function AdviserPlanPage() {
                       ₹
                     </span>
                     <div>
-                      <p className="font-bold text-[#121212]">New Member</p>
-                      <p className="text-[10px] text-[#787267]">Bonus on joining (Self Welcome)</p>
+                      <p className="font-bold text-[#121212]">Direct Referrer</p>
+                      <p className="text-[10px] text-[#787267]">Who shared the referral code (Level 1)</p>
                     </div>
                   </div>
                   <span className="font-mono font-black text-lg text-[#121212]">₹300</span>
                 </div>
                 <div className="w-full h-7 rounded-full bg-[#ede8dc] overflow-hidden p-0.5 shadow-inner">
                   <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-[#c5a059] shadow-sm flex items-center justify-end pr-3" style={{ width: '100%' }}>
-                    <span className="text-[10px] font-black text-[#121212] uppercase tracking-wider">₹300 Instant</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Direct Referrer */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-7 h-7 rounded-full bg-[#d4af37] text-[#121212] font-black grid place-items-center text-xs shadow-xs">
-                      ₹
-                    </span>
-                    <div>
-                      <p className="font-bold text-[#121212]">Direct Referrer</p>
-                      <p className="text-[10px] text-[#787267]">Who shared the code (Level 1)</p>
-                    </div>
-                  </div>
-                  <span className="font-mono font-black text-lg text-[#d4af37]">₹200</span>
-                </div>
-                <div className="w-full h-7 rounded-full bg-[#ede8dc] overflow-hidden p-0.5 shadow-inner">
-                  <div className="h-full rounded-full bg-gradient-to-r from-yellow-500 to-[#d4af37] shadow-sm flex items-center justify-end pr-3" style={{ width: '66%' }}>
-                    <span className="text-[10px] font-black text-[#121212]">₹200</span>
+                    <span className="text-[10px] font-black text-[#121212] uppercase tracking-wider">₹300 Per Direct Join</span>
                   </div>
                 </div>
               </div>
@@ -144,8 +123,8 @@ export default function AdviserPlanPage() {
                       ₹
                     </span>
                     <div>
-                      <p className="font-bold text-[#121212]">Level 2</p>
-                      <p className="text-[10px] text-[#787267]">Referrer's referrer</p>
+                      <p className="font-bold text-[#121212]">Level 2 Upline</p>
+                      <p className="text-[10px] text-[#787267]">Referrer's direct sponsor</p>
                     </div>
                   </div>
                   <span className="font-mono font-black text-lg text-[#2a5bd7]">₹100</span>
@@ -187,7 +166,7 @@ export default function AdviserPlanPage() {
                     </span>
                     <div>
                       <p className="font-bold text-[#121212]">Level 4+</p>
-                      <p className="text-[10px] text-[#787267]">Deeper upline (Evergreen)</p>
+                      <p className="text-[10px] text-[#787267]">Deeper upline (Evergreen network)</p>
                     </div>
                   </div>
                   <span className="font-mono font-black text-lg text-[#1b9a5f]">₹50</span>
@@ -208,21 +187,21 @@ export default function AdviserPlanPage() {
                   ₹300
                 </span>
                 <p className="text-xs text-[#d1cbc1] font-medium">
-                  Back to you the moment your account is activated.
+                  Direct Referral Reward — Paid immediately to you whenever anyone activates with your code.
                 </p>
               </div>
 
               <div className="relative z-10 my-6 border-t border-white/15 pt-6 space-y-2">
                 <span className="text-3xl sm:text-4xl font-extrabold text-[#4d7ef2] block tracking-tight">
-                  5 levels
+                  Multi-Tier
                 </span>
                 <p className="text-xs text-[#d1cbc1]">
-                  Rewarded every single time someone joins under your referral chain.
+                  Earn ongoing ₹100 and ₹50 overrides across your downline network as your team expands.
                 </p>
               </div>
 
               <div className="relative z-10 pt-4 border-t border-white/15 text-[11px] text-[#a09a8e] leading-relaxed">
-                Total distributed: <b className="text-white">₹700 of ₹1,100</b>. Remaining ₹400 covers verified registration processing, KYC checks, and platform operations.
+                Platform activation fee of <b>₹1,100</b> powers verified account registration, dedicated portal access, lifetime commission tracking, and instant upline reward distribution.
               </div>
             </div>
           </div>
@@ -251,7 +230,7 @@ export default function AdviserPlanPage() {
               {/* Node A (Royal Blue) */}
               <div className="flex flex-col items-center text-center p-4 rounded-2xl bg-white border-2 border-[#2a5bd7] shadow-sm">
                 <span className="text-[10px] font-bold tracking-widest text-[#787267] uppercase mb-3">
-                  Level 2 Referrer
+                  Level 2 Upline
                 </span>
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#f0f4ff] border-2 border-[#2a5bd7] shadow-sm flex items-center justify-center font-serif text-3xl font-black text-[#2a5bd7]">
                   A
@@ -259,7 +238,7 @@ export default function AdviserPlanPage() {
                 <span className="font-mono text-2xl sm:text-3xl font-black text-[#2a5bd7] mt-3">
                   +₹100
                 </span>
-                <span className="text-xs text-[#787267] mt-0.5">Level 2 bonus</span>
+                <span className="text-xs text-[#787267] mt-0.5">Level 2 override</span>
               </div>
 
               {/* Node B (Rich Dark with Gold Accent) */}
@@ -270,8 +249,8 @@ export default function AdviserPlanPage() {
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#121212] border-2 border-[#121212] shadow-sm flex items-center justify-center font-serif text-3xl font-black text-[#e4b755]">
                   B
                 </div>
-                <span className="font-mono text-2xl sm:text-3xl font-black text-[#121212] mt-3">
-                  +₹200
+                <span className="font-mono text-2xl sm:text-3xl font-black text-emerald-700 mt-3">
+                  +₹300
                 </span>
                 <span className="text-xs text-[#787267] mt-0.5">Direct referral bonus</span>
               </div>
@@ -279,15 +258,15 @@ export default function AdviserPlanPage() {
               {/* Node C (Vibrant Gold & Emerald) */}
               <div className="flex flex-col items-center text-center p-4 rounded-2xl bg-white border-2 border-[#c5a059] shadow-sm">
                 <span className="text-[10px] font-bold tracking-widest text-[#96742e] uppercase mb-3">
-                  New Member
+                  New Member Joins
                 </span>
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#fdf9ef] border-2 border-[#c5a059] shadow-sm flex items-center justify-center font-serif text-3xl font-black text-[#96742e]">
                   C
                 </div>
-                <span className="font-mono text-2xl sm:text-3xl font-black text-emerald-700 mt-3">
-                  +₹300
+                <span className="font-mono text-xl sm:text-2xl font-black text-[#121212] mt-3">
+                  ID Activated
                 </span>
-                <span className="text-xs text-[#787267] mt-0.5">Instant joining bonus</span>
+                <span className="text-xs text-[#787267] mt-0.5">Earns ₹300 per referral</span>
               </div>
             </div>
 
@@ -298,7 +277,7 @@ export default function AdviserPlanPage() {
                 <span className="font-medium text-[#d1cbc1]">Bonuses flow upline instantly upon office activation</span>
               </div>
               <div className="font-mono font-black text-base text-[#e4b755]">
-                ₹600 paid out from a single join
+                Direct Referrer gets ₹300 • Upline gets ₹100
               </div>
             </div>
           </div>

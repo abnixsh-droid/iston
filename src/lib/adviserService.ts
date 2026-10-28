@@ -834,11 +834,9 @@ export const adviserService = {
     const totalTeam = downline.length;
 
     // 3. Registration referral rewards:
-    // - New Member Welcome Bonus: ₹300
-    // - Direct Referrer (Level 1): ₹200
+    // - Direct Referrer (Level 1): ₹300 (awarded when referred member activates by paying ₹1,100)
     // - Level 2 Upline: ₹100
-    // - Level 3 Upline: ₹50
-    // - Level 4+ Upline: ₹50
+    // - Level 3+ Upline: ₹50
     let registrationRewards: any[] = [];
     try {
       const { data } = await supabase
@@ -851,10 +849,10 @@ export const adviserService = {
           const lvl = Number(d.level ?? 1);
           return {
             ...d,
-            source_adviser_name: d.source_adviser_name || (sourceAdv ? sourceAdv.full_name : (lvl === 0 ? 'Welcome Joining Reward' : `Adviser ${d.new_adviser_id || ''}`)),
+            source_adviser_name: d.source_adviser_name || (sourceAdv ? sourceAdv.full_name : `Adviser ${d.new_adviser_id || ''}`),
             source_registration_no: d.source_registration_no || (sourceAdv ? (sourceAdv.registration_no || sourceAdv.adviser_id) : d.new_adviser_id),
             source_phone: d.source_phone || (sourceAdv ? sourceAdv.phone : ''),
-            reward_type: lvl === 0 ? 'Self Welcome Cashback' : lvl === 1 ? 'Direct Referral (Level 1)' : `Level ${lvl} Network Override`,
+            reward_type: lvl === 1 ? 'Direct Referral (Level 1)' : `Level ${lvl} Network Override`,
             level: lvl,
           };
         });
@@ -866,26 +864,11 @@ export const adviserService = {
     if (registrationRewards.length === 0 && (currentRecord.status === 'active' || currentRecord.payment_status === 'verified_paid' || currentRecord.payment_status === 'verified_cash')) {
       const computedRewards: any[] = [];
 
-      // 1. Self welcome bonus of ₹300 for the active adviser
-      computedRewards.push({
-        id: 'self-welcome-bonus',
-        amount: 300,
-        level: 0,
-        status: 'paid',
-        source_adviser_id: currentRecord.registration_no || currentRecord.adviser_id,
-        source_adviser_name: 'Joining Bonus (Welcome Reward)',
-        source_registration_no: currentRecord.registration_no || currentRecord.adviser_id,
-        source_phone: currentRecord.phone,
-        reward_type: 'Self Welcome Cashback',
-        beneficiary_adviser_id: currentRecord.adviser_id,
-        created_at: currentRecord.activated_at || currentRecord.created_at || new Date().toISOString(),
-      });
-
-      // 2. Cascading downline rewards for active team members
+      // Cascading downline rewards for active team members (Level 1 = ₹300, Level 2 = ₹100, Level 3+ = ₹50)
       downlineWithLevels.forEach(({ adviser: r, level }, idx) => {
         const isActive = r.status === 'active' || r.payment_status === 'verified_paid' || r.payment_status === 'verified_cash';
         if (isActive) {
-          const amt = level === 1 ? 200 : level === 2 ? 100 : 50;
+          const amt = level === 1 ? 300 : level === 2 ? 100 : 50;
           computedRewards.push({
             id: `downline-L${level}-${r.adviser_id}-${idx}`,
             amount: amt,

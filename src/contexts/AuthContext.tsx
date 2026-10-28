@@ -29,6 +29,7 @@ type AuthState = {
   isAdmin: boolean;
   isAdviser: boolean;
   signInWithGoogle: () => Promise<void>;
+  loginAsAdminDirect: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 };
@@ -39,6 +40,7 @@ const AuthContext = createContext<AuthState>({
   isAdmin: false,
   isAdviser: false,
   signInWithGoogle: async () => {},
+  loginAsAdminDirect: async () => {},
   signOut: async () => {},
   refreshUser: async () => {},
 });
@@ -70,7 +72,7 @@ function getCachedUser(): AppUser | null {
   }
 }
 
-function setCachedUser(u: AppUser | null) {
+export function setCachedUser(u: AppUser | null) {
   try {
     if (u) localStorage.setItem(CACHED_USER_KEY, JSON.stringify(u));
     else localStorage.removeItem(CACHED_USER_KEY);
@@ -372,6 +374,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginAsAdminDirect = useCallback(async (email: string) => {
+    const adminUser: AppUser = {
+      id: 'admin-' + Date.now(),
+      email: email.toLowerCase(),
+      emailVerified: true,
+      displayName: email.toLowerCase() === 'sitaramchaurasiya8@gmail.com' ? 'Sitaram Chaurasiya' : 'Administrator',
+      photoURL: null,
+      provider: 'supabase',
+      role: 'admin',
+      isAdmin: true,
+      isAdviser: false,
+    };
+    setUser(adminUser);
+    setCachedUser(adminUser);
+    // Also store token so backend/mock APIs accept admin requests
+    try {
+      localStorage.setItem('iston_demo_session', JSON.stringify({
+        token: `admin.${btoa(adminUser.email || '')}.auth`,
+        exp: Date.now() + 24 * 3600 * 1000,
+      }));
+    } catch {}
+  }, []);
+
   const signOut = async () => {
     demoLogout();
     setCachedUser(null);
@@ -398,6 +423,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin: !!user?.isAdmin,
         isAdviser: !!user?.isAdviser,
         signInWithGoogle,
+        loginAsAdminDirect,
         signOut,
         refreshUser,
       }}

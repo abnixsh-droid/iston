@@ -86,6 +86,15 @@ export default function Header() {
               {isAdviserLoggedIn && <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-[#022c33] animate-pulse" />}
               {isAdviserLoggedIn ? 'Adviser' : 'Adviser Login'}
             </Link>
+            {(isAdmin || user?.email?.toLowerCase() === 'sitaramchaurasiya8@gmail.com') && (
+              <Link
+                to="/admin"
+                className="bg-navy text-amber-300 hover:text-white font-bold border border-amber-400/40 shadow-xs flex items-center gap-1 rounded-full px-2.5 sm:px-3.5 py-1 sm:py-1.5 text-[10.5px] sm:text-xs transition shrink-0"
+              >
+                <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
+                <span>Admin Panel</span>
+              </Link>
+            )}
             <div className="hidden sm:block">
               <LanguageToggle solid={solid} />
             </div>
@@ -153,14 +162,7 @@ export default function Header() {
                     </div>
                   )}
                 </div>
-              ) : (
-                <button
-                  onClick={() => signInWithGoogle()}
-                  className={`btn btn-sm inline-flex items-center gap-1.5 ${solid ? 'btn-outline' : 'btn-ghost'}`}
-                >
-                  <LogIn className="h-3.5 w-3.5" /> Sign in
-                </button>
-              )}
+              ) : null}
             </div>
 
             <button onClick={() => open()} className={`btn btn-sm hidden xl:inline-flex ${solid ? 'btn-primary' : 'btn-light'}`}>
@@ -210,7 +212,7 @@ export default function Header() {
                 </motion.div>
               ))}
 
-              {user ? (
+              {user && (
                 <div className="mt-6 flex items-center justify-between rounded-2xl bg-mist p-4">
                   <div className="text-xs">
                     <p className="font-semibold text-navy">{user.displayName || user.email}</p>
@@ -220,11 +222,16 @@ export default function Header() {
                     Sign out
                   </button>
                 </div>
-              ) : (
-                <div className="mt-6">
-                  <button onClick={() => signInWithGoogle()} className="btn btn-outline w-full flex items-center justify-center gap-2">
-                    <LogIn className="h-4 w-4" /> Sign in with Google
-                  </button>
+              )}
+              {(isAdmin || user?.email?.toLowerCase() === 'sitaramchaurasiya8@gmail.com') && (
+                <div className="mt-4">
+                  <Link
+                    to="/admin"
+                    onClick={() => setMenu(false)}
+                    className="btn btn-outline w-full flex items-center justify-center gap-2 font-bold text-navy border-navy"
+                  >
+                    <ShieldCheck className="h-4 w-4 text-amber-600" /> Admin Panel
+                  </Link>
                 </div>
               )}
 
