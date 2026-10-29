@@ -383,6 +383,7 @@ export default async function handler(req, res) {
 
       const depthLevel = sponsor ? (sponsor.depth_level || 1) + 1 : 1;
       const sponsorChain = sponsor ? [sponsor.adviser_id, ...(sponsor.sponsor_chain || [])] : [];
+      const generatedToken = Math.floor(100000 + Math.random() * 900000).toString();
 
       const newAdviser = {
         id: Date.now(),
@@ -393,7 +394,7 @@ export default async function handler(req, res) {
         phone,
         email: `${phone}@adviser.iston.in`,
         password,
-        token_number: null,
+        token_number: generatedToken,
         sponsor_id: sponsor ? sponsor.adviser_id : referralNo,
         sponsor_code: sponsor ? (sponsor.registration_no || sponsor.referral_code) : referralNo,
         sponsor_chain: sponsorChain,
@@ -443,15 +444,6 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'No adviser found with this Registration Number or Mobile.' });
       }
 
-      if (adviser.status === 'pending') {
-        return res.status(200).json({
-          ok: false,
-          status: 'pending',
-          adviser,
-          message: 'Account locked pending cash verification.',
-        });
-      }
-
       const secretUpper = secret.toUpperCase();
       const tokenUpper = (adviser.token_number || '').toUpperCase();
       const pwd = adviser.password || '';
@@ -463,12 +455,80 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Incorrect Token Number or Password.' });
       }
 
+      if (adviser.status === 'pending') {
+        return res.status(200).json({
+          ok: true,
+          status: 'pending',
+          adviser,
+          message: 'Account is red-locked pending cash verification of ₹1,100.',
+        });
+      }
+
       return res.status(200).json({
         ok: true,
         status: 'active',
         adviser,
         token: adviser.token_number,
         message: 'Account approved. Welcome!',
+      });
+    }
+
+    // 2.015 PUBLIC: Unlock Red-Locked Account with Admin Token Key
+    if (action === 'unlock_with_token') {
+      const body = req.body || {};
+      const ident = String(body.adviser_id || body.identifier || '').trim().toUpperCase();
+      const tokenInput = String(body.token || body.token_key || '').trim().toUpperCase();
+
+      if (!ident || !tokenInput) {
+        return res.status(400).json({ error: 'Adviser Identifier and Token Key are required.' });
+      }
+
+      const adviser = state.advisers.find((a) => {
+        const aReg = (a.registration_no || a.adviser_id || '').toUpperCase();
+        const aPhone = (a.phone || '').replace(/\D/g, '');
+        return aReg === ident || aPhone === ident.replace(/\D/g, '');
+      });
+
+      if (!adviser) {
+        return res.status(404).json({ error: 'Adviser account not found.' });
+      }
+
+      const cleanToken = tokenInput.replace(/\D/g, '');
+      const expectedToken = (adviser.token_number || '').toUpperCase();
+      const cleanExpected = expectedToken.replace(/\D/g, '');
+
+      const isMatch = (expectedToken && tokenInput === expectedToken) || (cleanExpected && cleanToken === cleanExpected);
+
+      if (!isMatch) {
+        return res.status(400).json({ error: 'Invalid Token Key. Please obtain your valid token from Admin after paying ₹1,100.' });
+      }
+
+      adviser.status = 'active';
+      adviser.payment_status = 'verified_cash';
+      adviser.activated_at = new Date().toISOString();
+      adviser.updated_at = new Date().toISOString();
+
+      try {
+        await supabase
+          .from('advisers')
+          .update({
+            status: 'active',
+            payment_status: 'verified_cash',
+            token_number: adviser.token_number,
+            activated_at: adviser.activated_at,
+            updated_at: adviser.updated_at,
+          })
+          .eq('adviser_id', adviser.adviser_id);
+      } catch {}
+
+      await saveAppState(state);
+      await logAudit('ADVISER_TOKEN_UNLOCKED', 'advisers', adviser.adviser_id, 'USER', { token: tokenInput });
+
+      return res.status(200).json({
+        ok: true,
+        status: 'active',
+        adviser,
+        message: 'Account successfully unlocked! Welcome to your active Adviser Dashboard.',
       });
     }
 

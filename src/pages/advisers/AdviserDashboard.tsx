@@ -32,10 +32,12 @@ import {
   Clock,
   Layers,
   Filter,
+  Lock,
+  RotateCcw,
 } from 'lucide-react';
 import Logo from '../../components/Logo';
 import LanguageToggle from '../../components/LanguageToggle';
-import { adviserService, type AdviserRecord, getStoredAdviserAuth, setStoredAdviserAuth } from '../../lib/adviserService';
+import { adviserService, type AdviserRecord, getStoredAdviserAuth, setStoredAdviserAuth, fetchCloudAdvisers } from '../../lib/adviserService';
 import { api } from '../../lib/api';
 import { inr } from '../../lib/format';
 import { useSeo } from '../../lib/seo';
@@ -51,6 +53,12 @@ export default function AdviserDashboard() {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+
+  // Red-Locked Token Key Unlock States
+  const [unlockTokenInput, setUnlockTokenInput] = useState('');
+  const [unlocking, setUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState('');
+  const [checkingApproval, setCheckingApproval] = useState(false);
 
   // Standalone dedicated window view (e.g. ?view=tree | profile | leads | payouts | earnings)
   const dedicatedView = searchParams.get('view');
@@ -108,7 +116,24 @@ export default function AdviserDashboard() {
     try {
       setLoading(true);
       setError('');
-      const res = await adviserService.getDashboard(auth);
+      let currentAuth = auth;
+      try {
+        const cloudAdvisers = await fetchCloudAdvisers();
+        const currentReg = (auth.registration_no || auth.adviser_id || '').toUpperCase();
+        const cloudMatch = cloudAdvisers.find(
+          (a) =>
+            (a.registration_no && a.registration_no.toUpperCase() === currentReg) ||
+            a.adviser_id.toUpperCase() === currentReg ||
+            (a.phone && auth.phone && a.phone.replace(/\D/g, '') === auth.phone.replace(/\D/g, ''))
+        );
+        if (cloudMatch) {
+          currentAuth = { ...auth, ...cloudMatch };
+          setStoredAdviserAuth(currentAuth);
+          setSession(currentAuth);
+        }
+      } catch {}
+
+      const res = await adviserService.getDashboard(currentAuth);
       if (res?.ok) {
         setData(res);
         setDocs(res.adviser?.documents || {});
@@ -117,15 +142,15 @@ export default function AdviserDashboard() {
         // Safe fallback so user is NEVER logged out
         setData({
           ok: true,
-          adviser: auth,
+          adviser: currentAuth,
           stats: {
             directCount: 0,
             totalTeam: 0,
             levelCounts: {},
             teamTree: {
-              adviser_id: auth.adviser_id,
-              registration_no: auth.registration_no || auth.adviser_id,
-              full_name: auth.full_name,
+              adviser_id: currentAuth.adviser_id,
+              registration_no: currentAuth.registration_no || currentAuth.adviser_id,
+              full_name: currentAuth.full_name,
               directCount: 0,
               totalTeam: 0,
               children: [],
@@ -139,8 +164,8 @@ export default function AdviserDashboard() {
           leads: [],
           payouts: [],
         });
-        setDocs(auth.documents || {});
-        setBankDetails(auth.bank_details || {});
+        setDocs(currentAuth.documents || {});
+        setBankDetails(currentAuth.bank_details || {});
       }
     } catch (err: any) {
       setData({
@@ -174,6 +199,57 @@ export default function AdviserDashboard() {
     }
   };
 
+  const handleUnlockWithToken = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUnlockError('');
+    const token = unlockTokenInput.trim();
+    if (!token) {
+      setUnlockError('Please enter the Token Key provided by the Admin.');
+      return;
+    }
+    setUnlocking(true);
+    try {
+      const regId = data?.adviser?.registration_no || data?.adviser?.adviser_id || session?.registration_no || session?.adviser_id;
+      const res = await adviserService.unlockWithToken(regId, token);
+      if (res?.ok && res.adviser) {
+        showToast('Account Unlocked Successfully! Welcome!');
+        setSession(res.adviser);
+        fetchDashboard(res.adviser);
+      } else {
+        setUnlockError(res?.error || 'Invalid Token Key. Please contact admin.');
+      }
+    } catch (err: any) {
+      setUnlockError(err?.message || 'Error unlocking account.');
+    } finally {
+      setUnlocking(false);
+    }
+  };
+
+  const handleCheckApproval = async () => {
+    setCheckingApproval(true);
+    try {
+      const regId = (data?.adviser?.registration_no || data?.adviser?.adviser_id || session?.registration_no || session?.adviser_id || '').toUpperCase();
+      const cloud = await fetchCloudAdvisers();
+      const updated = cloud.find(
+        (a) =>
+          (a.registration_no && a.registration_no.toUpperCase() === regId) ||
+          a.adviser_id.toUpperCase() === regId
+      );
+      if (updated && updated.status === 'active') {
+        showToast('Payment verified by Admin! Account unlocked.');
+        setSession(updated);
+        setStoredAdviserAuth(updated);
+        fetchDashboard(updated);
+      } else {
+        showToast('Payment verification pending at office.');
+      }
+    } catch {
+      showToast('Could not reach verification server. Please retry.');
+    } finally {
+      setCheckingApproval(false);
+    }
+  };
+
   useEffect(() => {
     const currentAuth = getStoredAdviserAuth();
     if (!currentAuth) {
@@ -197,7 +273,13 @@ export default function AdviserDashboard() {
     window.open(`/advisers/dashboard?view=${viewName}`, '_blank', 'noopener,noreferrer');
   };
 
+  const isPending = (data?.adviser?.status === 'pending') || (session?.status === 'pending');
+
   const copyReferralLink = () => {
+    if (isPending) {
+      showToast('Account is Red Locked! Enter Token Key above to unlock referral link.');
+      return;
+    }
     const code = data?.adviser?.referral_code || data?.adviser?.registration_no || data?.adviser?.adviser_id;
     if (!code) return;
     const url = `${window.location.origin}/advisers-program?ref=${code}`;
@@ -208,6 +290,10 @@ export default function AdviserDashboard() {
   };
 
   const handleShareLink = async () => {
+    if (isPending) {
+      showToast('Account is Red Locked! Enter Token Key above to unlock referral link.');
+      return;
+    }
     const code = data?.adviser?.referral_code || data?.adviser?.registration_no || data?.adviser?.adviser_id;
     const url = `${window.location.origin}/advisers-program?ref=${code}`;
 
@@ -268,6 +354,10 @@ export default function AdviserDashboard() {
 
   const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPending) {
+      alert('Account is Red Locked! Please enter your Token Key above to unlock and submit client leads.');
+      return;
+    }
     setSubmittingLead(true);
     setLeadSuccess('');
     try {
@@ -300,6 +390,10 @@ export default function AdviserDashboard() {
 
   const handlePayoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPending) {
+      alert('Account is Red Locked! Payout requests require office activation of ₹1,100.');
+      return;
+    }
     const amt = Number(payoutAmount);
     if (!amt || amt <= 0 || amt > (data?.availableBalance || 0)) {
       alert('Please enter a valid amount within your available balance.');
@@ -434,9 +528,15 @@ export default function AdviserDashboard() {
           <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
             <Logo />
             <span className="hidden md:inline-block w-px h-6 bg-[#ded8cc]" />
-            <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f4fbf7] text-emerald-800 text-[11px] font-bold border border-emerald-200">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Active Adviser
-            </span>
+            {isPending ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-[11px] font-bold border border-rose-300">
+                <Lock className="w-3.5 h-3.5 text-rose-600 animate-pulse" /> Account Red Locked
+              </span>
+            ) : (
+              <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f4fbf7] text-emerald-800 text-[11px] font-bold border border-emerald-200">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Active Adviser
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
@@ -831,7 +931,91 @@ export default function AdviserDashboard() {
       {/* ============================================================== */}
       {!dedicatedView && (
         <div className="container-x max-w-6xl relative z-10 px-4 sm:px-6 mx-auto space-y-8 animate-in fade-in">
-          
+
+          {/* ============================================================== */}
+          {/* RED LOCKED ACCOUNT HERO CARD (PENDING OFFICE APPROVAL OF ₹1,100) */}
+          {/* ============================================================== */}
+          {isPending && (
+            <div className="rounded-3xl bg-gradient-to-br from-rose-950 via-rose-900 to-red-950 text-white p-6 sm:p-8 shadow-2xl border-2 border-rose-500/80 relative overflow-hidden animate-in fade-in">
+              {/* Pulsing Red Ambient Aura */}
+              <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 bg-red-500/30 rounded-full blur-3xl pointer-events-none animate-pulse" />
+
+              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="space-y-3 max-w-xl">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-600/40 text-rose-200 border border-rose-400 text-xs font-black uppercase tracking-widest shadow-inner">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-ping" />
+                    <Lock className="w-4 h-4 text-rose-200" />
+                    ACCOUNT RED LOCKED — ₹1,100 Office Approval Required
+                  </div>
+
+                  <h2 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                    Unlock Account With Admin Token Key
+                  </h2>
+
+                  <p className="text-xs sm:text-sm text-rose-100/90 leading-relaxed">
+                    Your registration has been submitted and Admin has your details. Please deposit <b>₹1,100 cash</b> at our office. Once received, the Admin will approve your account and give you your secret <b>Login Token Key</b>. Enter it below to unlock full withdrawals, commission payouts, and link sharing.
+                  </p>
+
+                  {/* Adviser Quick Details Badges */}
+                  <div className="flex flex-wrap gap-2 text-xs pt-1">
+                    <span className="px-3 py-1 rounded-xl bg-black/30 border border-rose-400/40 text-rose-200">
+                      Reg No: <b className="font-mono text-white select-all">{adviser.registration_no || adviser.adviser_id}</b>
+                    </span>
+                    <span className="px-3 py-1 rounded-xl bg-black/30 border border-rose-400/40 text-rose-200">
+                      Adviser: <b className="text-white">{adviser.full_name}</b>
+                    </span>
+                    <span className="px-3 py-1 rounded-xl bg-black/30 border border-rose-400/40 text-rose-200">
+                      Mobile: <b className="text-white">{adviser.phone}</b>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Unlock Input Form */}
+                <div className="w-full md:w-80 shrink-0 bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-rose-400/50 shadow-xl space-y-3.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-rose-200 block">
+                    Enter Token Key to Unlock
+                  </span>
+
+                  {unlockError && (
+                    <div className="p-2.5 rounded-xl bg-red-500/30 border border-red-400 text-rose-100 text-xs font-medium">
+                      {unlockError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleUnlockWithToken} className="space-y-3">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={unlockTokenInput}
+                        onChange={(e) => setUnlockTokenInput(e.target.value)}
+                        placeholder="Enter 6-digit Token Key"
+                        className="w-full px-4 py-3 rounded-xl bg-black/40 border border-rose-300 text-white placeholder-rose-300/60 font-mono font-bold tracking-widest text-center text-sm focus:outline-none focus:border-white transition"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={unlocking}
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {unlocking ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                      Unlock Account Now
+                    </button>
+                  </form>
+
+                  <button
+                    type="button"
+                    onClick={handleCheckApproval}
+                    disabled={checkingApproval}
+                    className="w-full py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 transition border border-rose-300/30"
+                  >
+                    {checkingApproval ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                    Already Paid? Refresh Status
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ============================================================== */}
           {/* USER INFO CARD: COLORFUL, MINIMAL, NO USELESS TEXT             */}
           {/* Shows: Name, Reg.No, Token, Mobile, and Share Link Button      */}
@@ -866,7 +1050,7 @@ export default function AdviserDashboard() {
 
                     {/* Token (Amber/Gold) */}
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40 text-xs font-mono font-bold shadow-xs">
-                      Token: {adviser.token_number || 'IB-APPROVED'}
+                      Token: {isPending ? 'LOCKED (PENDING ₹1,100)' : (adviser.token_number || 'IB-APPROVED')}
                     </span>
 
                     {/* Mobile Number (Sky Blue) */}

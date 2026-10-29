@@ -20,6 +20,7 @@ import {
   Copy,
   Check,
   Eye,
+  EyeOff,
   FileText,
   CreditCard,
   Lock,
@@ -41,6 +42,11 @@ export default function AdvisersAdmin() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+
+  const togglePasswordVisibility = (id: string) => {
+    setShowPasswords((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Policy states
   const [policies, setPolicies] = useState<any>(null);
@@ -637,7 +643,44 @@ export default function AdvisersAdmin() {
                           <div className="mt-2 space-y-1 text-xs">
                             <p className="text-muted"><b className="text-navy">Mobile:</b> {a.phone}</p>
                             <p className="text-muted"><b className="text-navy">Sponsor:</b> {a.sponsor_code || a.sponsor_id || 'Direct'}</p>
-                            <p className="text-muted"><b className="text-navy">Password:</b> <span className="font-mono bg-mist px-1.5 py-0.5 rounded text-muted select-none">••••••••</span></p>
+                            <div className="flex items-center gap-1.5 text-muted">
+                              <b className="text-navy">Password:</b>
+                              <span className="font-mono font-bold text-navy bg-mist px-2 py-0.5 rounded select-all border border-line">
+                                {a.password || 'Not set'}
+                              </span>
+                              {a.password && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(a.password);
+                                    alert(`Password "${a.password}" copied to clipboard!`);
+                                  }}
+                                  className="text-[10px] text-orange-600 hover:text-orange-700 font-bold inline-flex items-center gap-0.5 ml-1"
+                                  title="Copy password"
+                                >
+                                  <Copy className="w-3 h-3" /> Copy
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-muted">
+                              <b className="text-navy">Token Key:</b>
+                              <span className="font-mono font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200 select-all">
+                                {a.token_number || 'IB' + Math.floor(100000 + Math.random() * 900000)}
+                              </span>
+                              {a.token_number && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(a.token_number);
+                                    alert(`Token Key "${a.token_number}" copied! Give this to user to unlock.`);
+                                  }}
+                                  className="text-[10px] text-orange-600 hover:text-orange-700 font-bold inline-flex items-center gap-0.5 ml-1"
+                                  title="Copy Token Key"
+                                >
+                                  <Copy className="w-3 h-3" /> Copy
+                                </button>
+                              )}
+                            </div>
                           </div>
 
                           <div className="mt-2.5 flex items-center justify-between text-xs pt-2 border-t border-line">
@@ -738,7 +781,7 @@ export default function AdvisersAdmin() {
                       <th className="py-3 px-4">Reg No</th>
                       <th className="py-3 px-4">Name (as per Aadhaar) & Phone</th>
                       <th className="py-3 px-4">Sponsor / Ref</th>
-                      <th className="py-3 px-4">Security</th>
+                      <th className="py-3 px-4">User Password</th>
                       <th className="py-3 px-4">Token Number</th>
                       <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4">KYC Docs</th>
@@ -757,7 +800,36 @@ export default function AdvisersAdmin() {
                             <p className="text-[11px] text-muted">{a.phone}</p>
                           </td>
                           <td className="py-3 px-4 font-mono text-muted">{a.sponsor_code || a.sponsor_id || 'Direct'}</td>
-                          <td className="py-3 px-4 font-mono text-muted select-none">••••••••</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono font-bold text-navy bg-mist px-2 py-0.5 rounded text-[11px] select-all border border-line">
+                                {showPasswords[a.adviser_id] ? (a.password || '—') : (a.password ? '••••••••' : '—')}
+                              </span>
+                              {a.password && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => togglePasswordVisibility(a.adviser_id)}
+                                    className="text-muted hover:text-navy p-1 transition"
+                                    title={showPasswords[a.adviser_id] ? 'Hide Password' : 'View Password'}
+                                  >
+                                    {showPasswords[a.adviser_id] ? <EyeOff className="w-3.5 h-3.5 text-orange-600" /> : <Eye className="w-3.5 h-3.5 text-muted hover:text-navy" />}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(a.password);
+                                      alert(`Password "${a.password}" copied!`);
+                                    }}
+                                    className="text-muted hover:text-orange-600 p-1 transition"
+                                    title="Copy Password"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
                           <td className="py-3 px-4">
                             {a.token_number ? (
                               <span className="font-mono font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded text-[11px]">
@@ -1612,11 +1684,45 @@ export default function AdvisersAdmin() {
                 </div>
                 <div className="p-3 rounded-xl bg-mist/50 border border-line">
                   <span className="text-muted text-[10px] uppercase font-bold block">Login Token</span>
-                  <p className="font-mono font-bold text-orange-700 mt-1">{inspectAdviser.token_number || 'Not issued'}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <p className="font-mono font-bold text-orange-700 text-xs select-all">
+                      {inspectAdviser.token_number || 'Not issued'}
+                    </p>
+                    {inspectAdviser.token_number && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(inspectAdviser.token_number);
+                          alert(`Token Key "${inspectAdviser.token_number}" copied!`);
+                        }}
+                        className="text-muted hover:text-orange-600 p-0.5"
+                        title="Copy Token Key"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="p-3 rounded-xl bg-mist/50 border border-line">
                   <span className="text-muted text-[10px] uppercase font-bold block">Password</span>
-                  <p className="font-mono font-bold text-muted mt-1 select-none">••••••••</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <p className="font-mono font-bold text-navy text-xs select-all">
+                      {inspectAdviser.password || 'Not set'}
+                    </p>
+                    {inspectAdviser.password && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(inspectAdviser.password);
+                          alert(`Password "${inspectAdviser.password}" copied!`);
+                        }}
+                        className="text-muted hover:text-orange-600 p-0.5"
+                        title="Copy Password"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 

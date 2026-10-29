@@ -119,14 +119,11 @@ export default function AdvisersPortal() {
         tokenOrPassword: loginPassword.trim(),
       });
 
-      if (res?.status === 'pending' && res.adviser) {
+      if (res?.ok && res.adviser) {
+        setStoredAdviserAuth(res.adviser);
         setTargetAdviser(res.adviser);
-        setView('locked_red');
-      } else if (res?.ok && res.adviser) {
-        const activeAdv = { ...res.adviser, status: 'active' as const };
-        setStoredAdviserAuth(activeAdv);
-        setTargetAdviser(activeAdv);
-        setView('approved_green');
+        navigate('/advisers/dashboard');
+        return;
       } else {
         setLoginError(res?.error || 'Invalid credentials or registration not found.');
       }
@@ -288,12 +285,12 @@ export default function AdvisersPortal() {
                   <button
                     type="button"
                     onClick={() => {
-                      setLoginIdentifier(targetAdviser.registration_no || targetAdviser.adviser_id);
-                      setView('login');
+                      setStoredAdviserAuth(targetAdviser);
+                      navigate('/advisers/dashboard');
                     }}
-                    className="flex-1 bg-[#121212] hover:bg-black text-[#faf8f5] font-bold py-3.5 rounded-xl text-xs tracking-wider uppercase transition flex items-center justify-center gap-2 shadow-sm"
+                    className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3.5 rounded-xl text-xs tracking-wider uppercase transition flex items-center justify-center gap-2 shadow-sm"
                   >
-                    Have Your Token? Login <ArrowRight className="w-4 h-4" />
+                    <Lock className="w-4 h-4" /> View Dashboard (Red-Locked) ↗
                   </button>
                   <button
                     type="button"

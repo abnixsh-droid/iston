@@ -319,6 +319,7 @@ export const adviserService = {
     }
 
     // 2. Direct Supabase / Local creation
+    const generatedToken = this.generateTokenNumber();
     const newAdviser: AdviserRecord = {
       adviser_id: regNo,
       registration_no: regNo,
@@ -326,7 +327,7 @@ export const adviserService = {
       email: `${cleanPhone}@adviser.iston.in`,
       phone: cleanPhone,
       password,
-      token_number: null,
+      token_number: generatedToken,
       referral_code: regNo,
       sponsor_id: referralNo,
       sponsor_code: referralNo,
@@ -398,12 +399,7 @@ export const adviserService = {
       });
       if (res?.ok && res.adviser) {
         saveLocalCache(res.adviser);
-        if (res.adviser.status === 'active') {
-          setStoredAdviserAuth({ ...res.adviser, status: 'active' });
-        }
-        return res;
-      } else if (res?.status === 'pending') {
-        saveLocalCache(res.adviser);
+        setStoredAdviserAuth(res.adviser);
         return res;
       } else if (res?.error) {
         return { ok: false, error: res.error };
@@ -448,17 +444,7 @@ export const adviserService = {
       return { ok: false, error: 'No adviser found with this Registration Number or Mobile.' };
     }
 
-    // If pending approval, return pending status (triggers the Red Screen)
-    if (adviser.status === 'pending') {
-      return {
-        ok: false,
-        status: 'pending',
-        adviser,
-        message: 'Your account is locked pending cash payment verification. Please pay cash at the office to receive your Token Number.',
-      };
-    }
-
-    // Verify Token Number or Password
+    // Verify Token Number or Password first
     const secretUpper = secret.toUpperCase();
     const tokenUpper = (adviser.token_number || '').toUpperCase();
     const pwd = adviser.password || '';
@@ -470,17 +456,115 @@ export const adviserService = {
       return { ok: false, error: 'Incorrect Token Number or Password.' };
     }
 
-    // Save active adviser session
-    const activeAdviser: AdviserRecord = { ...adviser, status: 'active' };
-    setStoredAdviserAuth(activeAdviser);
-    saveLocalCache(activeAdviser);
+    // Save adviser session (both pending and active can access dashboard, pending is red-locked)
+    setStoredAdviserAuth(adviser);
+    saveLocalCache(adviser);
+
+    if (adviser.status === 'pending') {
+      return {
+        ok: true,
+        status: 'pending',
+        adviser,
+        message: 'Account is red locked pending cash verification of ₹1,100 at the office.',
+      };
+    }
 
     return {
       ok: true,
       status: 'active',
-      adviser: activeAdviser,
+      adviser,
       message: 'Account approved & verified! Welcome to your Adviser Dashboard.',
     };
+  },
+
+  /**
+   * Unlock Red-Locked Account using Token Key
+   */
+  async unlockWithToken(
+    identifier: string,
+    token: string
+  ): Promise<{ ok: boolean; adviser?: AdviserRecord; error?: string }> {
+    const ident = identifier.trim().toUpperCase();
+    const cleanToken = token.trim().toUpperCase();
+
+    if (!ident || !cleanToken) {
+      return { ok: false, error: 'Please enter your Registration/Mobile and Token Key.' };
+    }
+
+    // 1. Try API first
+    try {
+      const res = await api<{ ok: boolean; status?: string; adviser?: AdviserRecord; error?: string }>('/api/advisers', {
+        method: 'POST',
+        body: {
+          action: 'unlock_with_token',
+          identifier: ident,
+          token: cleanToken,
+        },
+      });
+      if (res?.ok && res.adviser) {
+        saveLocalCache(res.adviser);
+        setStoredAdviserAuth(res.adviser);
+        syncAdviserToCloud(res.adviser);
+        return res;
+      } else if (res?.error) {
+        return { ok: false, error: res.error };
+      }
+    } catch {
+      /* fallback */
+    }
+
+    // 2. Direct verification
+    const all = await fetchCloudAdvisers();
+    const cleanIdentDigits = ident.replace(/\D/g, '');
+    const adv = all.find(
+      (a) =>
+        (a.registration_no && a.registration_no.toUpperCase() === ident) ||
+        (a.adviser_id && a.adviser_id.toUpperCase() === ident) ||
+        (cleanIdentDigits && a.phone && a.phone.replace(/\D/g, '') === cleanIdentDigits)
+    );
+
+    if (!adv) {
+      return { ok: false, error: 'Adviser account not found.' };
+    }
+
+    const expToken = (adv.token_number || '').toUpperCase();
+    const isMatch =
+      (expToken && cleanToken === expToken) ||
+      (expToken && cleanToken.replace(/\D/g, '') === expToken.replace(/\D/g, ''));
+
+    if (!isMatch) {
+      return { ok: false, error: 'Invalid Token Key. Please obtain your valid token from Admin after paying ₹1,100.' };
+    }
+
+    const unlocked: AdviserRecord = {
+      ...adv,
+      status: 'active',
+      payment_status: 'verified_cash',
+      payment_method: 'cash',
+      token_number: adv.token_number || cleanToken,
+      activated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    try {
+      await supabase
+        .from('advisers')
+        .update({
+          status: 'active',
+          payment_status: 'verified_cash',
+          payment_method: 'cash',
+          token_number: unlocked.token_number,
+          activated_at: unlocked.activated_at,
+          updated_at: unlocked.updated_at,
+        })
+        .eq('adviser_id', unlocked.adviser_id);
+    } catch {}
+
+    saveLocalCache(unlocked);
+    setStoredAdviserAuth(unlocked);
+    syncAdviserToCloud(unlocked);
+
+    return { ok: true, adviser: unlocked };
   },
 
   /**
