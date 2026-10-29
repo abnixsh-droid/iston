@@ -18,6 +18,7 @@ import { PageLoader } from './components/ui';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import PageProgressBar from './components/PageProgressBar';
 import CookieConsent from './components/CookieConsent';
+import HostingerPlanError from './components/HostingerPlanError';
 
 const AdvisersPortal = lazy(() => import('./pages/advisers/AdvisersPortal'));
 const AdviserRegistration = lazy(() => import('./pages/advisers/AdviserRegistration'));
@@ -34,6 +35,23 @@ const AccountPage = lazy(() => import('./admin/SettingsPages').then((m) => ({ de
 const BrochurePage = lazy(() => import('./admin/SettingsPages').then((m) => ({ default: m.BrochurePage })));
 const SettingsPage = lazy(() => import('./admin/SettingsPages').then((m) => ({ default: m.SettingsPage })));
 const HeroSectionAdmin = lazy(() => import('./admin/HeroSectionAdmin'));
+
+// ════════════════════════════════════════════════════════════════════
+// TEMPORARY HOSTING PLAN UPGRADE BLOCKER
+//
+// Poori site "backend not supported" Hostinger screen ke behind hai
+// jab tak hosting plan ko Node.js + Databases support ke liye upgrade
+// nahi karte.
+//
+// AFTER PURCHASING THE UPGRADE:
+//   1. Is boolean ko false karo.
+//   2. Ye comment block, upar wala import, aur App ke andar ka
+//      early-return block delete kar do.
+//
+// SAFE TO KEEP LIVE: original Home, App routes, aur admin dashboard
+// sab is file me hi intact hain — inhe chhedne ki zaroorat nahi.
+// ════════════════════════════════════════════════════════════════════
+const SHOW_HOSTING_PLAN_ERROR = true;
 
 function ScrollTop() {
   const { pathname } = useLocation();
@@ -61,6 +79,11 @@ function PublicLayout() {
 }
 
 export default function App() {
+  // Temporary blocker — remove this block once the upgrade is done.
+  if (SHOW_HOSTING_PLAN_ERROR) {
+    return <HostingerPlanError />;
+  }
+
   return (
     <AuthProvider>
       <SettingsProvider>
