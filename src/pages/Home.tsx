@@ -1,7 +1,7 @@
 import BrochureButton from '../components/BrochureButton';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Handshake, MapPin, ServerCog, Database } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Handshake, MapPin } from 'lucide-react';
 import { useApi } from '../lib/api';
 import type { Row } from '../lib/api';
 import { useSeo } from '../lib/seo';
@@ -26,61 +26,7 @@ const TILES: [string, string, string, string][] = [
   ['/plots', 'Plots', 'Land parcels', '/images/plot.jpg'],
 ];
 
-// ---------------------------------------------------------------
-// Toggle this to `false` once the hosting plan is upgraded
-// to instantly restore the normal homepage below.
-// ---------------------------------------------------------------
-const BACKEND_DISABLED = true;
-const UPGRADE_URL = 'https://cart.hostinger.com/pay/b3841117-56fc-4417-a61c-628fa8bf39d0';
-
-function BackendUpgradeNotice() {
-  return (
-    <div className="flex min-h-[100svh] items-center justify-center bg-mist px-4 py-16">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: EASE }}
-        className="w-full max-w-lg rounded-[1.75rem] bg-white p-8 text-center shadow-[0_30px_60px_-30px_rgba(11,29,63,0.25)] md:p-10"
-      >
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-navy/5">
-          <ServerCog className="h-8 w-8 text-navy" />
-        </div>
-
-        <h1 className="font-display text-2xl text-navy md:text-3xl">
-          Backend Services Unavailable
-        </h1>
-
-        <p className="mt-4 text-[15px] leading-relaxed text-muted">
-          This site requires Node.js and database services to run its full
-          functionality. Your current hosting plan doesn't include backend
-          support, so some features are temporarily disabled.
-        </p>
-
-        <div className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <Database className="h-4 w-4 shrink-0" />
-          <span>Upgrade your plan to enable Node.js & database access.</span>
-        </div>
-
-        <a
-          href={UPGRADE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn btn-primary mt-8 w-full justify-center sm:w-auto sm:px-8"
-        >
-          Upgrade Hosting Plan <ArrowUpRight className="h-4 w-4" />
-        </a>
-
-        <p className="mt-5 text-xs text-muted">
-          Already upgraded? It may take a few minutes to reflect — refresh this page after upgrading.
-        </p>
-      </motion.div>
-    </div>
-  );
-}
-
 export default function Home() {
-  if (BACKEND_DISABLED) return <BackendUpgradeNotice />;
-
   const { s } = useSettings();
   const { open } = useEnquiry();
   useSeo('', s.seo_description, '/images/umroli-hero.jpg');
